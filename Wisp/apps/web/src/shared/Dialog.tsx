@@ -3,10 +3,12 @@ export function Dialog({
   title,
   close,
   children,
+  className = "",
 }: {
   title: string;
   close: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -19,7 +21,7 @@ export function Dialog({
   return (
     <div className="overlay">
       <div
-        className="dialog"
+        className={`dialog ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-label={title}
