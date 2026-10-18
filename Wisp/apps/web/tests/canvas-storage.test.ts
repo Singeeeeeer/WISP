@@ -87,7 +87,7 @@ it("upgrades v7 without changing materials, existing results, settings, tasks or
   expect(await repo.listCanvasNotes()).toEqual([]);
   expect(await repo.listCanvasConnections()).toEqual([]);
   const upgraded = await openDB(name);
-  expect(upgraded.version).toBe(8);
+  expect(upgraded.version).toBe(9);
   expect(upgraded.objectStoreNames.length).toBe(8);
   for (const [store, value] of Object.entries(values))
     expect(await upgraded.getAll(store)).toEqual([value]);

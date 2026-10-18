@@ -1,13 +1,19 @@
 import { requestGemini } from "./gemini";
+import { requestBatchGemini } from "./batch";
+import type { BatchDraft, BatchRecord } from "../domain/batch";
 import type { ProcessingRecord } from "../domain/processing";
 import { create } from "zustand";
 import { completedForProposal } from "./proposal-runtime";
 import type { ActionDraft } from "../domain/model";
 import {
   newTask,
+  newBatchTask,
+  isBatchTask,
+  validBatchTask,
   validGeminiTask,
   pendingTask,
   type Task,
+  type SingleTask,
   type TaskAction,
 } from "../domain/task";
 import type { LocalRecord } from "../domain/local-text";
@@ -17,8 +23,10 @@ export const useTasks = create<{
   tasks: Task[];
   ready: boolean;
   error: string;
-}>(() => ({ tasks: [], ready: false, error: "" }));
+  pendingSaves: Record<string, string>;
+}>(() => ({ tasks: [], ready: false, error: "", pendingSaves: {} }));
 const stops = new Map<string, () => void>();
+const saveRetries = new Map<string, () => Promise<void>>();
 const channel =
   typeof BroadcastChannel === "undefined"
     ? undefined
@@ -43,7 +51,15 @@ async function changed() {
   await refresh();
   channel?.postMessage("changed");
 }
-function execute(task: Task): Promise<ProcessingRecord> {
+function execute(task: Task): Promise<ProcessingRecord | BatchRecord> {
+  if (isBatchTask(task)) {
+    if (!validBatchTask(task)) return Promise.reject(new Error("多材料委托范围或角色参数无效"));
+    const controller = new AbortController();
+    stops.set(task.id, () => controller.abort());
+    return requestBatchGemini(task.id.slice(5), task.snapshots, task.instruction,
+      task.operation === "understand" ? { operation: "understand", summaryStyle: task.summaryStyle! } : { operation: task.operation },
+      controller.signal).finally(() => stops.delete(task.id));
+  }
   if (task.execution === "gemini") {
     if (!validGeminiTask(task))
       return Promise.reject(
@@ -89,6 +105,55 @@ function execute(task: Task): Promise<ProcessingRecord> {
     }
   });
 }
+// The dispatch Web Lock stays held until a validated reply is saved or recalled.
+// Keep failed saves in this page only; a refresh recovers the stored running task
+// as interrupted instead of repeating a model request automatically.
+function saveBatchReply(id: string, result: BatchRecord): Promise<Task> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let attempt: Promise<void> | undefined;
+    const clear = () => {
+      saveRetries.delete(id);
+      stops.delete(id);
+      useTasks.setState((state) => {
+        const pendingSaves = { ...state.pendingSaves };
+        delete pendingSaves[id];
+        return { pendingSaves };
+      });
+    };
+    const retry = (): Promise<void> => (attempt ??= (async () => {
+      if (settled) return;
+      let completed: Task;
+      try {
+        completed = await repository.changeTask(id, { type: "complete", result });
+      } catch (error) {
+        if (settled) return;
+        useTasks.setState((state) => ({ pendingSaves: {
+          ...state.pendingSaves,
+          [id]: "回信尚未保存：" + (error instanceof Error ? error.message : "本地存储不可用") +
+            "。可仅重试保存；刷新会丢弃待保存回信并中断任务。",
+        } }));
+        throw error;
+      }
+      if (settled) return;
+      settled = true;
+      clear();
+      resolve(completed);
+    })().finally(() => { attempt = undefined; }));
+    saveRetries.set(id, retry);
+    stops.set(id, () => {
+      if (settled) return;
+      settled = true;
+      clear();
+      reject(new Error("任务已召回，待保存回信已丢弃。"));
+    });
+    void retry().catch(() => {});
+  });
+}
+export function retryBatchTaskSave(id: string): Promise<void> {
+  const retry = saveRetries.get(id);
+  return retry ? retry() : Promise.reject(new Error("没有待保存的多材料回信。"));
+}
 export function submitTask(draft: ActionDraft): Promise<void> {
   if (!navigator.locks)
     return Promise.reject(
@@ -102,7 +167,13 @@ export function submitTask(draft: ActionDraft): Promise<void> {
   }
   return dispatchTask(task);
 }
-export function submitWatchTask(task: Task): Promise<void> {
+export function submitBatchTask(draft: BatchDraft): Promise<void> {
+  if (!navigator.locks)
+    return Promise.reject(new Error("当前浏览器不支持本地任务锁，请使用支持 Web Locks 的浏览器。"));
+  try { return dispatchTask(newBatchTask(draft)); }
+  catch (e) { return Promise.reject(e); }
+}
+export function submitWatchTask(task: SingleTask): Promise<void> {
   return dispatchTask(task, true);
 }
 function dispatchTask(task: Task, waitForCompletion = false): Promise<void> {
@@ -112,7 +183,7 @@ function dispatchTask(task: Task, waitForCompletion = false): Promise<void> {
         if (!lock) {
           throw new Error("本次委托已在提交或执行中，请查看任务记录。");
         }
-        const saved = task.watchId
+        const saved = !isBatchTask(task) && task.watchId
           ? await repository.enqueueWatchTask(task)
           : await repository.enqueueTask(task);
         if (!saved) {
@@ -132,12 +203,15 @@ function dispatchTask(task: Task, waitForCompletion = false): Promise<void> {
           await changed();
           if (running.status !== "running") return;
           const result = await execute(running);
-          const completed = await repository.changeTask(task.id, {
-            type: "complete",
-            result,
-          });
+          const completed = isBatchTask(running)
+            ? await saveBatchReply(task.id, result as BatchRecord)
+            : await repository.changeTask(task.id, {
+                type: "complete",
+                result,
+              });
           if (
             !task.watchId &&
+            !isBatchTask(completed) &&
             completed.status === "completed" &&
             completed.result &&
             completed.result.execution !== "gemini"

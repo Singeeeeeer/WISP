@@ -103,9 +103,11 @@ it("upgrades v5 preserving all stores and leaves the cauldron empty", async () =
   const storedJoint = (await r.listRecords())[0];
   if (storedJoint.operation !== "joint")
     throw new Error("Expected joint record");
+  const storedTask = (await r.listTasks())[0];
+  if (storedTask.scope === "batch") throw new Error("Expected single task");
   for (const oldSnapshot of [
     ...storedJoint.sources.map((source) => source.snapshot),
-    (await r.listTasks())[0].snapshot,
+    storedTask.snapshot,
     (await r.listWatches())[0].baseline,
   ]) {
     expect(oldSnapshot).not.toHaveProperty("source");
@@ -115,7 +117,7 @@ it("upgrades v5 preserving all stores and leaves the cauldron empty", async () =
   expect(await r.readPreference("layout")).toEqual([{ x: 12, y: 31 }]);
   expect(await r.listCauldronEntries()).toEqual([]);
   const probe = await openDB(name);
-  expect(probe.version).toBe(8);
+  expect(probe.version).toBe(9);
   expect(probe.objectStoreNames.length).toBe(8);
   probe.close();
 });

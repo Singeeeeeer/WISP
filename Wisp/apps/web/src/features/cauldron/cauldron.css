@@ -28,13 +28,27 @@
   flex-direction: column;
   gap: 8px;
 }
-.cauldron-list > button {
+.cauldron-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cauldron-item > button {
   text-align: left;
   display: flex;
   flex-direction: column;
   gap: 7px;
   overflow-wrap: anywhere;
   flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
+}
+.cauldron .cauldron-item > input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #73518b;
 }
 .cauldron-list small {
   font-size: 10px;

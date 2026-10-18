@@ -216,6 +216,7 @@ export const useWorkspace = create<Workspace>((set, get) => ({
   },
 }));
 interface Interaction {
+  batchDraft?: import("../domain/batch").BatchDraft;
   canvas: boolean;
   selection?: SelectionContext;
   selectionError?: { materialId: string; message: string };

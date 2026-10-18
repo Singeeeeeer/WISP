@@ -1,4 +1,5 @@
 import type { ProcessingRecord } from "./processing";
+import type { BatchRecord } from "./batch";
 import { runText, validateText, type TextRecord } from "./local-text";
 import type { ExcerptLimit, MaterialSnapshot } from "./model";
 export interface JointDraft {
@@ -16,7 +17,7 @@ export interface JointRecord {
   excerptLimit: ExcerptLimit;
   sources: [TextRecord, TextRecord];
 }
-export type StoredRecord = ProcessingRecord | JointRecord;
+export type StoredRecord = ProcessingRecord | JointRecord | BatchRecord;
 export const jointLimit =
   "两份文本分别按原文顺序摘录，保留各自来源；不合并事实、不推断联系，不是综合摘要。每份独立采用所选行数。";
 function validSources(s: MaterialSnapshot[]) {

@@ -10,7 +10,7 @@ export function DocumentEditor({ material }: { material: Material }) {
     <div
       className="document-content"
       onContextMenu={(e) => {
-        if (e.shiftKey || useInteraction.getState().draft) return;
+        if (e.shiftKey || useInteraction.getState().draft || useInteraction.getState().batchDraft) return;
         e.preventDefault();
         e.stopPropagation();
         useWorkspace.getState().activate("window-" + material.id);

@@ -8,6 +8,9 @@ import { GeminiTextResult } from "./GeminiTextResult";
 import { geminiTextHeading } from "../../domain/gemini-text";
 import { geminiHeading } from "../../domain/gemini-check";
 import type { ProcessingRecord } from "../../domain/processing";
+import { isBatchRecord, batchContinuationDraft, type BatchRecord } from "../../domain/batch";
+import { BatchResult } from "../batch/BatchResult";
+import { openBatchDraft, prepareBatchAgain, familiarForBatch } from "../batch/actions";
 import { sourceDescription } from "../../domain/cauldron";
 import { SourceInfo } from "../../shared/SourceInfo";
 import type { StoredRecord } from "../../domain/joint";
@@ -196,12 +199,13 @@ export function LocalResult({
 }
 
 export function ProcessingResult(props: {
-  record: ProcessingRecord;
+  record: ProcessingRecord | BatchRecord;
   close: () => void;
   again: () => void;
   againLabel?: string;
   summon?: () => void;
 }) {
+  if (isBatchRecord(props.record)) return <BatchResult {...props} record={props.record} />;
   return props.record.execution === "gemini" ? (
     props.record.operation === "check" ? (
       <GeminiResult {...props} record={props.record} />
@@ -400,7 +404,11 @@ export function LocalHistory({ close }: { close: () => void }) {
   return (
     <Dialog title="处理记录" close={close}>
       {selected ? (
-        selected.operation === "joint" ? (
+        isBatchRecord(selected) ? (
+          <BatchResult record={selected} close={() => setSelected(undefined)}
+            again={() => { if (prepareBatchAgain(selected, selected.operation, familiarForBatch(selected))) close(); }}
+            summon={() => { close(); openBatchDraft(batchContinuationDraft(selected)); }} />
+        ) : selected.operation === "joint" ? (
           <JointResult
             record={selected}
             close={() => setSelected(undefined)}
@@ -460,7 +468,7 @@ export function LocalHistory({ close }: { close: () => void }) {
           {records.map((r) => (
             <div className="scope" key={r.id}>
               <strong>
-                {r.operation === "joint"
+                {isBatchRecord(r) ? r.snapshots.map((s) => s.title + " · 版本 " + s.materialVersion).join(" ＋ ") : r.operation === "joint"
                   ? r.sources
                       .map(
                         (part) =>
@@ -473,7 +481,7 @@ export function LocalHistory({ close }: { close: () => void }) {
               </strong>
               <p>
                 {new Date(r.createdAt).toLocaleString()} ·{" "}
-                {r.operation === "joint"
+                {isBatchRecord(r) ? "多材料 " + labels[r.operation] + " · Gemini" : r.operation === "joint"
                   ? "两份文本联合整理"
                   : labels[r.operation] +
                     " · " +
@@ -484,7 +492,7 @@ export function LocalHistory({ close }: { close: () => void }) {
                       : resultHeading(r))}
               </p>
               <button onClick={() => setSelected(r)}>
-                {r.operation === "joint"
+                {isBatchRecord(r) ? "查看多材料 " + labels[r.operation] + " 结果" : r.operation === "joint"
                   ? "查看联合整理结果"
                   : r.operation === "check"
                     ? "查看检查结果"

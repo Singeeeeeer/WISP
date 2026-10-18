@@ -1,6 +1,6 @@
 import { runLocal } from "../domain/local-text";
-import type { Task } from "../domain/task";
-self.onmessage = (event: MessageEvent<Task>) => {
+import type { SingleTask } from "../domain/task";
+self.onmessage = (event: MessageEvent<SingleTask>) => {
   try {
     const t = event.data;
     self.postMessage({

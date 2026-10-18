@@ -40,6 +40,7 @@ export function MagicRing({
       // Do not steal focus from an opening dialog.
       if (
         !useInteraction.getState().draft &&
+        !useInteraction.getState().batchDraft &&
         !useInteraction.getState().book &&
         previous?.isConnected
       )

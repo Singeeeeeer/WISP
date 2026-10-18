@@ -36,7 +36,7 @@ function App() {
   const cauldron = useInteraction((s) => s.cauldron);
   const canvas = useInteraction((s) => s.canvas);
   const book = useInteraction((s) => s.book);
-  const draft = useInteraction((s) => s.draft);
+  const draft = useInteraction((s) => s.draft ?? s.batchDraft);
   const watchDraft = useInteraction((s) => s.watchDraft);
   const jointDraft = useInteraction((s) => s.jointDraft);
   const message = useInteraction((s) => s.message);
@@ -70,6 +70,7 @@ function App() {
       if (
         history ||
         state.draft ||
+        state.batchDraft ||
         state.cauldron ||
         state.canvas ||
         state.jointDraft ||
@@ -179,6 +180,7 @@ function App() {
           if (
             !e.shiftKey &&
             !useInteraction.getState().draft &&
+            !useInteraction.getState().batchDraft &&
             !useInteraction.getState().canvas &&
             !(e.target as HTMLElement).closest("textarea,input,button")
           ) {

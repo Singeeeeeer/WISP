@@ -224,7 +224,7 @@ it("upgrades all six v6 stores without rewriting data and rejects old version op
   expect(await repo.listCauldronEntries()).toEqual([entry]);
   expect(await repo.readPreference("custom")).toEqual({ excerptLimit: 3 });
   const probe = await openDB(name);
-  expect(probe.version).toBe(8);
+  expect(probe.version).toBe(9);
   probe.close();
   await expect(openDB(name, 6)).rejects.toMatchObject({ name: "VersionError" });
 });

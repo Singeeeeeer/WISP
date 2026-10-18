@@ -1,5 +1,5 @@
 import { snapshot, type Material, type MaterialSnapshot } from "./model";
-import { newTask, type Task } from "./task";
+import { newTask, type SingleTask } from "./task";
 export interface Watch {
   id: string;
   materialId: string;
@@ -31,7 +31,7 @@ export function newWatch(s: MaterialSnapshot): Watch {
     notice: "等待已保存的新版本",
   };
 }
-export function watchTask(w: Watch, material: Material): Task {
+export function watchTask(w: Watch, material: Material): SingleTask {
   if (w.materialId !== material.id) throw new Error("关注来源不匹配");
   const s = { ...snapshot(material), id: w.id + ":v" + material.version };
   return {

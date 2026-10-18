@@ -1,4 +1,5 @@
 import type { CauldronEntry } from "../domain/cauldron";
+import { isBatchRecord, validateBatch } from "../domain/batch";
 import {
   connectionIsCurrent,
   validateCanvasNote,
@@ -14,8 +15,11 @@ import {
 } from "../domain/joint";
 import {
   transition,
+  isBatchTask,
+  validBatchTask,
   validGeminiTask,
   type Task,
+  type SingleTask,
   type TaskAction,
 } from "../domain/task";
 import { openDB, type IDBPDatabase, type DBSchema } from "idb";
@@ -61,7 +65,7 @@ export function createRepository(name = "wisp-module-one") {
   function getDb() {
     return (pending ??= new Promise<IDBPDatabase<WispDB>>((resolve, reject) => {
       let wasBlocked = false;
-      const opening = openDB<WispDB>(name, 8, {
+      const opening = openDB<WispDB>(name, 9, {
         upgrade(database) {
           if (!database.objectStoreNames.contains("canvasNotes"))
             database.createObjectStore("canvasNotes", { keyPath: "id" });
@@ -371,7 +375,8 @@ export function createRepository(name = "wisp-module-one") {
       }
       await tx.done;
     },
-    async enqueueWatchTask(task: Task): Promise<Task | undefined> {
+    async enqueueWatchTask(task: SingleTask): Promise<SingleTask | undefined> {
+      if (isBatchTask(task)) return undefined;
       const tx = (await getDb()).transaction(
         ["watches", "tasks", "materials"],
         "readwrite",
@@ -412,13 +417,15 @@ export function createRepository(name = "wisp-module-one") {
       return task;
     },
     async enqueueTask(task: Task): Promise<Task> {
-      if (task.execution === "gemini" && !validGeminiTask(task))
+      task = structuredClone(task);
+      if (isBatchTask(task) ? !validBatchTask(task) : task.execution === "gemini" && !validGeminiTask(task))
         throw new Error("Gemini 仅允许角色与参数匹配的一次性任务");
       const tx = (await getDb()).transaction("tasks", "readwrite");
       const existing = await tx.store.get(task.id);
       if (
         existing &&
-        ((existing.execution ?? "local") !== (task.execution ?? "local") ||
+        (isBatchTask(existing) !== isBatchTask(task) ||
+          (existing.execution ?? "local") !== (task.execution ?? "local") ||
           existing.familiar !== task.familiar ||
           existing.operation !== task.operation ||
           existing.summaryStyle !== task.summaryStyle ||
@@ -426,7 +433,8 @@ export function createRepository(name = "wisp-module-one") {
           (task.execution !== "gemini" &&
             (existing.excerptLimit ?? 8) !== (task.excerptLimit ?? 8)) ||
           existing.instruction !== task.instruction ||
-          JSON.stringify(existing.snapshot) !== JSON.stringify(task.snapshot))
+          !sameValue(isBatchTask(existing) ? existing.snapshots : existing.snapshot,
+            isBatchTask(task) ? task.snapshots : task.snapshot))
       ) {
         await tx.done;
         throw new Error("提交标识已对应另一份委托，请关闭后重新确认材料。");
@@ -459,8 +467,9 @@ export function createRepository(name = "wisp-module-one") {
       return next;
     },
     async saveRecord<T extends StoredRecord>(record: T): Promise<T> {
+      record = structuredClone(record);
       if (
-        !(record.operation === "joint"
+        !(isBatchRecord(record) ? validateBatch(record) : record.operation === "joint"
           ? validateJoint(record)
           : validateProcessing(record))
       )
@@ -469,11 +478,13 @@ export function createRepository(name = "wisp-module-one") {
       const existing = await tx.store.get(record.id);
       if (
         existing &&
-        (existing.execution !== record.execution ||
+        (isBatchRecord(existing) !== isBatchRecord(record) ||
+          existing.execution !== record.execution ||
           (existing.execution === "gemini" &&
             record.execution === "gemini" &&
             (existing.instruction !== record.instruction ||
-              !sameValue(existing.snapshot, record.snapshot))) ||
+              !sameValue(isBatchRecord(existing) ? existing.snapshots : existing.snapshot,
+                isBatchRecord(record) ? record.snapshots : record.snapshot))) ||
           existing.operation !== record.operation ||
           (existing.operation === "joint" &&
             record.operation === "joint" &&
@@ -498,7 +509,7 @@ export function createRepository(name = "wisp-module-one") {
     },
     async listChecks() {
       return (await this.listRecords()).filter(
-        (r): r is CheckRecord => r.operation === "check",
+        (r): r is CheckRecord => !isBatchRecord(r) && r.operation === "check",
       );
     },
     async listRecords() {

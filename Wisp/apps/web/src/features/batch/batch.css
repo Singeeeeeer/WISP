@@ -1,0 +1,33 @@
+.batch-panel .field-label textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  background: #fffef9;
+  color: #4d3e5b;
+  border: 1px solid #b6a1c2;
+  border-radius: 5px;
+}
+.batch-panel textarea[readonly] {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.6;
+}
+.batch-range-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.batch-result pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.batch-result .batch-draft {
+  max-height: 300px;
+  overflow: auto;
+}
+.batch-panel details > summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
