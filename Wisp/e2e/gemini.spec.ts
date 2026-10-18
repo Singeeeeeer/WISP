@@ -35,7 +35,7 @@ async function open(page: Page, entry = "Check") {
   await page.getByRole("menuitem", { name: entry, exact: true }).click();
   if (entry === "Summon")
     await page.getByRole("button", { name: "Scout Bat", exact: false }).click();
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
 }
 test("Gemini direct Check retries save only and persists the frozen selection with real-mode labels", async ({
   page,
@@ -55,7 +55,7 @@ test("Gemini direct Check retries save only and persists the frozen selection wi
   for (let i = 0; i < 6; i++) await editor.press("Shift+ArrowRight");
   await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Check", exact: true }).click();
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
   await page.evaluate(() => {
     const add = IDBObjectStore.prototype.add;
     IDBObjectStore.prototype.add = function (
@@ -82,6 +82,7 @@ test("Gemini direct Check retries save only and persists the frozen selection wi
   ).toBeVisible();
   expect(count).toBe(1);
   await page.reload();
+  await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page.getByRole("button", { name: "View check result" }).click();
   await page.getByText("Execution details", { exact: true }).click();
@@ -90,7 +91,7 @@ test("Gemini direct Check retries save only and persists the frozen selection wi
     "私有未选中内容",
   );
 });
-test("Scout Gemini returns unread reply and switching familiars defaults to local", async ({
+test("Scout Gemini returns unread reply and switching familiars keeps Gemini", async ({
   page,
 }) => {
   await page.route("**/api/check", (route) =>
@@ -99,11 +100,9 @@ test("Scout Gemini returns unread reply and switching familiars defaults to loca
   await page.goto("/");
   await open(page, "Summon");
   await page.getByRole("button", { name: "Page Sprite", exact: false }).click();
-  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-    "local",
-  );
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Scout Bat", exact: false }).click();
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(
     page.getByRole("complementary", { name: "Familiar task status" }),
@@ -114,9 +113,7 @@ test("Scout Gemini returns unread reply and switching familiars defaults to loca
     page.getByRole("heading", { name: "Gemini: more information needed" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Delegate current full text again" }).click();
-  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-    "gemini",
-  );
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
 });
 test("Scout Gemini cancellation rejects a late reply and reload interrupts without resubmission", async ({
   page,
@@ -151,7 +148,7 @@ test("Scout Gemini cancellation rejects a late reply and reload interrupts witho
   expect(calls).toBe(2);
 });
 
-test("Gemini Check does not offer Watch while the existing local Check still does", async ({
+test("Gemini Check does not offer Watch", async ({
   page,
 }) => {
   await page.route("**/api/check", (route) =>
@@ -189,12 +186,5 @@ test("Gemini Check does not offer Watch while the existing local Check still doe
   await expect(page.getByRole("button", { name: "View watch scope" })).toHaveCount(
     0,
   );
-  await page.getByRole("button", { name: "Open core abilities" }).click();
-  await page.getByRole("menuitem", { name: "Check", exact: true }).click();
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("local");
-  await page.getByRole("button", { name: "Run local check" }).click();
-  await page.getByRole("button", { name: "Close check result" }).click();
-  await expect(
-    page.getByRole("button", { name: "View watch scope" }),
-  ).toBeVisible();
+
 });

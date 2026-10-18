@@ -7,9 +7,11 @@ export function CapabilityPanel() {
   const batchDraft = useInteraction((s) => s.batchDraft);
   if (batchDraft) return <BatchPanel key={batchDraft.id} draft={batchDraft} />;
   if (!draft) return null;
+  // Prototype policy applies to fresh drafts and continuations, never stored results.
+  const geminiDraft = { ...draft, execution: "gemini" as const };
   return draft.entry === "summon" ? (
-    <SummonPanel draft={draft} />
+    <SummonPanel draft={geminiDraft} />
   ) : (
-    <LocalPanel draft={draft} />
+    <LocalPanel draft={geminiDraft} />
   );
 }

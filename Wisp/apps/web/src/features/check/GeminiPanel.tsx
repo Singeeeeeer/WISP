@@ -15,7 +15,6 @@ import { FloatingPanel } from "../../shared/FloatingPanel";
 import { summonFromResult } from "../../domain/continuation";
 import { SourceInfo } from "../../shared/SourceInfo";
 import { GeminiResult } from "./GeminiResult";
-import { ExecutionChoice } from "./ExecutionChoice";
 const repository = createRepository();
 export function GeminiPanel({ draft }: { draft: ActionDraft }) {
   const operation = draft.entry === "summon" ? "check" : draft.entry;
@@ -136,15 +135,6 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
         <>
           <div className="eyebrow">{labels[operation]} · Gemini</div>
           <h2>Confirm material for this run</h2>
-          <ExecutionChoice
-            value="gemini"
-            disabled={frozen}
-            onChange={(execution) =>
-              useInteraction.setState({
-                draft: { ...draft, execution },
-              })
-            }
-          />
           <p className="notice">
             {operation === "check" ? GEMINI_LIMIT : GEMINI_TEXT_LIMIT}
           </p>
