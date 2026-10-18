@@ -4,14 +4,26 @@ export type Operation = "understand" | "check" | "create";
 export type Familiar = "scout_bat" | "page_sprite" | "alchemy_imp";
 export type FileSource =
   "txt_file" | "docx_file" | "pptx_file" | "xlsx_file" | "pdf_file";
+export type CopySource = "document_copy" | "selection_copy";
+export type MaterialSource =
+  "virtual_document" | "new_text" | "pasted_text" | FileSource | CopySource;
+export interface MaterialCopyOrigin {
+  materialId: string;
+  materialVersion: number;
+  title: string;
+  start: number;
+  end: number;
+  source: MaterialSource;
+}
 export interface MaterialOrigin {
-  kind: "new_text" | "pasted_text" | FileSource;
+  kind: "new_text" | "pasted_text" | FileSource | CopySource;
   addedAt: string;
   note?: string;
   fileName?: string;
   byteSize?: number;
   lastModified?: number;
   encoding?: "UTF-8";
+  copy?: Readonly<MaterialCopyOrigin>;
 }
 export interface Material {
   id: string;
@@ -20,7 +32,7 @@ export interface Material {
   text: string;
   version: number;
   updatedAt: string;
-  source: "virtual_document" | "new_text" | "pasted_text" | FileSource;
+  source: MaterialSource;
   createdAt?: string;
   origin?: MaterialOrigin;
 }
@@ -148,7 +160,16 @@ export function snapshot(
     end: selection?.end ?? m.text.length,
     capturedAt: new Date().toISOString(),
     ...(m.source ? { source: m.source } : {}),
-    ...(m.origin ? { origin: Object.freeze({ ...m.origin }) } : {}),
+    ...(m.origin
+      ? {
+          origin: Object.freeze({
+            ...m.origin,
+            ...(m.origin.copy
+              ? { copy: Object.freeze({ ...m.origin.copy }) }
+              : {}),
+          }),
+        }
+      : {}),
   });
 }
 export function initialWindows(materials: Material[]): WindowState[] {

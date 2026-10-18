@@ -23,8 +23,15 @@ import {
 import { useWatches } from "../../services/watch-runtime";
 import { Dialog } from "../../shared/Dialog";
 import { SourceInfo } from "../../shared/SourceInfo";
+import {
+  claimImport,
+  releaseImport,
+  currentDocumentId,
+  requestDocumentCopy,
+  useCauldronImport,
+} from "../../services/cauldron-import";
 import "./cauldron.css";
-type Mode = "new_text" | "pasted_text" | "file";
+type Mode = "new_text" | "pasted_text" | "file" | "copy";
 export function Cauldron() {
   const materials = useDocuments((s) => s.materials);
   const status = useDocuments((s) => s.status);
@@ -52,11 +59,31 @@ export function Cauldron() {
   const readingController = useRef<AbortController | undefined>(undefined);
   const candidate = useRef<Material | undefined>(undefined);
   const [draftId, setDraftId] = useState("");
+  const [copy, setCopy] = useState<Material>();
+  const importOwner = useRef<string | undefined>(undefined);
+  const request = useCauldronImport((s) => s.request);
+  const selection = useInteraction((s) => s.selection);
+  const currentId = currentDocumentId();
+  useEffect(() => {
+    if (!request) return;
+    useCauldronImport.setState({ request: undefined });
+    if ("file" in request) {
+      begin("file");
+      void readFile(request.file);
+    } else {
+      begin("copy");
+      setCopy(request.copy);
+      candidate.current = request.copy;
+      setTitle(request.copy.title);
+      setText(request.copy.text);
+    }
+  }, [request]);
   useEffect(() => {
     void refreshCauldron();
     return () => {
       ++readingTicket.current;
       readingController.current?.abort();
+      releaseImport(importOwner.current);
     };
   }, []);
   useEffect(() => {
@@ -83,11 +110,13 @@ export function Cauldron() {
     useInteraction.setState({ cauldron: false });
   };
   function begin(next: Mode) {
+    importOwner.current = claimImport();
     setMode(next);
     setTitle("");
     setText("");
     setNote("");
     setFile(undefined);
+    setCopy(undefined);
     setError("");
     setWarnings([]);
     setReadNotice("");
@@ -134,7 +163,7 @@ export function Cauldron() {
       setFile(metadata);
       setWarnings(contents.warnings);
       setNote(contents.warnings.join("\n"));
-      finish("success");
+      // Reading only prepares a preview; completion belongs to durable saving.
       setTitle(preview.title);
     } catch (e) {
       if (ticket === readingTicket.current) {
@@ -159,14 +188,16 @@ export function Cauldron() {
   async function add() {
     if (lock.current || reading || !mode) return;
     const finish = captureOutcome();
+    const owner = importOwner.current;
     lock.current = true;
     setBusy(true);
     setError("");
     try {
       if (mode === "file" && !file) throw new Error("请先选择并成功读取文件");
-      const m =
-        candidate.current ??
-        createTextMaterial({
+      let m = candidate.current;
+      if (!m) {
+        if (mode === "copy") throw new Error("副本预览已失效，请重新获取。");
+        m = createTextMaterial({
           id: draftId,
           title,
           text,
@@ -174,11 +205,14 @@ export function Cauldron() {
           note,
           file,
         });
+      }
       candidate.current = m;
       await createMaterial(m);
       finish("success");
       setAll(false);
       setMode(undefined);
+      setCopy(undefined);
+      releaseImport(owner);
       setText("");
       setTitle("");
       if (mode === "new_text") {
@@ -200,6 +234,8 @@ export function Cauldron() {
       document.activeElement?.closest(".cauldron") ?? document.activeElement,
     );
     lock.current = true;
+    const owner = claimImport();
+    importOwner.current = owner;
     setBusy(true);
     setError("");
     try {
@@ -211,6 +247,7 @@ export function Cauldron() {
     } finally {
       lock.current = false;
       setBusy(false);
+      releaseImport(owner);
     }
   }
   return (
@@ -249,8 +286,30 @@ export function Cauldron() {
           >
             导入文件
           </button>
+          <button
+            disabled={!!mode || busy || !ready || !currentId}
+            onClick={() => requestDocumentCopy(currentId)}
+          >
+            当前文档全文副本
+          </button>
+          <button
+            disabled={
+              !!mode ||
+              busy ||
+              !ready ||
+              !currentId ||
+              selection?.materialId !== currentId
+            }
+            onClick={() => requestDocumentCopy(currentId, true)}
+          >
+            当前选区副本
+          </button>
           <span>{entries.length} / 12 份在熔炉中</span>
         </div>
+        <p className="notice">
+          可将单个 TXT、DOCX、PPTX、XLSX 或 PDF
+          拖入页面；文档标题栏的“入炉”把手可拖向熔炉。预览确认保存后才加入。
+        </p>
         {(error || loadError) && (
           <p className="error" role="alert">
             {error || loadError}
@@ -264,7 +323,9 @@ export function Cauldron() {
                 ? "新建空白材料"
                 : mode === "pasted_text"
                   ? "加入粘贴文本"
-                  : "读取文件文字副本"}
+                  : mode === "copy"
+                    ? "确认冻结文字副本"
+                    : "读取文件文字副本"}
             </h3>
             {mode === "file" && (
               <>
@@ -311,7 +372,7 @@ export function Cauldron() {
               <input
                 maxLength={120}
                 value={title}
-                disabled={busy || reading}
+                disabled={busy || reading || mode === "copy"}
                 placeholder="未命名材料"
                 onChange={(e) => {
                   changedInput();
@@ -369,6 +430,17 @@ export function Cauldron() {
                 </label>
               </section>
             )}
+            {mode === "copy" && copy && (
+              <section className="scope">
+                <SourceInfo value={copy} />
+                <pre className="cauldron-preview" data-testid="copy-preview">
+                  {copy.text}
+                </pre>
+                <p className="notice">
+                  标题、正文、原版本与范围已冻结。保存成功后，原文变化不会改变此副本；如其他标签页修改了原文，请取消本次新增，备份未保存的正文后重新载入页面，再获取副本。
+                </p>
+              </section>
+            )}
             {mode !== "new_text" && (
               <p>
                 {text.length.toLocaleString()} / 60,000 UTF-16 单元 ·
@@ -385,6 +457,8 @@ export function Cauldron() {
                   captureOutcome()("cancel");
                   stopReading();
                   setMode(undefined);
+                  setCopy(undefined);
+                  releaseImport(importOwner.current);
                   setText("");
                   setTitle("");
                   setNote("");
@@ -491,6 +565,7 @@ export function Cauldron() {
                     </pre>
                     <div className="cauldron-toolbar">
                       <button
+                        disabled={busy}
                         onClick={() => {
                           openMaterial(material.id);
                           useInteraction.setState({ cauldron: false });
@@ -517,6 +592,7 @@ export function Cauldron() {
                         <button
                           key={entry}
                           disabled={
+                            busy ||
                             !material.text.trim() ||
                             material.text.length > 60000
                           }

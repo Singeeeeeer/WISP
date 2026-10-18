@@ -1,5 +1,11 @@
 import { useEffect, useRef, type PointerEvent } from "react";
 import { useWorkspace } from "../../state/stores";
+import {
+  endDocumentDrag,
+  reportImportError,
+  requestDocumentCopy,
+  startDocumentDrag,
+} from "../../services/cauldron-import";
 import type { Material, WindowState } from "../../domain/model";
 import { DocumentEditor } from "../documents/DocumentEditor";
 export function DesktopWindow({
@@ -127,6 +133,24 @@ export function DesktopWindow({
           <i />
         </span>
         <span>{material.title}</span>
+        <button
+          className="document-copy-handle"
+          aria-label={"拖入熔炉 " + material.title}
+          title="拖向灵感熔炉，或点击加入全文副本"
+          draggable
+          onDragStart={(e) => {
+            try {
+              startDocumentDrag(material.id, e.dataTransfer);
+            } catch (error) {
+              e.preventDefault();
+              reportImportError(error);
+            }
+          }}
+          onDragEnd={endDocumentDrag}
+          onClick={() => requestDocumentCopy(material.id)}
+        >
+          入炉
+        </button>
         <button
           title="最小化"
           aria-label={"最小化" + material.title}

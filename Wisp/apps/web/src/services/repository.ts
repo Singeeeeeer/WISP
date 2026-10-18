@@ -19,7 +19,7 @@ import {
   type TaskAction,
 } from "../domain/task";
 import { openDB, type IDBPDatabase, type DBSchema } from "idb";
-import { seeds, type Material } from "../domain/model";
+import { seeds, selectText, type Material } from "../domain/model";
 import { type CheckRecord } from "../domain/check";
 import { validateProcessing, sameValue } from "../domain/processing";
 interface WispDB extends DBSchema {
@@ -52,6 +52,16 @@ function materialIdentity(m: Material): string {
           o.byteSize,
           o.lastModified,
           o.encoding,
+          o.copy
+            ? [
+                o.copy.materialId,
+                o.copy.materialVersion,
+                o.copy.title,
+                o.copy.start,
+                o.copy.end,
+                o.copy.source,
+              ]
+            : null,
         ]
       : null,
   ]);
@@ -119,6 +129,42 @@ export function createRepository(name = "wisp-module-one") {
       )
         throw new Error("材料标识已对应不同内容，未覆盖原材料。");
       if (!existing && !material) throw new Error("材料不存在。");
+      if (!existing && material) {
+        const origin = material.origin;
+        if (
+          material.source === "document_copy" ||
+          material.source === "selection_copy" ||
+          origin?.kind === "document_copy" ||
+          origin?.kind === "selection_copy" ||
+          origin?.copy
+        ) {
+          const copy = origin?.copy;
+          if (
+            !copy ||
+            (material.source !== "document_copy" &&
+              material.source !== "selection_copy") ||
+            origin?.kind !== material.source
+          )
+            throw new Error("副本来源或范围无效，请重新选择原文后重试。");
+          const original = await materials.get(copy.materialId);
+          if (
+            !original ||
+            original.version !== copy.materialVersion ||
+            original.title !== copy.title ||
+            original.source !== copy.source ||
+            original.text.slice(copy.start, copy.end) !== material.text
+          )
+            throw new Error(
+              "原文已变化或移除。请取消新增，备份未保存的正文后重新载入页面，再创建副本。",
+            );
+          selectText(original, copy.start, copy.end);
+          if (
+            material.source === "document_copy" &&
+            (copy.start !== 0 || copy.end !== original.text.length)
+          )
+            throw new Error("全文副本范围无效，请重新选择原文后重试。");
+        }
+      }
       const entry = await entries.get(materialId);
       if (!entry && (await entries.count()) >= 12)
         throw new Error("灵感熔炉最多容纳 12 份材料，请先移出一份。");
@@ -289,7 +335,8 @@ export function createRepository(name = "wisp-module-one") {
       );
     },
     async createCauldronMaterial(material: Material): Promise<Material> {
-      return (await addEntry(material.id, material))!;
+      const frozen = structuredClone(material);
+      return (await addEntry(frozen.id, frozen))!;
     },
     async addCauldronEntry(materialId: string): Promise<void> {
       await addEntry(materialId);

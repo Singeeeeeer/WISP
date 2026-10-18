@@ -25,6 +25,18 @@ export const keys = (x: Record<string, unknown>, allowed: string[]) =>
 export const integer = (x: unknown): x is number => Number.isSafeInteger(x);
 const optionalString = (x: unknown, max: number) =>
   x === undefined || (typeof x === "string" && x.length <= max);
+const materialSources = [
+  "virtual_document",
+  "new_text",
+  "pasted_text",
+  "txt_file",
+  "docx_file",
+  "pptx_file",
+  "xlsx_file",
+  "pdf_file",
+  "document_copy",
+  "selection_copy",
+];
 export function sameValue(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (Array.isArray(a) && Array.isArray(b))
@@ -36,6 +48,72 @@ export function sameValue(a: unknown, b: unknown): boolean {
     ka.length === kb.length &&
     ka.every((k) => kb.includes(k) && sameValue(a[k], b[k]))
   );
+}
+export function validSourceMetadata(s: Record<string, unknown>): boolean {
+  if (s.source !== undefined && !materialSources.includes(s.source as string))
+    return false;
+  if (s.origin !== undefined) {
+    const o = s.origin;
+    if (
+      !object(o) ||
+      !keys(o, [
+        "kind",
+        "addedAt",
+        "note",
+        "fileName",
+        "byteSize",
+        "lastModified",
+        "encoding",
+        "copy",
+      ]) ||
+      o.kind === "virtual_document" ||
+      !materialSources.includes(o.kind as string) ||
+      typeof o.addedAt !== "string" ||
+      !Number.isFinite(Date.parse(o.addedAt)) ||
+      !optionalString(o.note, 2000) ||
+      !optionalString(o.fileName, 1000) ||
+      (o.encoding !== undefined && o.encoding !== "UTF-8") ||
+      ["byteSize", "lastModified"].some(
+        (k) => o[k] !== undefined && (!integer(o[k]) || (o[k] as number) < 0),
+      )
+    )
+      return false;
+    const isCopy = o.kind === "document_copy" || o.kind === "selection_copy";
+    const c = o.copy;
+    if (isCopy) {
+      if (
+        !object(c) ||
+        !keys(c, [
+          "materialId",
+          "materialVersion",
+          "title",
+          "start",
+          "end",
+          "source",
+        ]) ||
+        !text(c.materialId, 200) ||
+        !integer(c.materialVersion) ||
+        c.materialVersion < 1 ||
+        typeof c.title !== "string" ||
+        c.title.length > 1000 ||
+        !integer(c.start) ||
+        !integer(c.end) ||
+        c.start < 0 ||
+        c.end <= c.start ||
+        c.end - c.start > 60000 ||
+        (o.kind === "document_copy" && c.start !== 0) ||
+        !materialSources.includes(c.source as string) ||
+        (s.source !== undefined && s.source !== o.kind)
+      )
+        return false;
+    } else if (c !== undefined) return false;
+  }
+  if (
+    (s.source === "document_copy" || s.source === "selection_copy") &&
+    (!object(s.origin) || s.origin.kind !== s.source)
+  )
+    return false;
+  return true;
 }
 export function validEnvelope(r: Record<string, unknown>): boolean {
   const s = r.snapshot,
@@ -87,53 +165,7 @@ export function validEnvelope(r: Record<string, unknown>): boolean {
     !Number.isFinite(Date.parse(r.createdAt))
   )
     return false;
-  if (
-    s.source !== undefined &&
-    ![
-      "virtual_document",
-      "new_text",
-      "pasted_text",
-      "txt_file",
-      "docx_file",
-      "pptx_file",
-      "xlsx_file",
-      "pdf_file",
-    ].includes(s.source as string)
-  )
-    return false;
-  if (s.origin !== undefined) {
-    const o = s.origin;
-    if (
-      !object(o) ||
-      !keys(o, [
-        "kind",
-        "addedAt",
-        "note",
-        "fileName",
-        "byteSize",
-        "lastModified",
-        "encoding",
-      ]) ||
-      ![
-        "new_text",
-        "pasted_text",
-        "txt_file",
-        "docx_file",
-        "pptx_file",
-        "xlsx_file",
-        "pdf_file",
-      ].includes(o.kind as string) ||
-      typeof o.addedAt !== "string" ||
-      !Number.isFinite(Date.parse(o.addedAt)) ||
-      !optionalString(o.note, 2000) ||
-      !optionalString(o.fileName, 1000) ||
-      (o.encoding !== undefined && o.encoding !== "UTF-8") ||
-      ["byteSize", "lastModified"].some(
-        (k) => o[k] !== undefined && (!integer(o[k]) || (o[k] as number) < 0),
-      )
-    )
-      return false;
-  }
+  if (!validSourceMetadata(s)) return false;
   if (
     !text(m.modelId, 200) ||
     !text(m.promptVersion, 100) ||

@@ -82,6 +82,73 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
+.cauldron-drop-feedback {
+  position: fixed;
+  z-index: 10000;
+  left: 50%;
+  top: 68px;
+  transform: translateX(-50%);
+  width: min(580px, calc(100vw - 32px));
+  display: grid;
+  gap: 8px;
+  padding: 16px 20px;
+  border: 2px solid #79618b;
+  border-radius: 10px;
+  background: #fffaf1;
+  color: #513e62;
+  box-shadow: 0 8px 30px #353f492a;
+  pointer-events: none;
+}
+.cauldron-drop-feedback[data-allowed="false"] {
+  border-color: #a04848;
+  color: #793535;
+}
+.cauldron-import-error {
+  position: fixed;
+  z-index: 10001;
+  left: 50%;
+  bottom: 105px;
+  transform: translateX(-50%);
+  width: min(580px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid #a04848;
+  border-radius: 8px;
+  background: #fffaf1;
+  color: #793535;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cauldron-import-error button {
+  flex-shrink: 0;
+}
+html[data-cauldron-drop="allowed"] [data-cauldron-target],
+html[data-cauldron-drop="allowed"] .cauldron {
+  outline: 3px solid #79618b;
+  outline-offset: 4px;
+}
+html[data-cauldron-drop="blocked"] [data-cauldron-target] {
+  outline: 2px dashed #a04848;
+  outline-offset: 4px;
+}
+.document-copy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.document-copy-actions button {
+  font-size: 11px;
+  padding: 6px 9px;
+}
+.window-titlebar > .document-copy-handle {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 11px;
+  border: 1px solid #d2c7d7;
+  border-radius: 4px;
+  padding: 5px 8px;
+}
 .source-info {
   font-size: 11px;
   color: #7b6b88;

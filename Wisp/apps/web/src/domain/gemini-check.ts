@@ -1,5 +1,6 @@
 import type { MaterialSnapshot } from "./model";
 import type { Evidence } from "./check";
+import { validSourceMetadata } from "./gemini-common";
 export interface GeminiCheckRecord {
   id: string;
   operation: "check";
@@ -31,8 +32,6 @@ const text = (x: unknown, max: number) =>
   typeof x === "string" && !!x.trim() && x.length <= max;
 const keys = (x: Record<string, unknown>, allowed: string[]) =>
   Object.keys(x).every((k) => allowed.includes(k));
-const optionalString = (x: unknown, max: number) =>
-  x === undefined || (typeof x === "string" && x.length <= max);
 function validSnapshot(s: Record<string, unknown>): boolean {
   if (
     !keys(s, [
@@ -49,56 +48,7 @@ function validSnapshot(s: Record<string, unknown>): boolean {
     ])
   )
     return false;
-  if (
-    s.source !== undefined &&
-    ![
-      "virtual_document",
-      "new_text",
-      "pasted_text",
-      "txt_file",
-      "docx_file",
-      "pptx_file",
-      "xlsx_file",
-      "pdf_file",
-    ].includes(s.source as string)
-  )
-    return false;
-  if (s.origin !== undefined) {
-    const o = s.origin;
-    if (
-      !object(o) ||
-      !keys(o, [
-        "kind",
-        "addedAt",
-        "note",
-        "fileName",
-        "byteSize",
-        "lastModified",
-        "encoding",
-      ]) ||
-      ![
-        "new_text",
-        "pasted_text",
-        "txt_file",
-        "docx_file",
-        "pptx_file",
-        "xlsx_file",
-        "pdf_file",
-      ].includes(o.kind as string) ||
-      typeof o.addedAt !== "string" ||
-      !Number.isFinite(Date.parse(o.addedAt)) ||
-      !optionalString(o.note, 2000) ||
-      !optionalString(o.fileName, 1000) ||
-      (o.encoding !== undefined && o.encoding !== "UTF-8") ||
-      ["byteSize", "lastModified"].some(
-        (k) =>
-          o[k] !== undefined &&
-          (!Number.isSafeInteger(o[k]) || (o[k] as number) < 0),
-      )
-    )
-      return false;
-  }
-  return true;
+  return validSourceMetadata(s);
 }
 const integer = (x: unknown): x is number => Number.isSafeInteger(x);
 export { sameValue } from "./gemini-common";

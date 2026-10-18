@@ -95,6 +95,15 @@ export function sourceDescription(value: {
 }): string {
   const origin = value.origin;
   const kind = origin?.kind ?? value.source;
+  if (kind === "document_copy" || kind === "selection_copy") {
+    const copy = origin?.copy;
+    return (
+      (kind === "document_copy" ? "全文副本" : "选区副本") +
+      (copy ? ` · ${copy.title} · v${copy.materialVersion}` : "") +
+      (origin?.fileName ? " · 原文件：" + origin.fileName : "") +
+      (origin?.note ? " · " + origin.note : "")
+    );
+  }
   const label = kind?.endsWith("_file")
     ? kind.replace("_file", "").toUpperCase() +
       " 文件" +
