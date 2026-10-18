@@ -5,24 +5,27 @@ async function open(page: Page, entry: string) {
   await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: entry, exact: true }).click();
 }
-test("Understand and Create expose explicit Gemini mode and default to local", async ({
-  page,
-}) => {
+test("Understand and Create default to Gemini without a mode selector", async ({ page }) => {
+  let calls = 0;
+  await page.route("**/api/**", async route => {
+    if (route.request().method() === "POST") calls++;
+    await route.fulfill({ status: 503, json: { error: { code: "MODEL_NOT_CONFIGURED" } } });
+  });
   await page.goto("/");
-  for (const entry of ["Understand", "Create"]) {
+  for (const entry of ["Understand", "Check", "Create"]) {
     await open(page, entry);
-    await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-      "local",
-    );
-    await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
-    await expect(
-      page.getByRole("button", {
-        name: entry === "Understand" ? "Run Gemini Understand" : "Run Gemini Create",
-        exact: true,
-      }),
-    ).toBeVisible();
+    await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Run Gemini " + entry, exact: true })).toBeVisible();
     await page.getByLabel("Close material panel", { exact: true }).click();
   }
+  await open(page, "Summon");
+  for (const role of ["Scout Bat", "Page Sprite", "Alchemy Imp"]) {
+    await page.locator(".role-grid").getByRole("button", { name: new RegExp(role) }).click();
+    await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("One-time Gemini delegation", { exact: false })).toBeVisible();
+  }
+  await page.getByLabel("Close material panel", { exact: true }).click();
+  expect(calls).toBe(0);
 });
 
 const draftText = "<script>unsafe()</script>阅读活动草稿【待补充：日期】";
@@ -79,15 +82,12 @@ async function clipboard(page: Page) {
   });
 }
 async function localExcerpt(page: Page) {
-  await page.getByLabel("Excerpt length for this run").selectOption("3");
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveCount(0);
   await expect(page.getByLabel("Summary length for this run")).toHaveValue("standard");
   await page.getByLabel("Summary length for this run").selectOption("brief");
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("local");
-  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("3");
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
-  await expect(page.getByLabel("Summary length for this run")).toHaveValue("brief");
 }
+
 test("Understand freezes selection, retries only saving, copies evidence and preserves brief in history and continuation", async ({
   page,
 }) => {
@@ -125,7 +125,7 @@ test("Understand freezes selection, retries only saving, copies evidence and pre
     .click();
   await expect(page.getByRole("alert")).toContainText("模拟文本落盘失败");
   await expect(page.getByLabel("Summary length for this run")).toBeDisabled();
-  await expect(page.getByLabel("Execution mode", { exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Additional instruction", { exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Retry saving result", exact: true }).click();
   await expect(
@@ -142,15 +142,16 @@ test("Understand freezes selection, retries only saving, copies evidence and pre
   await page.getByRole("button", { name: "Copy result", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => (window as any).__copied))
-    .toContain("原文依据 [0,6)：只发送这句。");
+    .toContain("Source evidence [0, 6): 只发送这句。");
   await page.getByRole("button", { name: "Summon familiar again" }).click();
   await expect(page.getByTestId("snapshot-text")).toHaveText("只发送这句。");
   await expect(
-    page.getByRole("button", { name: /Page Sprite/ }),
+    page.locator(".role-grid").getByRole("button", { name: /Page Sprite/ }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel("Summary length for this run")).toHaveValue("brief");
   await page.getByLabel("Close material panel", { exact: true }).click();
   await page.reload();
+  await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page
     .getByRole("button", { name: "View Understand result", exact: true })
@@ -171,7 +172,7 @@ test("Create renders pure text, copies labelled complete result or only draft an
   });
   await page.goto("/");
   await open(page, "Create");
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
   await page
     .getByRole("button", { name: "Run Gemini Create", exact: true })
     .click();
@@ -191,7 +192,7 @@ test("Create renders pure text, copies labelled complete result or only draft an
   await page.getByRole("button", { name: "Copy result", exact: true }).click();
   for (const text of [
     "AI draft (requires human review)",
-    "备选方向",
+    "Alternative directions (suggestions)",
     "Source evidence used",
     "Creative assumptions",
     "Information to add",
@@ -213,11 +214,10 @@ test("Create renders pure text, copies labelled complete result or only draft an
   await expect(
     page.getByRole("button", { name: /Alchemy Imp/ }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-    "gemini",
-  );
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
   await page.getByLabel("Close material panel", { exact: true }).click();
   await page.reload();
+  await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page
     .getByRole("button", { name: "View Create result", exact: true })
@@ -230,7 +230,7 @@ for (const [role, operation] of [
 ] as const) {
   test(
     role +
-      " Gemini saves unread reply, preserves repeat settings and role switches reset local",
+      " Gemini saves unread reply, preserves repeat settings and role switches keep Gemini",
     async ({ page }) => {
       let sent: any;
       await page.route("**/api/" + operation, (route) => {
@@ -240,14 +240,10 @@ for (const [role, operation] of [
       await page.goto("/");
       await open(page, "Summon");
       await page.getByRole("button", { name: role, exact: false }).click();
-      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-        "local",
-      );
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
       if (operation === "understand") await localExcerpt(page);
       else
-        await page
-          .getByLabel("Execution mode", { exact: true })
-          .selectOption("gemini");
+        await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
       if (operation === "understand")
         await page.getByLabel("Summary length for this run").selectOption("brief");
       await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
@@ -269,18 +265,14 @@ for (const [role, operation] of [
         page.getByRole("complementary", { name: "Familiar task status" }),
       ).toContainText("0 unread");
       await page.getByRole("button", { name: "Delegate current full text again" }).click();
-      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-        "gemini",
-      );
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
       if (operation === "understand")
         await expect(page.getByLabel("Summary length for this run")).toHaveValue("brief");
       await page.getByRole("button", { name: /Scout Bat/ }).click();
-      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-        "local",
-      );
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
       await expect(page.getByLabel("Summary length for this run")).toHaveCount(0);
-      await page.getByRole("button", { name: /Page Sprite/ }).click();
-      await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+      await page.locator(".role-grid").getByRole("button", { name: /Page Sprite/ }).click();
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
       await expect(page.getByLabel("Summary length for this run")).toHaveValue("standard");
     },
   );
@@ -301,7 +293,7 @@ for (const [role, operation] of [
       await page.goto("/");
       await open(page, "Summon");
       await page.getByRole("button", { name: role, exact: false }).click();
-      await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
       await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
       await expect.poll(() => calls).toBe(1);
       await page.getByRole("button", { name: "View familiar tasks" }).click();
@@ -343,7 +335,7 @@ test("Gemini text completion does not trigger local proposals or alter local exc
   await page.getByRole("button", { name: "Close Grimoire" }).click();
   for (const entry of ["Understand", "Understand", "Understand", "Create"]) {
     await open(page, entry);
-    await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+    await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
     if (entry === "Understand")
       await page.getByLabel("Summary length for this run").selectOption("brief");
     await page
@@ -363,11 +355,9 @@ test("Gemini text completion does not trigger local proposals or alter local exc
     page.getByRole("complementary", { name: "Helpful proposal", exact: true }),
   ).toHaveCount(0);
   await open(page, "Understand");
-  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-    "local",
-  );
-  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("8");
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveCount(0);
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Summary length for this run")).toHaveValue("standard");
 });
 
@@ -389,7 +379,7 @@ for (const operation of ["understand", "create"] as const) {
       });
       await page.goto("/");
       await open(page, operation === "understand" ? "Understand" : "Create");
-      await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
       await page
         .getByRole("button", {
           name:
@@ -427,7 +417,7 @@ test("Gemini continuation does not read local excerpt defaults", async ({
   );
   await page.goto("/");
   await open(page, "Understand");
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveCount(0);
   await page
     .getByRole("button", { name: "Run Gemini Understand", exact: true })
     .click();
@@ -447,9 +437,8 @@ test("Gemini continuation does not read local excerpt defaults", async ({
   await page.getByRole("button", { name: "Summon familiar again" }).click();
   await expect(page.getByLabel("Summary length for this run")).toHaveValue("standard");
   expect(await page.evaluate(() => (window as any).__defaultReads)).toBe(0);
-  await page.getByLabel("Execution mode", { exact: true }).selectOption("local");
-  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("8");
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveCount(0);
   expect(
     await page.evaluate(() => (window as any).__defaultReads),
-  ).toBeGreaterThan(0);
+  ).toBe(0);
 });

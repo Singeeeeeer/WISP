@@ -1,6 +1,5 @@
 import { captureOutcome } from "../companion/outcome";
 import { captureSummonFlight } from "../companion/summon-flight";
-import { ExecutionChoice } from "../check/ExecutionChoice";
 import { SummaryChoice } from "../check/SummaryChoice";
 import { GEMINI_TEXT_LIMIT } from "../../domain/gemini-text";
 import { GEMINI_LIMIT } from "../../domain/gemini-check";
@@ -107,7 +106,7 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
                 draft: {
                   ...draft,
                   familiar: id,
-                  execution: "local",
+                  execution: "gemini",
                   summaryStyle: undefined,
                 },
               })
@@ -123,15 +122,6 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
         ))}
       </div>
       <p className="subtle">One-time delegation · stops when complete</p>
-      <ExecutionChoice
-        value={gemini ? "gemini" : "local"}
-        disabled={busy}
-        onChange={(execution) =>
-          useInteraction.setState({
-            draft: { ...draft, execution },
-          })
-        }
-      />
       <details className="summon-method">
         <summary>How this familiar works</summary>
         <p className="notice">
