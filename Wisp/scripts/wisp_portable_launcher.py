@@ -17,6 +17,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=15278)
     parser.add_argument('--no-browser', action='store_true')
+    parser.add_argument('--config', type=Path, default=ROOT / '.env',
+                        help='Server configuration file; defaults to this copy of Wisp/.env.')
     args = parser.parse_args()
     if not 1024 <= args.port <= 65535:
         raise SystemExit('Invalid local port.')
@@ -27,14 +29,15 @@ def main():
             probe.bind(('127.0.0.1', args.port))
         except OSError:
             raise SystemExit('Port is occupied. Close the previous Wisp launcher, or choose --port. No process was stopped.')
-    os.environ['WISP_ENV_FILE'] = str(ROOT / '.env')
+    config = args.config.expanduser().resolve()
+    os.environ['WISP_ENV_FILE'] = str(config)
     sys.path.insert(0, str(ROOT / 'apps/api'))
     import uvicorn
     from app.config import load_settings
     from app.main import create_app
     from fastapi.staticfiles import StaticFiles
     # Isolate this archive's server config from unrelated machine environment values.
-    settings = load_settings({'WISP_ENV_FILE': str(ROOT / '.env')})
+    settings = load_settings({'WISP_ENV_FILE': str(config)})
     app = create_app(settings)
     app.mount('/', StaticFiles(directory=str(ROOT / 'dist'), html=True), name='web')
     url = 'http://127.0.0.1:' + str(args.port)

@@ -1,4 +1,5 @@
 import { Cauldron } from "../features/cauldron/Cauldron";
+import { CauldronDropTarget } from "../features/cauldron/CauldronDropTarget";
 import { Canvas } from "../features/canvas/Canvas";
 import { observeCauldron } from "../services/cauldron-runtime";
 import { WatchPanel } from "../features/delegation/WatchPanel";
@@ -141,6 +142,7 @@ function App() {
           <span className="status-dot" />
           本地工作空间 <span className="module-tag">MODULE 02 · LOCAL</span>
           <button
+            data-cauldron-target
             disabled={!!draft}
             title={draft ? "先关闭当前浮层，再打开其他面板" : undefined}
             onClick={() =>
@@ -208,6 +210,7 @@ function App() {
       </main>
       <Companion />
       <WandFeedback />
+      <CauldronDropTarget />
       <ProposalHost
         blocked={
           !!(

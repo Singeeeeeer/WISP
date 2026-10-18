@@ -2,10 +2,12 @@ import { useDocuments, useInteraction, retrySave } from "../../state/stores";
 import { rememberPointer } from "../companion/pointer";
 import { useWorkspace } from "../../state/stores";
 import { selectText, type Material } from "../../domain/model";
+import { requestDocumentCopy } from "../../services/cauldron-import";
 export function DocumentEditor({ material }: { material: Material }) {
   const edit = useDocuments((s) => s.edit);
   const status = useDocuments((s) => s.status[material.id]);
   const error = useDocuments((s) => s.errors[material.id]);
+  const selection = useInteraction((s) => s.selection);
   return (
     <div
       className="document-content"
@@ -101,6 +103,18 @@ export function DocumentEditor({ material }: { material: Material }) {
           <button onClick={() => retrySave(material.id)}>重试保存</button>
         </div>
       )}
+      <div className="document-copy-actions">
+        <button onClick={() => requestDocumentCopy(material.id)}>
+          全文副本入炉
+        </button>
+        <button
+          disabled={selection?.materialId !== material.id}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => requestDocumentCopy(material.id, true)}
+        >
+          选区副本入炉
+        </button>
+      </div>
       <div className="document-hint">
         选中文字或定位文档，双指辅助点按／右键打开基础能力；Shift＋右键使用浏览器菜单。
       </div>

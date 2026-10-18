@@ -27,6 +27,7 @@ DateText = Annotated[str, AfterValidator(valid_date)]
 Short = Annotated[str, AfterValidator(bounded(200))]
 Prose = Annotated[str, AfterValidator(bounded(4000))]
 SafeInt = Annotated[int, Field(ge=0, le=9007199254740991)]
+MaterialSource = Literal['virtual_document','new_text','pasted_text','txt_file','docx_file','pptx_file','xlsx_file','pdf_file','document_copy','selection_copy']
 
 class Contract(BaseModel):
     model_config = ConfigDict(extra='forbid',strict=True)
@@ -38,14 +39,35 @@ class Contract(BaseModel):
             raise ValueError('Explicit null is not supported')
         return value
 
+class CopyOrigin(Contract):
+    materialId: Short
+    materialVersion: Annotated[int,Field(ge=1,le=9007199254740991)]
+    title: Annotated[str,AfterValidator(bounded(1000,False))]
+    start: SafeInt
+    end: SafeInt
+    source: MaterialSource
+
+    @model_validator(mode='after')
+    def ranges(self):
+        if not 0 < self.end-self.start <= 60000: raise ValueError('Invalid copy range')
+        return self
+
 class Origin(Contract):
-    kind: Literal['new_text','pasted_text','txt_file','docx_file','pptx_file','xlsx_file','pdf_file']
+    kind: Literal['new_text','pasted_text','txt_file','docx_file','pptx_file','xlsx_file','pdf_file','document_copy','selection_copy']
     addedAt: DateText
     note: Annotated[str, AfterValidator(bounded(2000,False))] | None = None
     fileName: Annotated[str, AfterValidator(bounded(1000,False))] | None = None
     byteSize: SafeInt | None = None
     lastModified: SafeInt | None = None
     encoding: Literal['UTF-8'] | None = None
+    copy: CopyOrigin | None = None
+
+    @model_validator(mode='after')
+    def copy_source(self):
+        is_copy = self.kind in ('document_copy','selection_copy')
+        if is_copy != (self.copy is not None): raise ValueError('Invalid copy source')
+        if self.kind == 'document_copy' and self.copy.start != 0: raise ValueError('Invalid document range')
+        return self
 
 class Snapshot(Contract):
     id: Short
@@ -56,12 +78,16 @@ class Snapshot(Contract):
     start: SafeInt
     end: SafeInt
     capturedAt: DateText
-    source: Literal['virtual_document','new_text','pasted_text','txt_file','docx_file','pptx_file','xlsx_file','pdf_file'] | None = None
+    source: MaterialSource | None = None
     origin: Origin | None = None
 
     @model_validator(mode='after')
     def ranges(self):
         if self.end-self.start != utf16(self.text): raise ValueError('Invalid range')
+        if self.source in ('document_copy','selection_copy') and (not self.origin or self.origin.kind != self.source):
+            raise ValueError('Invalid copy binding')
+        if self.origin and self.origin.copy and self.source is not None and self.source != self.origin.kind:
+            raise ValueError('Invalid copy binding')
         return self
 
 class CheckRequest(Contract):
