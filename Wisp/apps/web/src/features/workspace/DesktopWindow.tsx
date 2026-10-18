@@ -242,9 +242,9 @@ export function DesktopWindow({
         </span>
         <span>
           {app.name === "Mail"
-            ? "Clara · Nightjar venue"
+            ? "Mara · narrative room"
             : app.name === "Sheets"
-              ? "100%"
+              ? "Story beats"
               : "Body · 12 pt"}
         </span>
         <button

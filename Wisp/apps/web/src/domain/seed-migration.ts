@@ -2,6 +2,7 @@ import type { Material } from "./model";
 
 /** Preference key used to make the legacy seed migration one-time per database. */
 export const ENGLISH_SEED_MIGRATION_KEY = "seed-migration:english-v2";
+export const DEEP_SPACE_SEED_MIGRATION_KEY = "seed-migration:deep-space-v3";
 
 function decodeLegacy(value: string): string {
   const bytes = Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
@@ -19,8 +20,49 @@ export const LEGACY_SEED_CONTENT: Readonly<Record<"proposal" | "venue", { title:
   },
 };
 
+const PREVIOUS_ENGLISH_SEEDS: Readonly<
+  Record<"proposal" | "venue", { title: string; text: string }>
+> = {
+  proposal: {
+    title: "Bookstore event proposal",
+    text: "A little light for yourself this weekend\n\n01 / Event intent\nGive busy people time to stay in the bookstore. The event is scheduled to open on November 8, with a budget of CNY 8,000.\n\n02 / An unhurried experience\nTake a blank bookmark and write down one thing to let go of. Choose a book and sit by the window for a while.\n\n03 / Items to confirm\nThe poster is scheduled to be finalized on November 10, followed by registration opening. Venue, printing, and materials are quoted at CNY 6,500 in total.\n\nThis editable sample uses fictional information.",
+  },
+  venue: {
+    title: "Venue notes",
+    text: "Nightingale Books · Venue notes\n\nOpening hours\nNovember 8, 14:00–20:00.\n\nSpace and capacity\nUp to 40 people are recommended, with window seats reserved for reading. No open flames indoors.\n\nPreparation\nConfirm roles and flow the day before the event. Check the poster, registration plan, and schedule again.\n\nThis is editable sample material.",
+  },
+};
+
+/** Replace only the untouched English demo seed from before the game-content refresh. */
+export function migrateEnglishDemoSeed(
+  material: Material | undefined,
+  gameSeed: Material,
+  updatedAt: string,
+): Material | undefined {
+  if (!material || (material.id !== "proposal" && material.id !== "venue"))
+    return undefined;
+  const previous = PREVIOUS_ENGLISH_SEEDS[material.id];
+  if (
+    material.kind !== "text" ||
+    material.source !== "virtual_document" ||
+    (material.version !== 1 && material.version !== 2) ||
+    Object.prototype.hasOwnProperty.call(material, "origin") ||
+    Object.prototype.hasOwnProperty.call(material, "createdAt") ||
+    material.title !== previous.title ||
+    material.text !== previous.text
+  )
+    return undefined;
+  return {
+    ...material,
+    title: gameSeed.title,
+    text: gameSeed.text,
+    version: Math.max(material.version, 2) + 1,
+    updatedAt,
+  };
+}
+
 /**
- * Return the English v2 replacement only for an untouched legacy seed.
+ * Return the current seed replacement only for an untouched legacy seed.
  * Missing, edited, imported, and user-created materials are deliberately left alone.
  */
 export function migrateLegacySeed(
@@ -45,7 +87,7 @@ export function migrateLegacySeed(
     ...material,
     title: englishSeed.title,
     text: englishSeed.text,
-    version: 2,
+    version: Math.max(material.version, 2) + 1,
     updatedAt,
   };
 }

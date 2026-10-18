@@ -25,7 +25,9 @@ import {
 import { openDB, deleteDB, type IDBPDatabase, type DBSchema } from "idb";
 import { seeds, selectText, type Material } from "../domain/model";
 import {
+  DEEP_SPACE_SEED_MIGRATION_KEY,
   ENGLISH_SEED_MIGRATION_KEY,
+  migrateEnglishDemoSeed,
   migrateLegacySeed,
 } from "../domain/seed-migration";
 import { type CheckRecord } from "../domain/check";
@@ -656,6 +658,28 @@ export function createRepository(name = "wisp-module-one") {
       const id = "wisp-demo-checklist";
       const existing = await tx.store.get(id);
       if (existing) {
+        const previousText =
+          "Task\tOwner\tWhen\tStatus\nVenue confirmation\tLin\tNov 6\tTo confirm\nPoster deadline\tYao\tNov 10\tIn progress\nDoors open\tTeam\tNov 8\tNot started\nPrint materials\tUnassigned\tNov 7\tTo confirm";
+        if (
+          existing.kind === "text" &&
+          existing.source === "virtual_document" &&
+          existing.version === 1 &&
+          !Object.prototype.hasOwnProperty.call(existing, "origin") &&
+          !Object.prototype.hasOwnProperty.call(existing, "createdAt") &&
+          existing.title === "Event checklist" &&
+          existing.text === previousText
+        ) {
+          const migrated: Material = {
+            ...existing,
+            title: "Gameplay beats",
+            text: "Beat\tOwner\tPlayer action\tNarrative effect\tStatus\nSignal calibration\tMara\tTune the receiver\tIntroduces signal-reading controls\tDraft\nFirst reply\tPlayer\tAnswer or stay silent\tSets the crew's first interpretation\tDraft\nFalse echo\tIvo\tCompare the echo with ship logs\tBuilds doubt about the signal\tOpen\nCrew trust\tPlayer\tShare or hide a fragment\tChanges an alliance and available help\tOpen\nFinal transmission\tPlayer\tChoose what to send\tResolves the chapter's immediate crisis\tOpen",
+            version: 3,
+            updatedAt: new Date().toISOString(),
+          };
+          await tx.store.put(migrated);
+          await tx.done;
+          return migrated;
+        }
         await tx.done;
         return existing;
       }
@@ -663,8 +687,8 @@ export function createRepository(name = "wisp-module-one") {
         id,
         kind: "text",
         source: "virtual_document",
-        title: "Event checklist",
-        text: "Task\tOwner\tWhen\tStatus\nVenue confirmation\tLin\tNov 6\tTo confirm\nPoster deadline\tYao\tNov 10\tIn progress\nDoors open\tTeam\tNov 8\tNot started\nPrint materials\tUnassigned\tNov 7\tTo confirm",
+        title: "Gameplay beats",
+        text: "Beat\tOwner\tPlayer action\tNarrative effect\tStatus\nSignal calibration\tMara\tTune the receiver\tIntroduces signal-reading controls\tDraft\nFirst reply\tPlayer\tAnswer or stay silent\tSets the crew's first interpretation\tDraft\nFalse echo\tIvo\tCompare the echo with ship logs\tBuilds doubt about the signal\tOpen\nCrew trust\tPlayer\tShare or hide a fragment\tChanges an alliance and available help\tOpen\nFinal transmission\tPlayer\tChoose what to send\tResolves the chapter's immediate crisis\tOpen",
         version: 1,
         updatedAt: new Date().toISOString(),
       };
@@ -698,6 +722,19 @@ export function createRepository(name = "wisp-module-one") {
           if (migrated) await materials.put(migrated);
         }
         await preferences.put(true, ENGLISH_SEED_MIGRATION_KEY);
+      }
+      if (!(await preferences.get(DEEP_SPACE_SEED_MIGRATION_KEY))) {
+        const currentSeeds = seeds();
+        const updatedAt = new Date().toISOString();
+        for (const gameSeed of currentSeeds) {
+          const migrated = migrateEnglishDemoSeed(
+            await materials.get(gameSeed.id),
+            gameSeed,
+            updatedAt,
+          );
+          if (migrated) await materials.put(migrated);
+        }
+        await preferences.put(true, DEEP_SPACE_SEED_MIGRATION_KEY);
       }
       const result = await materials.getAll();
       await tx.done;

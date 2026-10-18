@@ -8,18 +8,18 @@ export function desktopApp(material: Material) {
       name: "Mail",
       icon: "envelope-simple",
       tone: "mail",
-      file: "Venue notes.docx",
-      category: "NOTES FROM THE VENUE",
-      subtitle: "References for the event · click to edit",
+      file: "Character & story notes.docx",
+      category: "CHARACTER & STORY",
+      subtitle: "Deep Space Receiver · narrative room",
     };
   if (material.id === CHECKLIST_ID)
     return {
       name: "Sheets",
       icon: "file-xls",
       tone: "sheets",
-      file: "Event checklist.xlsx",
-      category: "ONE SMALL THING AT A TIME",
-      subtitle: "Nightjar Books / click a cell to edit",
+      file: "Gameplay beats.xlsx",
+      category: "SIGNAL TO STORY",
+      subtitle: "Deep Space Receiver / click a beat to edit",
     };
   return {
     name: "Pages",
@@ -27,15 +27,15 @@ export function desktopApp(material: Material) {
     tone: "pages",
     file:
       material.id === "proposal"
-        ? "Weekend event.docx"
+        ? "Deep Space Receiver.docx"
         : (material.origin?.fileName ?? material.title + ".txt"),
     category:
       material.id === "proposal"
-        ? "WEEKEND AT THE BOOKSTORE"
+        ? "DEEP SPACE RECEIVER / CONCEPT"
         : "YOUR WORKING DOCUMENT",
     subtitle:
       material.id === "proposal"
-        ? "Nightjar Books · event draft / still taking shape"
+        ? "Game concept draft / still taking shape"
         : "Your words, saved on this device",
   };
 }

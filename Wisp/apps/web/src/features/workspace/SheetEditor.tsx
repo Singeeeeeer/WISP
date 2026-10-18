@@ -8,7 +8,9 @@ export function SheetEditor({ material }: { material: Material }) {
   const [raw, setRaw] = useState(false);
   const lines = material.text.split("\n");
   const rows = lines.map((line) => line.split("\t"));
-  const hasHeader = rows[0]?.join("\t") === "Task\tOwner\tWhen\tStatus";
+  const hasHeader =
+    rows[0]?.join("\t") ===
+    "Beat\tOwner\tPlayer action\tNarrative effect\tStatus";
   function select(el: HTMLTextAreaElement, start = 0) {
     try {
       useInteraction.setState({
@@ -56,7 +58,7 @@ export function SheetEditor({ material }: { material: Material }) {
               <tr>
                 {(hasHeader
                   ? rows[0]
-                  : ["Task", "Owner", "When", "Status"]
+                  : ["Beat", "Owner", "Player action", "Narrative effect", "Status"]
                 ).map((name, i) => (
                   <th key={i}>{name}</th>
                 ))}
@@ -82,7 +84,7 @@ export function SheetEditor({ material }: { material: Material }) {
                       return (
                         <td key={j}>
                           <textarea
-                            aria-label={`Row ${i + 1} ${["task", "owner", "date", "status"][j] ?? "column " + (j + 1)}`}
+                            aria-label={`Row ${i + 1} ${["beat", "owner", "player action", "narrative effect", "status"][j] ?? "column " + (j + 1)}`}
                             data-source-start={start}
                             rows={1}
                             value={cell}
@@ -121,11 +123,11 @@ export function SheetEditor({ material }: { material: Material }) {
               material.id,
               "text",
               material.text +
-                "\nNew task\tUnassigned\tUnscheduled\tNot started",
+                "\nNew beat\tUnassigned\tPlayer action\tNarrative consequence\tNot started",
             )
           }
         >
-          ＋ Add a task
+          ＋ Add a beat
         </button>
         <button
           aria-pressed={raw}
