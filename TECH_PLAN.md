@@ -1,5 +1,7 @@
 # Witch Pointer 技术方案候选 v0.11
 
+PDF-03／04 本分支：独立 cauldron-import 服务管理投放占用，material-copy 生成冻结来源；保存同事务核对原文版本与范围，前后端三能力支持 document_copy／selection_copy。无需依赖和数据库结构升级；独立 15310 离线验证通过，主预览保持现状；共享接口见 Wisp/docs/pdf03-04-import-copies-verification.md。
+
 更新日期：2026-10-18。第 0 节记录 WP-01 的技术讨论边界；其余章节保留 2026-10-16 正式浏览器覆盖方案候选。队友 Wisp 原型已有局部实现，当前栈和能力以 [Wisp 技术说明](Wisp/docs/technical-guide.md) 为准；不将下方历史候选状态套用于已存在的原型。
 
 ## 0. 飞行朝向与杖尖召唤 WP-03（已确认实施）
