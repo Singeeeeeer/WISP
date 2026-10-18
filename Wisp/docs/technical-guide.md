@@ -23,6 +23,16 @@
 - Check 后的持续关注提议：明确确认全文后，Scout Bat 在发起页面打开期间检查后续已保存版本；可停止，刷新或关闭后中断，不自动恢复。
 - 本地 API 健康检查、明确的 501 错误和请求标识。
 
+## PDF-07～10 · 角色表现（本分支已实现）
+
+本轮复用图集的阅读／举杖／构思姿势及 SVG／CSS。500ms 停留轻浮保持，`Settings.idleRhythm` 的 default／lively 分别以约 1.2s／0.65s 开始帽子／扫星屑／打盹小动作；移动中断。原生 select 与既有 settings 保存队列连接，初始化将旧设置缺失／无效值回退 default，保留其他合法设置。
+
+临时角色活动通过 `useTaskActivity(kind)` 接线，kind 为 reading／checking／creating／brewing，`start(origin?)` 返回真实结局回调，clear／卸载清理。前台三能力从真实提交到结果保存结束；后台取现有 useTasks 中最新 running 状态。菜单与编辑／拖选／拖窗让位优先，其次前台处理、后台任务、待机；成功短亮，失败／取消恢复，迟到回调不覆盖新任务。结果立即展示，动画不承载虚构进度。角色定位避让正文及控件，应用或系统减少动态使用静态姿势，隐藏角色保留全部功能。
+
+召唤提交的 Promise 表示委托入库，入库成功后才从发起控件／位置向 `.familiar-marker` 飞行；它不表示任务完成，历史恢复和跨标签刷新不重播。键盘与触屏取控件位置。当前熔炉 `prepareMaterial` 对非 summon 的临时 ActionDraft 设置 `presentation: "brewing"`，前台面板显式选用熬制；普通编辑器入口仍按三能力选动作，该标记不进入 Task 或结果记录。PDF-05 新多材料处理面板直接接 brewing，导入／保存／成员变更的 busy 不作熬制。共享 Settings、stores、ActionDraft 临时标记和接线点由集成回归核对。
+
+在独立 worktree 使用 15330 系列端口、空模型配置和模拟响应检查，不调用真实 Gemini、不修改 15278 预览。164 项单元、58 项浏览器、类型与独立构建通过；窄屏标记隐藏时不显示后台角色，召唤交接到魔法书。前台没有安全位置时隐藏装饰，任务结局不重建手势监听。详见 [验证与接线契约](pdf0710-character-verification.md)，用户体验及跨分支集成待审阅；确认范围见根目录 DESIGN.md 第 4.12 节。
+
 ## 本机启动
 
 依赖已安装在 Wisp/node_modules 与 Wisp/.venv。使用两个 CMD 窗口分别执行完整路径：

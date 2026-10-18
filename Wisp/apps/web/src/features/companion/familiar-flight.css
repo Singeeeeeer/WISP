@@ -1,0 +1,19 @@
+.familiar-flight {
+  position: fixed;
+  width: 48px;
+  height: 48px;
+  z-index: 1200;
+  pointer-events: none;
+  filter: drop-shadow(0 0 5px #e7c885);
+}
+.familiar-flight[data-flight="none"],
+.familiar-flight .wisp-sprite {
+  display: none;
+}
+.familiar-flight[data-familiar="page_sprite"] .flight-page-sprite,
+.familiar-flight[data-familiar="scout_bat"] .flight-scout-bat,
+.familiar-flight[data-familiar="alchemy_imp"] .flight-alchemy-imp {
+  display: block;
+  width: 48px;
+  height: 48px;
+}

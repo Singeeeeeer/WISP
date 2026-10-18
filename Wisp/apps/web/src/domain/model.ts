@@ -56,10 +56,12 @@ export interface WindowState {
 export interface Settings {
   characterVisible: boolean;
   reducedMotion: boolean;
+  idleRhythm: "default" | "lively";
   characterSize: number;
   helpfulProposals: boolean;
 }
 export interface ActionDraft {
+  presentation?: "brewing";
   summaryStyle?: SummaryStyle;
   fromResult?: boolean;
   execution?: "local" | "gemini";
@@ -72,6 +74,7 @@ export interface ActionDraft {
 export const defaultSettings: Settings = {
   characterVisible: true,
   reducedMotion: false,
+  idleRhythm: "default",
   characterSize: 48,
   helpfulProposals: false,
 };

@@ -1,10 +1,11 @@
 import { captureOutcome } from "../companion/outcome";
+import { captureSummonFlight } from "../companion/summon-flight";
 import { ExecutionChoice } from "../check/ExecutionChoice";
 import { SummaryChoice } from "../check/SummaryChoice";
 import { GEMINI_TEXT_LIMIT } from "../../domain/gemini-text";
 import { GEMINI_LIMIT } from "../../domain/gemini-check";
 import { SourceInfo } from "../../shared/SourceInfo";
-import { useRef, useState } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import { useDocuments, useInteraction } from "../../state/stores";
 import {
   snapshot,
@@ -39,9 +40,14 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
       useInteraction.setState({ draft: undefined });
     }
   };
-  async function submit() {
+  async function submit(event: MouseEvent<HTMLButtonElement>) {
     if (lock.current) return;
     const finish = captureOutcome();
+    const launch = captureSummonFlight(
+      draft.familiar,
+      event.currentTarget,
+      event,
+    );
     lock.current = true;
     setBusy(true);
     setError("");
@@ -56,6 +62,7 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
             : undefined,
         execution: gemini ? "gemini" : "local",
       });
+      launch();
       finish("success");
       useInteraction.setState({ draft: undefined });
     } catch (e) {
@@ -193,7 +200,7 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
         <button
           className="primary"
           disabled={busy || !ready}
-          onClick={() => void submit()}
+          onClick={(event) => void submit(event)}
         >
           {busy ? "正在保存委托…" : "召唤使魔"}
         </button>

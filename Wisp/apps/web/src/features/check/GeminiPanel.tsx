@@ -1,4 +1,5 @@
 import { captureOutcome } from "../companion/outcome";
+import { operationPose, useTaskActivity } from "../companion/activity";
 import { useEffect, useRef, useState } from "react";
 import { snapshot, type ActionDraft } from "../../domain/model";
 import { GEMINI_LIMIT } from "../../domain/gemini-check";
@@ -18,6 +19,9 @@ import { ExecutionChoice } from "./ExecutionChoice";
 const repository = createRepository();
 export function GeminiPanel({ draft }: { draft: ActionDraft }) {
   const operation = draft.entry === "summon" ? "check" : draft.entry;
+  const activity = useTaskActivity(
+    draft.presentation === "brewing" ? "brewing" : operationPose(operation),
+  );
   const resultProps = {
     close: () => close(),
     again: () => reset(),
@@ -58,6 +62,7 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
   };
   const reset = () => {
     if (current && !locked.current) {
+      activity.clear();
       submission.current = undefined;
       setRecord(undefined);
       setError("");
@@ -67,9 +72,10 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
     }
   };
   const frozen = busy || !!submission.current?.hasResult();
-  async function submit() {
+  async function submit(origin: Element) {
     if (locked.current) return;
     const finish = captureOutcome();
+    const finishActivity = activity.start(origin);
     locked.current = true;
     setBusy(true);
     setError("");
@@ -86,11 +92,15 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
     try {
       const saved = await submission.current.run(signal);
       if (mounted.current) {
+        finishActivity("success");
         finish("success");
         setRecord(saved);
       }
     } catch (e) {
       if (mounted.current) {
+        finishActivity(
+          signal.aborted && !submission.current?.hasResult() ? "cancel" : "error",
+        );
         finish(
           signal.aborted && !submission.current?.hasResult()
             ? "cancel"
@@ -203,7 +213,7 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
             <button
               className="primary"
               disabled={busy}
-              onClick={() => void submit()}
+              onClick={(e) => void submit(e.currentTarget)}
             >
               {busy
                 ? "正在处理并保存…"
