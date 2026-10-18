@@ -183,9 +183,9 @@ export function validateGemini(value: unknown): value is GeminiCheckRecord {
 
 export const geminiHeading = (r: GeminiCheckRecord) =>
   r.outcome === "findings"
-    ? "Gemini：发现待核对的疑点"
+    ? "Gemini: potential issues to review"
     : r.outcome === "needs_information"
-      ? "Gemini：需要补充信息"
-      : "Gemini：未发现明显问题";
+      ? "Gemini: more information needed"
+      : "Gemini: no obvious issues found";
 export const GEMINI_LIMIT =
-  "仅依据本次材料提出疑点和建议，不是外部事实核查或完整证明。未发现明显问题不代表材料正确；结果需由你确认，不自动修改原文。";
+  "This output is based only on the provided material. It is not external fact-checking or proof. No obvious issues does not mean the material is correct; review the result before accepting it. The original text is never changed automatically.";

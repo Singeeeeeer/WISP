@@ -64,7 +64,7 @@ export async function loadExcerptPreference() {
     const value = await repository.readPreference<unknown>(key);
     if (current !== revision) return;
     if (value != null && !validPreference(value))
-      throw new Error("摘录偏好格式无效，暂不应用，请重试或忘记。");
+      throw new Error("The excerpt preference is invalid and was not applied. Try again or forget it.");
     useProposals.setState({
       preference: validPreference(value) ? value : undefined,
       ready: true,
@@ -75,7 +75,7 @@ export async function loadExcerptPreference() {
     if (current === revision)
       useProposals.setState({
         ready: false,
-        error: e instanceof Error ? e.message : "摘录偏好读取失败",
+        error: e instanceof Error ? e.message : "Could not load the excerpt preference.",
       });
   }
 }
@@ -308,7 +308,7 @@ export async function saveExcerptPreference(excerptLimit: ExcerptLimit) {
     channel?.postMessage("changed");
   } catch (e) {
     useProposals.setState({
-      error: e instanceof Error ? e.message : "偏好保存失败，请重试",
+      error: e instanceof Error ? e.message : "Could not save the preference. Please try again.",
     });
   } finally {
     useProposals.setState({ busy: false });
@@ -328,7 +328,7 @@ export async function forgetExcerptPreference() {
     channel?.postMessage("changed");
   } catch (e) {
     useProposals.setState({
-      error: e instanceof Error ? e.message : "忘记偏好失败，请重试",
+      error: e instanceof Error ? e.message : "Could not forget the preference. Please try again.",
     });
   } finally {
     useProposals.setState({ busy: false });

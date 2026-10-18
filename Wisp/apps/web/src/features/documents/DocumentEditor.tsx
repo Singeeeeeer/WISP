@@ -31,7 +31,7 @@ export function DocumentEditor({ material }: { material: Material }) {
               selection: undefined,
               selectionError: {
                 materialId: material.id,
-                message: "选区无效，请重新选择完整文字；不会自动扩大到全文。",
+                message: "Selection is invalid. Select complete text again; it will not expand to the full text automatically.",
               },
             });
           }
@@ -51,7 +51,7 @@ export function DocumentEditor({ material }: { material: Material }) {
         </span>
       </div>
       <label className="sr-only" htmlFor={"title-" + material.id}>
-        文档标题 {material.id}
+        Document title {material.id}
       </label>
       <input
         id={"title-" + material.id}
@@ -61,7 +61,7 @@ export function DocumentEditor({ material }: { material: Material }) {
         onChange={(e) => edit(material.id, "title", e.target.value)}
       />
       <textarea
-        aria-label={material.title + "正文"}
+        aria-label={material.title + " text"}
         value={material.text}
         spellCheck={false}
         onPointerDown={(e) => {
@@ -91,7 +91,7 @@ export function DocumentEditor({ material }: { material: Material }) {
               selection: undefined,
               selectionError: {
                 materialId: material.id,
-                message: "选区无效，请重新选择完整文字；不会自动扩大到全文。",
+                message: "Selection is invalid. Select complete text again; it will not expand to the full text automatically.",
               },
             });
           }
@@ -100,23 +100,23 @@ export function DocumentEditor({ material }: { material: Material }) {
       {error && (
         <div role="alert" className="error">
           {error}
-          <button onClick={() => retrySave(material.id)}>重试保存</button>
+          <button onClick={() => retrySave(material.id)}>Retry save</button>
         </div>
       )}
       <div className="document-copy-actions">
         <button onClick={() => requestDocumentCopy(material.id)}>
-          全文副本入炉
+          Add full copy to cauldron
         </button>
         <button
           disabled={selection?.materialId !== material.id}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => requestDocumentCopy(material.id, true)}
         >
-          选区副本入炉
+          Add selection copy to cauldron
         </button>
       </div>
       <div className="document-hint">
-        选中文字或定位文档，双指辅助点按／右键打开基础能力；Shift＋右键使用浏览器菜单。
+        Select text or focus the document, then use a two-finger tap or right-click to open Core abilities. Shift + right-click opens the browser menu.
       </div>
     </div>
   );

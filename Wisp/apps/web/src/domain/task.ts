@@ -13,17 +13,17 @@ import {
 } from "./processing";
 import { isBatchRecord, validateBatch, validBatchSnapshots, type BatchDraft, type BatchRecord } from "./batch";
 export const roles: Record<Familiar, { name: string; operation: Operation }> = {
-  scout_bat: { name: "Scout Bat · 巡读蝠", operation: "check" },
-  page_sprite: { name: "Page Sprite · 书页灵", operation: "understand" },
-  alchemy_imp: { name: "Alchemy Imp · 炼金灵", operation: "create" },
+  scout_bat: { name: "Scout Bat · Reading Bat", operation: "check" },
+  page_sprite: { name: "Page Sprite · Page Spirit", operation: "understand" },
+  alchemy_imp: { name: "Alchemy Imp · Alchemy Spirit", operation: "create" },
 };
 export const taskLabels = {
-  queued: "排队中",
-  running: "处理中",
-  completed: "已完成",
-  failed: "失败",
-  cancelled: "已召回",
-  interrupted: "已中断",
+  queued: "Queued",
+  running: "Running",
+  completed: "Completed",
+  failed: "Failed",
+  cancelled: "Cancelled",
+  interrupted: "Interrupted",
 };
 export interface SingleTask {
   scope?: undefined;
@@ -57,21 +57,21 @@ export const isBatchTask = (t: Task): t is BatchTask => t.scope === "batch";
 export const pendingTask = (t: Task) =>
   t.status === "queued" || t.status === "running";
 export function newTask(d: ActionDraft): SingleTask {
-  if (d.entry !== "summon") throw new Error("需要确认使魔委托");
+  if (d.entry !== "summon") throw new Error("Confirm the familiar delegation first");
   if (!d.snapshot.text.trim() || d.snapshot.text.length > 60000)
-    throw new Error("材料必须非空且不超过 60,000 个 UTF-16 单元");
-  if (!Object.hasOwn(roles, d.familiar)) throw new Error("未知使魔");
+    throw new Error("Material must be non-empty and no longer than 60,000 UTF-16 code units");
+  if (!Object.hasOwn(roles, d.familiar)) throw new Error("Unknown familiar");
   if (d.execution === "gemini" && "watchId" in d)
-    throw new Error("Gemini 仅允许一次性任务");
+    throw new Error("Gemini supports one-off tasks only");
   if (
     d.summaryStyle !== undefined &&
     (d.execution !== "gemini" ||
       d.familiar !== "page_sprite" ||
       !["brief", "standard"].includes(d.summaryStyle))
   )
-    throw new Error("摘要参数不属于本次操作");
+    throw new Error("Summary options do not apply to this operation");
   if (d.execution === "gemini" && d.instruction.length > 4000)
-    throw new Error("补充要求最多 4,000 个 UTF-16 单元");
+    throw new Error("Additional instructions are limited to 4,000 UTF-16 code units");
   return {
     execution: d.execution ?? "local",
     excerptLimit:
@@ -95,10 +95,10 @@ export function newTask(d: ActionDraft): SingleTask {
   };
 }
 export function newBatchTask(d: BatchDraft): BatchTask {
-  if (d.entry !== "summon") throw new Error("需要确认使魔委托");
+  if (d.entry !== "summon") throw new Error("Confirm the familiar delegation first");
   if (typeof d.id !== "string" || !d.id.trim() || d.id.length > 200)
-    throw new Error("多材料提交标识无效");
-  if (!Object.hasOwn(roles, d.familiar)) throw new Error("未知使魔");
+    throw new Error("Invalid multi-material submission identifier");
+  if (!Object.hasOwn(roles, d.familiar)) throw new Error("Unknown familiar");
   const now = new Date().toISOString();
   const task: BatchTask = {
     id: "task-" + d.id, scope: "batch", execution: "gemini",
@@ -108,7 +108,7 @@ export function newBatchTask(d: BatchDraft): BatchTask {
     status: "queued", createdAt: now, updatedAt: now, unread: false, archived: false,
   };
   if ((d.summaryStyle !== undefined && d.familiar !== "page_sprite") || "watchId" in d || !validBatchTask(task))
-    throw new Error("多材料委托范围或参数无效：需要 2～12 份独立材料，总量最多 60,000 个 UTF-16 单元，补充要求最多 4,000 个。");
+    throw new Error("Invalid multi-material delegation scope or parameters: provide 2–12 independent materials, up to 60,000 UTF-16 code units total and 4,000 additional code units.");
   return task;
 }
 export type TaskAction =
@@ -132,18 +132,18 @@ export function transition(t: Task, a: TaskAction): Task {
     return {
       ...next,
       status: "interrupted",
-      error: "页面执行已结束，任务未完成。请重新确认后委托。",
+      error: "Page execution ended before the task completed. Confirm again before delegating.",
     };
   if (a.type === "fail")
     return { ...next, status: "failed", error: a.error, unread: false };
   if (a.type !== "complete") return t;
-  if (t.status !== "running") throw new Error("任务尚未开始");
+  if (t.status !== "running") throw new Error("The task has not started");
   if (isBatchTask(t)) {
     if (!validBatchTask(t) || !validateBatch(a.result) || t.id !== "task-" + a.result.id ||
       a.result.operation !== t.operation || a.result.instruction !== t.instruction ||
       !sameValue(a.result.snapshots, t.snapshots) ||
       (a.result.operation === "understand" && a.result.summaryStyle !== t.summaryStyle))
-      throw new Error("回信与任务材料绑定不一致");
+      throw new Error("The reply is not bound to the task materials");
     return { ...t, updatedAt: next.updatedAt, status: "completed", result: a.result, unread: true };
   }
   if (
@@ -159,7 +159,7 @@ export function transition(t: Task, a: TaskAction): Task {
     !sameValue(a.result.snapshot, t.snapshot) ||
     !validateProcessing(a.result)
   )
-    throw new Error("回信与任务材料绑定不一致");
+    throw new Error("The reply is not bound to the task materials");
   return { ...t, updatedAt: next.updatedAt, status: "completed", result: a.result, unread: true };
 }
 

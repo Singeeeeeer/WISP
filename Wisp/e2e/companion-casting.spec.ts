@@ -45,7 +45,7 @@ async function connectedTrace(page: Page, x: number, y: number) {
   expect(tipY).toBeGreaterThanOrEqual(caster.y);
   expect(tipY).toBeLessThanOrEqual(caster.y + caster.height);
   const menu = (await page
-    .getByRole("menu", { name: "基础能力" })
+    .getByRole("menu", { name: "Core abilities" })
     .boundingBox())!;
   const path = (await trace.locator(".magic-trace-path").getAttribute("d"))!;
   expect(path.match(/-?\d+(?:\.\d+)?/g)!.map(Number)).toEqual([
@@ -64,7 +64,7 @@ test.beforeEach(async ({ page }) => {
   );
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
 });
 
 test("flight turns horizontally, pitches vertically, and preserves direction through idle and jitter", async ({
@@ -116,7 +116,7 @@ test("opening a menu keeps the same witch, switches pose, and freezes the castin
     .locator(".companion-pose")
     .getAttribute("viewBox");
   await page.mouse.click(700, 700, { button: "right" });
-  const menu = page.getByRole("menu", { name: "基础能力" });
+  const menu = page.getByRole("menu", { name: "Core abilities" });
   await expect(menu).toBeVisible();
   await expect(companion).toHaveAttribute("data-state", "casting");
   expect(
@@ -156,7 +156,7 @@ test("casting and menu remain visible at all corners and after viewport resize",
   page,
 }) => {
   const companion = page.locator(".companion");
-  const menu = page.getByRole("menu", { name: "基础能力" });
+  const menu = page.getByRole("menu", { name: "Core abilities" });
   for (const [x, y] of [
     [1, 1],
     [1438, 1],
@@ -188,7 +188,7 @@ test("rapid cancellation and reopening use the new target without duplicate char
   page,
 }) => {
   const companion = page.locator(".companion");
-  const menu = page.getByRole("menu", { name: "基础能力" });
+  const menu = page.getByRole("menu", { name: "Core abilities" });
   const original = await companion.elementHandle();
   for (const [x, y] of [
     [600, 650],
@@ -220,7 +220,7 @@ test("menu entries accept a pointer click while the opening animation is running
 }) => {
   await page.mouse.move(700, 700);
   await page.keyboard.press("q");
-  const menu = page.getByRole("menu", { name: "基础能力" });
+  const menu = page.getByRole("menu", { name: "Core abilities" });
   const check = page.getByRole("menuitem", { name: "Check", exact: true });
   const opening = await menu.evaluate((element) =>
     element
@@ -234,7 +234,7 @@ test("menu entries accept a pointer click while the opening animation is running
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(menu).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "运行本地检查" }),
+    page.getByRole("button", { name: "Run local check" }),
   ).toBeEnabled();
   await expect(page.locator(".companion")).not.toHaveAttribute(
     "data-state",
@@ -247,9 +247,9 @@ for (const source of ["application", "system"] as const) {
     page,
   }) => {
     if (source === "application") {
-      await page.getByRole("button", { name: "魔法书", exact: true }).click();
+      await page.getByRole("button", { name: "Grimoire", exact: true }).click();
       await page.getByRole("button", { name: "Settings", exact: true }).click();
-      await page.getByLabel("减少动态效果").check();
+      await page.getByLabel("Reduce motion").check();
       await page.keyboard.press("Escape");
     } else {
       await page.emulateMedia({ reducedMotion: "reduce" });
@@ -259,7 +259,7 @@ for (const source of ["application", "system"] as const) {
     const original = await companion.elementHandle();
     await page.mouse.move(700, 700);
     await page.keyboard.press("q");
-    const menu = page.getByRole("menu", { name: "基础能力" });
+    const menu = page.getByRole("menu", { name: "Core abilities" });
     await expect(companion).toHaveAttribute("data-state", "casting");
     await expect(page.locator(".magic-trace")).toHaveCount(0);
     await expect(menu).toHaveClass(/magic-ring-reduced/);
@@ -282,7 +282,7 @@ for (const source of ["application", "system"] as const) {
     ).toBe(0);
     await page.getByRole("menuitem", { name: "Summon", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "召唤使魔", exact: true }),
+      page.getByRole("button", { name: "Summon familiar", exact: true }),
     ).toBeEnabled();
     await expect(companion).toHaveAttribute("data-state", "still");
   });
@@ -328,9 +328,9 @@ test("diving pitch follows downward direction while upward tilt and stopped head
 test("maximum-size diving sprite stays fully visible during edge arrival and idle hovering", async ({
   page,
 }) => {
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  const size = page.getByLabel("角色大小");
+  const size = page.getByLabel("Character size");
   await size.focus();
   await size.press("End");
   await expect(size).toHaveValue("72");

@@ -60,7 +60,7 @@ export function TaskList() {
       await updateTask(t.id, { type });
       if (type === "read") setSelected(t.id);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "任务操作失败");
+      setError(e instanceof Error ? e.message : "Task action failed");
     } finally {
       setBusy(false);
     }
@@ -70,14 +70,14 @@ export function TaskList() {
       <>
         <p>
           {roles[task.familiar].name} ·{" "}
-          {task.watchId ? "持续关注回信" : "一次性回信"}
-          {task.archived ? " · 已收好" : ""}
+          {task.watchId ? "Watch reply" : "One-time reply"}
+          {task.archived ? " · Archived" : ""}
         </p>
         <ProcessingResult
           record={task.result}
           close={() => setSelected(undefined)}
           again={() => prepareAgain(task)}
-          againLabel="重新委托当前全文"
+          againLabel="Delegate current full text again"
           summon={() => {
             if (isBatchRecord(task.result!)) openBatchDraft(batchContinuationDraft(task.result!));
             else useInteraction.setState({
@@ -91,38 +91,38 @@ export function TaskList() {
   return (
     <div>
       <WatchList />
-      <p>一次性委托。刷新只恢复记录，未完成的任务不会自动重跑。</p>
+      <p>One-time delegation. Refresh restores records only; unfinished tasks are not rerun automatically.</p>
       {(error || runtimeError) && (
         <p role="alert" className="error">
           {error || runtimeError}
-          <button onClick={() => void recoverTasks()}>刷新任务记录</button>
+          <button onClick={() => void recoverTasks()}>Refresh task records</button>
         </p>
       )}
-      {!ready && !runtimeError && <p>正在读取任务…</p>}
-      {ready && tasks.length === 0 && <p>还没有委托，也没有模拟任务。</p>}
+      {!ready && !runtimeError && <p>Loading tasks…</p>}
+      {ready && tasks.length === 0 && <p>No delegated tasks yet.</p>}
       {tasks.map((t) => (
         <section key={t.id} className="scope" data-testid="task-card">
           <h3>{roles[t.familiar].name}</h3>
-          <strong>{isBatchTask(t) ? "多材料 · " + t.snapshots.map((s) => s.title).join(" ＋ ") : t.snapshot.title}</strong>
+          <strong>{isBatchTask(t) ? "Multi-material · " + t.snapshots.map((s) => s.title).join(" + ") : t.snapshot.title}</strong>
           <p>
             {t.execution === "gemini"
-              ? "Gemini · 页面存续期间执行"
-              : "本地规则／模板"}
+              ? "Gemini · Runs while the page is open"
+              : "Local rules/templates"}
           </p>
-          {t.watchId && <p>持续关注检查 · {t.watchId}</p>}
+          {t.watchId && <p>Continuous watch check · {t.watchId}</p>}
           <p>
-            {isBatchTask(t) ? `${t.snapshots.length} 份独立材料` : `版本 ${t.snapshot.materialVersion}`} · {taskLabels[t.status]}
-            {t.unread ? " · 未读回信" : ""}
-            {t.archived ? " · 已收好" : ""}
+            {isBatchTask(t) ? `${t.snapshots.length} independent materials` : `Version ${t.snapshot.materialVersion}`} · {taskLabels[t.status]}
+            {t.unread ? " · Unread reply" : ""}
+            {t.archived ? " · Archived" : ""}
           </p>
           {t.error && <p className="error">{t.error}</p>}
-          {pendingSaves[t.id] && <p className="error" role="alert">模型处理已结束，回信尚未保存。{pendingSaves[t.id]} 关闭或刷新页面会丢失待保存回信。</p>}
+          {pendingSaves[t.id] && <p className="error" role="alert">Model processing finished, but the reply is not saved. {pendingSaves[t.id]} Closing or refreshing will lose the unsaved reply.</p>}
           <details>
-            <summary>查看委托范围</summary>
+            <summary>View delegation scope</summary>
             {isBatchTask(t) ? <BatchSources snapshots={t.snapshots} /> : <><SourceInfo value={t.snapshot} /><pre>{t.snapshot.text}</pre></>}
             <p>
-              {t.execution === "gemini" ? "委托要求：" : "要求（仅记录）："}
-              {t.instruction || "无"}
+              {t.execution === "gemini" ? "Delegation instruction: " : "Instruction (record only): "}
+              {t.instruction || "None"}
             </p>
           </details>
           <div className="panel-actions">
@@ -130,22 +130,22 @@ export function TaskList() {
               setBusy(true);
               setError("");
               try { await retryBatchTaskSave(t.id); }
-              catch (e) { setError(e instanceof Error ? e.message : "回信保存失败，请重试。"); }
+              catch (e) { setError(e instanceof Error ? e.message : "Could not save reply. Please retry."); }
               finally { setBusy(false); }
-            }}>重试保存回信</button>}
+            }}>Retry saving reply</button>}
             {pendingTask(t) && (
               <button disabled={busy} onClick={() => void action(t, "cancel")}>
-                召回任务
+                Recall task
               </button>
             )}
             {t.result && (
               <button disabled={busy} onClick={() => void action(t, "read")}>
-                查看回信
+                View reply
               </button>
             )}
             {!pendingTask(t) && !t.archived && (
               <button disabled={busy} onClick={() => void action(t, "archive")}>
-                收好记录
+                Archive record
               </button>
             )}
             {!pendingTask(t) && (
@@ -155,7 +155,7 @@ export function TaskList() {
                 }
                 onClick={() => prepareAgain(t)}
               >
-                {isBatchTask(t) ? "重新确认当前材料" : "重新委托当前全文"}
+                {isBatchTask(t) ? "Confirm current materials again" : "Delegate current full text again"}
               </button>
             )}
           </div>
@@ -178,21 +178,21 @@ export function TaskMarker() {
     (t) => !t.archived && (t.status === "failed" || t.status === "interrupted"),
   ).length;
   return (
-    <aside className="familiar-marker" aria-label="使魔任务状态">
+    <aside className="familiar-marker" aria-label="Familiar task status">
       <span aria-hidden="true">✉</span>
-      <strong>使魔委托</strong>
+      <strong>Familiar tasks</strong>
       <small role="status">
         {error
-          ? "任务记录读取异常"
+          ? "Could not load task records"
           : !ready
-            ? "正在读取任务…"
-            : active + " 项进行中 · " + unread + " 封未读"}
+            ? "Loading tasks…"
+            : active + " active · " + unread + " unread"}
       </small>
-      <small>{watched} 项关注</small>
-      {attention > 0 && <small>{attention} 项需要处理</small>}
+      <small>{watched} watched</small>
+      {attention > 0 && <small>Needs attention: {attention}</small>}
       <button
         disabled={hasDraft}
-        title={hasDraft ? "先关闭当前浮层，再查看使魔任务" : undefined}
+        title={hasDraft ? "Close the current panel before viewing familiar tasks" : undefined}
         onClick={() =>
           useInteraction.setState({
             book: true,
@@ -201,7 +201,7 @@ export function TaskMarker() {
           })
         }
       >
-        查看使魔任务
+        View familiar tasks
       </button>
     </aside>
   );

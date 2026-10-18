@@ -29,14 +29,14 @@ export const labels = {
 export const limits = {
   check: CHECK_LIMIT,
   understand:
-    "本地摘录整理：按原文顺序展示前 8 个非空行，不排序、不改写、不推断重点。超出部分明确计数，不代表完整摘要。",
+    "Local excerpt: show the first 8 non-empty lines in source order without sorting, rewriting, or inferring importance. Count omitted lines explicitly; this is not a complete summary.",
   create:
-    "活动介绍模板：仅识别独占一行的“主题：”“时间：”“地点：”“参与方式：”字段。字段缺失或重复会标注待补充或待确认；其他正文不会自动填入模板。没有生成新事实。",
+    "Event template: recognize only standalone lines beginning with “Topic:”, “Time:”, “Location:”, or “How to join:”. Missing or repeated fields are marked for completion or review; other text is not inserted automatically. No new facts are generated.",
 };
 export const actions = {
-  check: "运行本地检查",
-  understand: "整理原文摘录",
-  create: "生成模板草稿",
+  check: "Run local check",
+  understand: "Organize source excerpts",
+  create: "Create template draft",
 };
 export function runText(
   operation: TextRecord["operation"],
@@ -44,10 +44,10 @@ export function runText(
   instruction: string,
   excerptLimit: ExcerptLimit = 8,
 ): TextRecord {
-  if (excerptLimit !== 3 && excerptLimit !== 8) throw new Error("无效摘录行数");
-  if (!snapshot.text.trim()) throw new Error("材料为空，请先补充文字。");
+  if (excerptLimit !== 3 && excerptLimit !== 8) throw new Error("Invalid excerpt line count");
+  if (!snapshot.text.trim()) throw new Error("Material is empty. Add text first.");
   if (snapshot.text.length > 60000)
-    throw new Error("本地处理最多支持 60,000 个 UTF-16 单元，请缩小选区。");
+    throw new Error("Local processing is limited to 60,000 UTF-16 code units. Reduce the selection.");
   const lines: Evidence[] = [];
   for (const m of snapshot.text.matchAll(/[^\r\n]+/g)) {
     const quote = m[0].trim();
@@ -77,27 +77,30 @@ export function runText(
       draft: "",
     };
   const evidence: Evidence[] = [];
-  const fields = ["主题", "时间", "地点", "参与方式"].map((label) => {
-    const matches = lines.filter((e) =>
-      new RegExp("^" + label + "[：:]").test(e.quote),
-    );
-    if (matches.length > 1) return `${label}：【待确认：存在多条${label}】`;
-    if (!matches.length || !matches[0].quote.slice(label.length + 1).trim())
-      return `${label}：【待补充】`;
+  const legacyLabel = (...codes: number[]) => String.fromCodePoint(...codes);
+  const fields = [
+    ["Topic", legacyLabel(20027, 39064)], ["Time", legacyLabel(26102, 38388)],
+    ["Location", legacyLabel(22320, 28857)], ["How to join", legacyLabel(21442, 19982, 26041, 24335)],
+  ].map(([label, legacyField]) => {
+    const prefix = new RegExp("^(?:" + label + "|" + legacyField + ")[" + legacyLabel(65306) + ":]");
+    const matches = lines.filter((e) => prefix.test(e.quote));
+    if (matches.length > 1) return `${label}: [Review: multiple ${label} entries]`;
+    if (!matches.length || !matches[0].quote.replace(prefix, "").trim())
+      return `${label}: [To be added]`;
     evidence.push(matches[0]);
-    return `${label}：${matches[0].quote.slice(label.length + 1).trim()}`;
+    return `${label}: ${matches[0].quote.replace(prefix, "").trim()}`;
   });
   return {
     ...base,
     excerpts: evidence,
     omittedLines: 0,
     draft: [
-      "【本地模板草稿 · 尚未确认】",
-      "活动介绍",
+      "[Local template draft · Not confirmed]",
+      "Event introduction",
       ...fields,
       "",
-      "介绍正文：【待补充：请根据上述信息自行撰写】",
-      "发布前请核实所有字段。模板结构不是原文事实。",
+      "Introduction: [To be added: write from the information above]",
+      "Verify every field before publishing. The template structure is not source fact.",
     ].join("\n"),
   };
 }
@@ -132,24 +135,24 @@ export function validateLocal(r: LocalRecord) {
 export function resultHeading(r: LocalRecord) {
   return r.operation === "check"
     ? r.outcome === "findings"
-      ? "发现需要核对的安排"
+      ? "An arrangement needs review"
       : r.outcome === "no_findings"
-        ? "本地规则未发现可报告的疑点"
-        : "当前材料不在本地规则支持范围"
+        ? "Local rules found no reportable issue"
+        : "This material is outside the local rules' scope"
     : r.operation === "understand"
-      ? "原文摘录整理"
-      : "活动介绍模板草稿";
+      ? "Source excerpt"
+      : "Event template draft";
 }
 export function resultBody(r: LocalRecord): string[] {
   return r.operation === "check"
     ? r.findings.flatMap((f) => [
         f.title,
         f.explanation,
-        ...f.evidence.map((e) => `原文依据：${e.quote}`),
+        ...f.evidence.map((e) => `Source evidence: ${e.quote}`),
       ])
     : r.operation === "understand"
-      ? [...r.excerpts.map((e) => e.quote), `未展示的非空行：${r.omittedLines}`]
-      : [r.draft, ...r.excerpts.map((e) => `字段依据：${e.quote}`)];
+      ? [...r.excerpts.map((e) => e.quote), `Omitted non-empty lines: ${r.omittedLines}`]
+      : [r.draft, ...r.excerpts.map((e) => `Field evidence: ${e.quote}`)];
 }
 
 function validExtraction(r: TextRecord) {
@@ -166,6 +169,6 @@ export function limitDescription(
   excerptLimit: ExcerptLimit = 8,
 ) {
   return operation === "understand"
-    ? limits.understand.replace("前 8 个", "前 " + excerptLimit + " 个")
+    ? limits.understand.replace("first 8", "first " + excerptLimit)
     : limits[operation];
 }

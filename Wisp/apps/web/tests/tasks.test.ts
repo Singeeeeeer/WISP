@@ -66,10 +66,10 @@ it("rejects foreign results and empty material, and maps all roles", async () =>
       type: "complete",
       result: runLocal("understand", snapshot(seeds()[1]), ""),
     }),
-  ).rejects.toThrow("绑定");
+  ).rejects.toThrow(/binding|bound/);
   expect(() =>
     newTask({ ...draft(), snapshot: { ...t.snapshot, text: " " } }),
-  ).toThrow("材料");
+  ).toThrow("Material");
   expect(newTask({ ...draft(), familiar: "scout_bat" }).operation).toBe(
     "check",
   );
@@ -84,10 +84,10 @@ it("rejects changed authorization under the same submission ID", async () => {
   await r.enqueueTask(newTask(d));
   await expect(
     r.enqueueTask(newTask({ ...d, familiar: "alchemy_imp" })),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
   await expect(
     r.enqueueTask(newTask({ ...d, instruction: "不同要求" })),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
 });
 it("upgrades v3 without losing documents, preferences or direct processing records", async () => {
   const name = "v3-" + crypto.randomUUID();

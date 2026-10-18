@@ -19,7 +19,7 @@ export interface JointRecord {
 }
 export type StoredRecord = ProcessingRecord | JointRecord | BatchRecord;
 export const jointLimit =
-  "两份文本分别按原文顺序摘录，保留各自来源；不合并事实、不推断联系，不是综合摘要。每份独立采用所选行数。";
+  "The two texts are excerpted separately in source order, preserving each source. Facts are not merged or linked by inference; this is not a combined summary. Each text uses its selected line count independently.";
 function validSources(s: MaterialSnapshot[]) {
   return (
     s.length === 2 &&
@@ -37,7 +37,7 @@ function validSources(s: MaterialSnapshot[]) {
 export function runJoint(d: JointDraft): JointRecord {
   if (!validSources(d.snapshots))
     throw new Error(
-      "需要两份不同的非空文本全文，每份不超过 60,000 个 UTF-16 单元。",
+      "Provide two different non-empty full texts, each no longer than 60,000 UTF-16 code units.",
     );
   return {
     id: d.id,

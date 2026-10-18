@@ -148,8 +148,8 @@ it("rejects malformed copy provenance before network or storage and rejects alte
         operation: "understand",
         summaryStyle: "standard",
       }),
-    ).rejects.toThrow("2～12");
-    await expect(repo.saveRecord(broken)).rejects.toThrow("校验");
+    ).rejects.toThrow("2–12");
+    await expect(repo.saveRecord(broken)).rejects.toThrow("validation");
   }
   expect(fetchMock).not.toHaveBeenCalled();
   expect(await repo.listRecords()).toEqual([]);
@@ -175,6 +175,6 @@ it("rejects malformed copy provenance before network or storage and rejects alte
     },
     save,
   );
-  await expect(submission.run()).rejects.toThrow("绑定");
+  await expect(submission.run()).rejects.toThrow(/binding|bound/);
   expect(save).not.toHaveBeenCalled();
 });

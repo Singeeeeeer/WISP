@@ -31,7 +31,7 @@ it("binds task and result to the confirmed excerpt limit", async () => {
       type: "complete",
       result: runLocal("understand", task.snapshot, "", 8),
     }),
-  ).toThrow("绑定");
+  ).toThrow(/binding|bound/);
   expect(
     transition(running, {
       type: "complete",
@@ -42,7 +42,7 @@ it("binds task and result to the confirmed excerpt limit", async () => {
   await repo.enqueueTask(task);
   await expect(
     repo.enqueueTask(newTask({ ...draft, excerptLimit: 8 })),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
 });
 it("keeps legacy eight-line records valid and rejects invalid limits", () => {
   const r = runText("understand", input(), "");

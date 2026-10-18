@@ -9,15 +9,15 @@ export function ExecutionChoice({
 }) {
   return (
     <label className="field-label">
-      执行方式
+      Execution mode
       <select
-        aria-label="执行方式"
+        aria-label="Execution mode"
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value as "local" | "gemini")}
       >
-        <option value="local">本地规则 · 不发送到模型</option>
-        <option value="gemini">Gemini · 通过本地服务端发送本次材料</option>
+        <option value="local">Local rules · not sent to a model</option>
+        <option value="gemini">Gemini · send this material through the local service</option>
       </select>
     </label>
   );

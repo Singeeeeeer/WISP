@@ -91,14 +91,14 @@ export function Canvas({ blocked }: { blocked: boolean }) {
 
   function close() {
     if (saving) return;
-    if (dirty(editor) && !window.confirm("便笺修改尚未保存，仍要关闭白板吗？"))
+    if (dirty(editor) && !window.confirm("Note changes are not saved. Close the canvas anyway?"))
       return;
     useInteraction.setState({ canvas: false });
   }
   function edit(note?: CanvasNote) {
     if (
       saving ||
-      (dirty(editor) && !window.confirm("放弃尚未保存的便笺修改吗？"))
+      (dirty(editor) && !window.confirm("Discard unsaved note changes?"))
     )
       return;
     cancelConnection();
@@ -142,24 +142,24 @@ export function Canvas({ blocked }: { blocked: boolean }) {
     try {
       await putCanvasNote(note, old?.revision ?? null);
       setEditor(undefined);
-      setNotice("便笺已保存");
+      setNotice("Note saved");
     } catch (e) {
-      setLocalError(e instanceof Error ? e.message : "便笺保存失败，请重试。");
+      setLocalError(e instanceof Error ? e.message : "Could not save note. Please try again.");
     } finally {
       setSaving(false);
     }
   }
   async function remove(note: CanvasNote) {
-    if (!window.confirm("移除这张便笺？与它相连的已保存关系也会一并移除。"))
+    if (!window.confirm("Remove this note? Saved connections to it will also be removed."))
       return;
     setLocalError("");
     try {
       await removeCanvasNote(note);
       if (editor?.original?.id === note.id) setEditor(undefined);
       setInspect(undefined);
-      setNotice("便笺及关联连线已移除");
+      setNotice("Note and its connections removed");
     } catch (e) {
-      setLocalError(e instanceof Error ? e.message : "移除失败，请重试。");
+      setLocalError(e instanceof Error ? e.message : "Could not remove. Please try again.");
     }
   }
   async function move(note: CanvasNote, x: number, y: number) {
@@ -174,7 +174,7 @@ export function Canvas({ blocked }: { blocked: boolean }) {
         Math.max(0, Math.min(1010, y)),
       );
     } catch (e) {
-      setLocalError(e instanceof Error ? e.message : "位置保存失败，请重试。");
+      setLocalError(e instanceof Error ? e.message : "Could not save position. Please try again.");
     } finally {
       positionLock.current = false;
       setPositionSaving(false);
@@ -282,7 +282,7 @@ export function Canvas({ blocked }: { blocked: boolean }) {
     <section
       className="canvas-window"
       role="region"
-      aria-label="Canvas 白板"
+      aria-label="Canvas board"
       tabIndex={-1}
       ref={root}
       hidden={blocked}
@@ -293,7 +293,7 @@ export function Canvas({ blocked }: { blocked: boolean }) {
         if (editor) {
           if (
             !saving &&
-            (!dirty(editor) || window.confirm("放弃尚未保存的便笺修改吗？"))
+            (!dirty(editor) || window.confirm("Discard unsaved note changes?"))
           )
             setEditor(undefined);
         } else if (busy || result || phase === "inviting") cancelConnection();
@@ -303,29 +303,29 @@ export function Canvas({ blocked }: { blocked: boolean }) {
       <header className="canvas-header">
         <div>
           <span className="eyebrow">WISP · CANVAS</span>
-          <h2>让灵感彼此相连</h2>
+          <h2>Connect your ideas</h2>
         </div>
         <div className="canvas-header-actions">
           <button onClick={() => edit()} disabled={!ready || saving}>
-            新建便笺
+            New note
           </button>
-          <button aria-label="关闭白板" onClick={close} disabled={saving}>
-            关闭
+          <button aria-label="Close canvas" onClick={close} disabled={saving}>
+            Close
           </button>
         </div>
       </header>
       <div className="canvas-toolbar">
-        <span>Shift 点选两张，或勾选便笺</span>
-        <span role="status">已选 {selected.length} / 2 张</span>
+        <span>Shift-click two notes, or use their checkboxes</span>
+        <span role="status">Selected {selected.length} / 2 notes</span>
         <button
           disabled={!selected.length || saving}
           onClick={clearCanvasSelection}
         >
-          清除选择
+          Clear selection
         </button>
       </div>
       <div className="canvas-body">
-        <div className="canvas-scroll" tabIndex={0} aria-label="白板工作面">
+        <div className="canvas-scroll" tabIndex={0} aria-label="Canvas workspace">
           <div className="canvas-board" data-testid="canvas-board">
             <svg
               className="canvas-lines"
@@ -338,9 +338,9 @@ export function Canvas({ blocked }: { blocked: boolean }) {
             </svg>
             {ready && !notes.length && (
               <div className="canvas-empty">
-                <span>两张便笺，一个新角度。</span>
-                <p>从一个念头开始，添加文字，再邀请 Wisp 找找联系。</p>
-                <button onClick={() => edit()}>添加第一张便笺</button>
+                <span>Two notes, one new angle.</span>
+                <p>Start with an idea, add text, and invite Wisp to find a connection.</p>
+                <button onClick={() => edit()}>Add the first note</button>
               </div>
             )}
             {positioned.map((note, index) => (
@@ -352,7 +352,7 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                 data-selected={selected.includes(note.id)}
                 style={{ left: note.x, top: note.y }}
                 tabIndex={0}
-                aria-label={`便笺 ${note.title || "未命名"}`}
+                aria-label={`Note ${note.title || "Untitled"}`}
                 onPointerDown={(e) => {
                   if (
                     e.shiftKey &&
@@ -379,15 +379,15 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                     <input
                       type="checkbox"
                       checked={selected.includes(note.id)}
-                      aria-label={`选择便笺 ${note.title || "未命名"}`}
+                      aria-label={`Select note ${note.title || "Untitled"}`}
                       onChange={() => choose(note.id, true)}
                     />
-                    选择
+                    Select
                   </label>
                   <button
                     className="canvas-note-grip"
-                    aria-label={`移动便笺 ${note.title || "未命名"}`}
-                    title="拖动，或聚焦后按方向键移动"
+                    aria-label={`Move note ${note.title || "Untitled"}`}
+                    title="Drag, or focus and use arrow keys to move"
                     disabled={saving || !!editor || positionSaving}
                     onPointerDown={(e) => drag(e, note)}
                     onKeyDown={(e) => {
@@ -409,33 +409,33 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                       }
                     }}
                   >
-                    移动
+                    Move
                   </button>
                 </div>
-                <h3>{note.title || "未命名便笺"}</h3>
-                <p>{note.text || "还没有文字，点击编辑写下想法。"}</p>
+                <h3>{note.title || "Untitled note"}</h3>
+                <p>{note.text || "No text yet. Click Edit to write an idea."}</p>
                 <div className="canvas-note-actions">
-                  <small>版本 {note.version}</small>
+                  <small>Version {note.version}</small>
                   <button
                     onClick={() => edit(note)}
                     disabled={saving || positionSaving}
                   >
-                    编辑
+                    Edit
                   </button>
                   <button
-                    aria-label={`移除便笺 ${note.title || "未命名"}`}
+                    aria-label={`Remove note ${note.title || "Untitled"}`}
                     onClick={() => void remove(note)}
                     disabled={saving || !!editor || positionSaving}
                   >
-                    移除
+                    Remove
                   </button>
                 </div>
               </article>
             ))}
           </div>
         </div>
-        <aside className="canvas-sidebar" aria-label="白板操作">
-          {!ready && <p role="status">正在读取白板…</p>}
+        <aside className="canvas-sidebar" aria-label="Canvas actions">
+          {!ready && <p role="status">Loading canvas…</p>}
           {(localError || error) && (
             <p className="canvas-error" role="alert">
               {localError || error}
@@ -453,10 +453,10 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                 void saveNote();
               }}
             >
-              <span className="eyebrow">一张便笺</span>
-              <h3>{editor.original ? "编辑想法" : "写下新想法"}</h3>
+              <span className="eyebrow">A note</span>
+              <h3>{editor.original ? "Edit idea" : "Write a new idea"}</h3>
               <label className="canvas-field">
-                便笺标题
+                Note title
                 <input
                   autoFocus
                   maxLength={1000}
@@ -468,9 +468,9 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                 />
               </label>
               <label className="canvas-field">
-                便笺正文
+                Note text
                 <textarea
-                  aria-label="便笺正文"
+                  aria-label="Note text"
                   rows={8}
                   maxLength={60000}
                   value={editor.text}
@@ -482,7 +482,7 @@ export function Canvas({ blocked }: { blocked: boolean }) {
               </label>
               <div className="canvas-coordinates">
                 <label>
-                  横向位置
+                  Horizontal position
                   <input
                     type="number"
                     step="any"
@@ -496,7 +496,7 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                   />
                 </label>
                 <label>
-                  纵向位置
+                  Vertical position
                   <input
                     type="number"
                     step="any"
@@ -516,81 +516,81 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                   className="canvas-primary"
                   disabled={saving}
                 >
-                  {saving ? "保存中…" : "保存便笺"}
+                  {saving ? "Saving…" : "Save note"}
                 </button>
                 <button
                   type="button"
                   disabled={saving}
                   onClick={() => setEditor(undefined)}
                 >
-                  取消编辑
+                  Cancel editing
                 </button>
               </div>
               <p className="canvas-muted">
-                保存到这个浏览器。粘贴的文字也可在这里编辑。
+                Saved to this browser. Pasted text can also be edited here.
               </p>
             </form>
           ) : (
             <>
               <div className="canvas-selection">
-                <span className="eyebrow">当前材料</span>
-                <h3>先选择，再寻找</h3>
+                <span className="eyebrow">Current materials</span>
+                <h3>Select, then find</h3>
                 {selectedNotes.length ? (
                   selectedNotes.map((n) => (
                     <div className="canvas-source" key={n.id}>
-                      <strong>{n.title || "未命名便笺"}</strong>
-                      <small>全文 · 版本 {n.version}</small>
+                      <strong>{n.title || "Untitled note"}</strong>
+                      <small>Full text · Version {n.version}</small>
                       <details>
-                        <summary>查看本次文字</summary>
-                        <p>{n.text || "空白便笺"}</p>
+                        <summary>View this text</summary>
+                        <p>{n.text || "Empty note"}</p>
                       </details>
                     </div>
                   ))
                 ) : (
                   <p className="canvas-muted">
-                    选择两张非空便笺，看看它们之间有没有值得保留的联系。
+                    Select two non-empty notes to see whether they have a connection worth keeping.
                   </p>
                 )}
               </div>
               {!enabled && (
                 <p className="canvas-muted">
-                  主动提议已关闭，你仍可主动寻找联系。
+                  Helpful proposals are off; you can still find connections yourself.
                 </p>
               )}
               {selectedNotes.length === 2 && (
                 <p className="canvas-muted">
-                  点击“寻找联系”才会将这两张便笺的全文交给 Gemini。正文合计最多
-                  60,000 字符。
+                  Only clicking “Find connection” sends both notes in full to Gemini. The combined text is limited to
+                      60,000 characters.
                 </p>
               )}
               {phase === "inviting" && (
                 <section
                   className="canvas-invitation"
-                  aria-label="寻找联系提议"
+                  aria-label="Find connection proposal"
                 >
-                  <h3>要找找它们的联系吗？</h3>
-                  <p>返回的关系由你决定是否保留。</p>
+                  <h3>Find a connection between them?</h3>
+                  <p>You decide whether to keep the returned connection.</p>
                   <div className="canvas-actions">
                     <button
                       className="canvas-primary"
                       disabled={!canConnect}
                       onClick={() => void beginConnection()}
                     >
-                      寻找联系
+                      Find connection
                     </button>
-                    <button onClick={dismissCanvasInvitation}>暂时不用</button>
+                    <button onClick={dismissCanvasInvitation}>Not now</button>
                   </div>
                 </section>
               )}
               {phase === "loading" && (
                 <div className="canvas-invitation" aria-busy="true">
-                  <p role="status">正在寻找联系…</p>
-                  <button onClick={cancelConnection}>停止等待</button>
+                  <p role="status">Finding a connection…</p>
+                  <button onClick={cancelConnection}>Stop waiting</button>
                 </div>
               )}
               {phase === "none" && (
                 <p role="status">
-                  {result?.reason || "这次没有找到可提出的联系。"}
+                  {result?.reason || "No connection to propose was found."}
                 </p>
               )}
               {!busy && !result?.connections.length && phase !== "inviting" && (
@@ -598,27 +598,27 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                   disabled={!canConnect}
                   onClick={() => void beginConnection()}
                 >
-                  {phase === "error" ? "重试寻找联系" : "寻找联系"}
+                  {phase === "error" ? "Retry finding connection" : "Find connection"}
                 </button>
               )}
               {detail?.connections[0] && (
-                <section className="canvas-explanation" aria-label="关系解释">
+                <section className="canvas-explanation" aria-label="Connection explanation">
                   <span className="eyebrow">
-                    {result ? "候选关系 · 待你确认" : "已保留的关系"}
+                    {result ? "Candidate connection · awaiting your confirmation" : "Kept connection"}
                   </span>
                   <h3>{detail.connections[0].title}</h3>
                   <p>{detail.connections[0].explanation}</p>
                   {!connectionIsCurrent(detail, notes) && (
                     <p className="canvas-stale">
-                      便笺内容已变化，关系待复核。下方依据保留分析时的版本。
+                      Note content changed; review this connection. The evidence below uses the analyzed versions.
                     </p>
                   )}
                   {detail.connections[0].evidence.map((e, i) => (
                     <blockquote key={i}>
                       <small>
                         {detail.notes.find((n) => n.id === e.noteId)?.title ||
-                          "未命名便笺"}{" "}
-                        · 版本{" "}
+                          "Untitled note"}{" "}
+                        · Version{" "}
                         {detail.notes.find((n) => n.id === e.noteId)?.version}
                       </small>
                       {e.quote}
@@ -634,13 +634,13 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                         }
                         onClick={() => void keepConnection()}
                       >
-                        {phase === "saving" ? "保存关系中…" : "保留关系"}
+                        {phase === "saving" ? "Saving connection…" : "Keep connection"}
                       </button>
                       <button
                         disabled={phase === "saving"}
                         onClick={cancelConnection}
                       >
-                        不保留
+                        Do not keep
                       </button>
                     </div>
                   )}
@@ -648,11 +648,11 @@ export function Canvas({ blocked }: { blocked: boolean }) {
               )}
               <section className="canvas-saved">
                 <h3>
-                  已保留 <span>{connections.length}</span>
+                  Kept <span>{connections.length}</span>
                 </h3>
                 {!connections.length && (
                   <p className="canvas-muted">
-                    认可候选后，连线才会留在白板上。
+                    The connection stays on the canvas only after you accept it.
                   </p>
                 )}
                 {connections.map((c) => (
@@ -667,24 +667,24 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                       {c.connections[0]?.title}
                     </button>
                     <small>
-                      {c.notes.map((n) => n.title || "未命名便笺").join(" ↔ ")}
+                      {c.notes.map((n) => n.title || "Untitled note").join(" ↔ ")}
                     </small>
                     {!connectionIsCurrent(c, notes) && (
-                      <span className="canvas-stale">待复核</span>
+                      <span className="canvas-stale">Needs review</span>
                     )}
                     <button
                       className="canvas-unlink"
-                      aria-label={`移除连线 ${c.connections[0]?.title}`}
+                      aria-label={`Remove connection ${c.connections[0]?.title}`}
                       onClick={() => {
                         if (
-                          window.confirm("移除这条已保存连线？两张便笺会保留。")
+                          window.confirm("Remove this saved connection? Both notes will be kept.")
                         )
                           void removeCanvasConnection(c.id)
                             .then(() => setInspect(undefined))
                             .catch((e) => setLocalError(String(e)));
                       }}
                     >
-                      移除连线
+                      Remove connection
                     </button>
                   </div>
                 ))}

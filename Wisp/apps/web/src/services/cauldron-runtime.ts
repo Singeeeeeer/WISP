@@ -28,7 +28,7 @@ export async function refreshCauldron() {
   } catch (e) {
     if (ticket === generation)
       useCauldron.setState({
-        error: e instanceof Error ? e.message : "材料列表读取失败，请重试",
+        error: e instanceof Error ? e.message : "Could not load the material list. Please try again.",
       });
   }
 }

@@ -78,7 +78,7 @@ it("binds HTTP response to confirmed snapshot and instruction; never exposes arb
     new Response(JSON.stringify({ ...r, instruction: "other" })),
   );
   await expect(requestGeminiCheck(r.snapshot, r.instruction)).rejects.toThrow(
-    "绑定",
+    /binding|bound/,
   );
   mock.mockResolvedValue(
     new Response(
@@ -92,7 +92,7 @@ it("binds HTTP response to confirmed snapshot and instruction; never exposes arb
     ),
   );
   await expect(requestGeminiCheck(r.snapshot, r.instruction)).rejects.toThrow(
-    "鉴权",
+    "authentication",
   );
 });
 it("retries only persistence after a successful paid result and rejects mutation of authorization", async () => {
@@ -116,10 +116,10 @@ it("stores Gemini beside old records and rejects reusing id with another mode or
   expect(await repo.saveRecord(r)).toEqual(r);
   await expect(
     repo.saveRecord({ ...r, instruction: "changed" }),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
   await expect(
     repo.saveRecord(runCheck(r.snapshot, r.instruction)),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
   const local = runCheck(source(), "");
   await repo.saveRecord(local);
   expect(await repo.listRecords()).toHaveLength(2);
@@ -145,7 +145,7 @@ it("supports Gemini one-shot Scout and enforces mode-bound replies and terminal 
       type: "complete",
       result: runCheck(r.snapshot, r.instruction),
     }),
-  ).toThrow("绑定");
+  ).toThrow(/binding|bound/);
   expect(transition(running, { type: "complete", result: r })).toMatchObject({
     status: "completed",
     unread: true,
@@ -157,7 +157,7 @@ it("supports Gemini one-shot Scout and enforces mode-bound replies and terminal 
   const repo = createRepository("gemini-task-" + crypto.randomUUID());
   await repo.enqueueTask(t);
   await expect(repo.enqueueTask({ ...t, execution: "local" })).rejects.toThrow(
-    "提交标识",
+    "submission ID",
   );
   const watched = watchTask(newWatch(source()), {
     ...seeds()[0],
@@ -170,7 +170,7 @@ it("supports Gemini one-shot Scout and enforces mode-bound replies and terminal 
       { ...running, watchId: "watch" },
       { type: "complete", result: r },
     ),
-  ).toThrow("绑定");
+  ).toThrow(/binding|bound/);
 });
 
 it("rejects oversized finding fields and unknown or malformed snapshot metadata", () => {

@@ -6,7 +6,7 @@ function source(text: string) {
 }
 it("reports a limited schedule concern with exact evidence, including emoji offsets", () => {
   const s = source(
-    "😀前言。活动计划于 11 月 8 日开放。海报计划于 11 月 10 日定稿，随后开放报名。",
+    "😀前言. The event is scheduled to open on November 8. The poster is scheduled to be finalized on November 10, followed by registration opening.",
   );
   const r = runCheck(s, "关注日期");
   expect(r.outcome).toBe("findings");
@@ -18,20 +18,47 @@ it("reports a limited schedule concern with exact evidence, including emoji offs
 });
 it("recomputes changed dates and does not claim universal correctness", () => {
   expect(
-    runCheck(source("活动于11月8日开放。海报于11月5日定稿，随后开放报名。"), "")
-      .outcome,
+    runCheck(
+      source(
+        "Event to open on November 8. Poster to be finalized on November 5, followed by registration opening.",
+      ),
+      "",
+    ).outcome,
   ).toBe("no_findings");
 });
+it("does not treat cancellation fragments inside ordinary words as negation", () => {
+  const r = runCheck(
+    source(
+      "Event to open on November 8. Poster to be finalized on November 10, followed by registration opening. Use a serif typeface. Avoid bright colors. Use a knot motif.",
+    ),
+    "",
+  );
+  expect(r.outcome).toBe("findings");
+  expect(validateCheck(r)).toBe(true);
+});
+it("keeps Chinese user schedules supported with English findings and exact evidence", () => {
+  const s = source(
+    "😀前言。活动计划于 11 月 8 日开放。海报计划于 11 月 10 日定稿，随后开放报名。",
+  );
+  const r = runCheck(s, "");
+  expect(r.outcome).toBe("findings");
+  expect(r.findings[0].title).toBe("Review the event and registration order");
+  expect(r.findings[0].evidence.map((e) => e.quote)).toEqual([
+    "活动计划于 11 月 8 日开放",
+    "海报计划于 11 月 10 日定稿，随后开放报名",
+  ]);
+  expect(validateCheck(r)).toBe(true);
+});
 it.each([
-  "活动于11月8日开放。海报于11月10日定稿。",
-  "活动并非于11月8日开放。海报于11月10日定稿，随后开放报名。",
-  "活动于12月8日开放。海报于1月10日定稿，随后开放报名。",
-  "活动于11月31日开放。海报于11月30日定稿，随后开放报名。",
-  "活动于11月8日开放。活动于11月9日开放。海报于11月10日定稿，随后开放报名。",
-  "活动于2026年11月8日开放。海报于2027年11月10日定稿，随后开放报名。",
-  "没有日期的材料",
-  "活动于11月8日开放。另一场活动于11月20日开放。海报于11月10日定稿，随后开放报名。",
-  "以下安排已取消。活动于11月8日开放。海报于11月10日定稿，随后开放报名。",
+  "Event to open on November 8. Poster to be finalized on November 10.",
+  "Event is not to open on November 8. Poster to be finalized on November 10, followed by registration opening.",
+  "Event to open on December 8. Poster to be finalized on January 10, followed by registration opening.",
+  "Event to open on November 31. Poster to be finalized on November 30, followed by registration opening.",
+  "Event to open on November 8. Event to open on November 9. Poster to be finalized on November 10, followed by registration opening.",
+  "Event to open on November 8, 2026. Poster to be finalized on November 10, 2027, followed by registration opening.",
+  "Material without dates",
+  "Event to open on November 8. Another event to open on November 20. Poster to be finalized on November 10, followed by registration opening.",
+  "The following plan is cancelled. Event to open on November 8. Poster to be finalized on November 10, followed by registration opening.",
 ])("does not infer unsupported text: %s", (text) => {
   expect(runCheck(source(text), "").outcome).toBe("unsupported");
 });

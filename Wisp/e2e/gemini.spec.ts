@@ -28,13 +28,13 @@ const reply = (body: any) => ({
 });
 async function open(page: Page, entry = "Check") {
   await page
-    .getByRole("button", { name: "打开书店活动提案", exact: true })
+    .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: entry, exact: true }).click();
   if (entry === "Summon")
     await page.getByRole("button", { name: "Scout Bat", exact: false }).click();
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
 }
 test("Gemini direct Check retries save only and persists the frozen selection with real-mode labels", async ({
   page,
@@ -47,14 +47,14 @@ test("Gemini direct Check retries save only and persists the frozen selection wi
     await route.fulfill({ json: reply(sent) });
   });
   await page.goto("/");
-  const editor = page.getByLabel("书店活动提案正文");
+  const editor = page.getByLabel("Bookstore event proposal text");
   await editor.fill("只发送这句。私有未选中内容");
-  await expect(page.getByTestId("save-proposal")).toHaveText("已保存");
+  await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await editor.press("Control+Home");
   for (let i = 0; i < 6; i++) await editor.press("Shift+ArrowRight");
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Check", exact: true }).click();
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
   await page.evaluate(() => {
     const add = IDBObjectStore.prototype.add;
     IDBObjectStore.prototype.add = function (
@@ -67,23 +67,23 @@ test("Gemini direct Check retries save only and persists the frozen selection wi
       return add.apply(this, args);
     };
   });
-  await page.getByLabel("补充要求", { exact: true }).fill("核对安排");
+  await page.getByLabel("Additional instruction", { exact: true }).fill("核对安排");
   await page
-    .getByRole("button", { name: "运行 Gemini 检查", exact: true })
+    .getByRole("button", { name: "Run Gemini Check", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText("模拟落盘失败");
   expect(count).toBe(1);
   expect(sent.snapshot.text).toBe("只发送这句。");
-  await expect(page.getByLabel("补充要求", { exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "重试保存结果", exact: true }).click();
+  await expect(page.getByLabel("Additional instruction", { exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Retry saving result", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：需要补充信息" }),
+    page.getByRole("heading", { name: "Gemini: more information needed" }),
   ).toBeVisible();
   expect(count).toBe(1);
   await page.reload();
-  await page.getByRole("button", { name: "处理记录", exact: true }).click();
-  await page.getByRole("button", { name: "查看检查结果" }).click();
-  await page.getByText("执行信息", { exact: true }).click();
+  await page.getByRole("button", { name: "Run history", exact: true }).click();
+  await page.getByRole("button", { name: "View check result" }).click();
+  await page.getByText("Execution details", { exact: true }).click();
   await expect(page.getByText("mock-gemini", { exact: false })).toBeVisible();
   await expect(page.getByTestId("check-source")).not.toContainText(
     "私有未选中内容",
@@ -98,22 +98,22 @@ test("Scout Gemini returns unread reply and switching familiars defaults to loca
   await page.goto("/");
   await open(page, "Summon");
   await page.getByRole("button", { name: "Page Sprite", exact: false }).click();
-  await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
     "local",
   );
   await page.getByRole("button", { name: "Scout Bat", exact: false }).click();
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("1 封未读");
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
-  await page.getByRole("button", { name: "查看回信" }).click();
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("1 unread");
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
+  await page.getByRole("button", { name: "View reply" }).click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：需要补充信息" }),
+    page.getByRole("heading", { name: "Gemini: more information needed" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "重新委托当前全文" }).click();
-  await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+  await page.getByRole("button", { name: "Delegate current full text again" }).click();
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
     "gemini",
   );
 });
@@ -131,21 +131,21 @@ test("Scout Gemini cancellation rejects a late reply and reload interrupts witho
   });
   await page.goto("/");
   await open(page, "Summon");
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect.poll(() => calls).toBe(1);
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
-  await page.getByRole("button", { name: "召回任务" }).click();
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
+  await page.getByRole("button", { name: "Recall task" }).click();
   release();
-  await expect(page.getByTestId("task-card")).toContainText("已召回");
-  await expect(page.getByRole("button", { name: "查看回信" })).toHaveCount(0);
-  await page.getByRole("button", { name: "重新委托当前全文" }).click();
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await expect(page.getByTestId("task-card")).toContainText("Cancelled");
+  await expect(page.getByRole("button", { name: "View reply" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Delegate current full text again" }).click();
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect.poll(() => calls).toBe(2);
   await page.reload();
   release();
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
   await expect(
-    page.getByTestId("task-card").filter({ hasText: "已中断" }),
+    page.getByTestId("task-card").filter({ hasText: "Interrupted" }),
   ).toHaveCount(1);
   expect(calls).toBe(2);
 });
@@ -157,43 +157,43 @@ test("Gemini Check does not offer Watch while the existing local Check still doe
     route.fulfill({ json: reply(route.request().postDataJSON()) }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("checkbox", { name: /Helpful proposals/ }).check();
-  await expect(page.getByText("设置已保存", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "关闭魔法书" }).click();
+  await expect(page.getByText("Settings saved", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close Grimoire" }).click();
   await open(page);
   await page
-    .getByRole("button", { name: "运行 Gemini 检查", exact: true })
+    .getByRole("button", { name: "Run Gemini Check", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：需要补充信息" }),
+    page.getByRole("heading", { name: "Gemini: more information needed" }),
   ).toBeVisible();
-  await page.getByText("执行信息", { exact: true }).click();
+  await page.getByText("Execution details", { exact: true }).click();
   await expect(
-    page.locator("details").filter({ hasText: "供应商返回用量" }),
+    page.locator("details").filter({ hasText: "Provider-reported usage" }),
   ).toBeVisible();
   expect(
     await page
       .locator("details")
-      .filter({ hasText: "供应商返回用量" })
+      .filter({ hasText: "Provider-reported usage" })
       .evaluate((el) =>
         Array.from(el.querySelectorAll("p")).every(
           (p) => p.scrollWidth <= p.clientWidth,
         ),
       ),
   ).toBe(true);
-  await page.screenshot({ path: "docs/screenshots/gemini-check-mocked.png" });
-  await page.getByRole("button", { name: "关闭检查结果" }).click();
-  await expect(page.getByRole("button", { name: "查看关注范围" })).toHaveCount(
+  await page.screenshot({ path: "test-results/english/gemini-check-mocked.png" });
+  await page.getByRole("button", { name: "Close check result" }).click();
+  await expect(page.getByRole("button", { name: "View watch scope" })).toHaveCount(
     0,
   );
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Check", exact: true }).click();
-  await page.getByLabel("执行方式", { exact: true }).selectOption("local");
-  await page.getByRole("button", { name: "运行本地检查" }).click();
-  await page.getByRole("button", { name: "关闭检查结果" }).click();
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("local");
+  await page.getByRole("button", { name: "Run local check" }).click();
+  await page.getByRole("button", { name: "Close check result" }).click();
   await expect(
-    page.getByRole("button", { name: "查看关注范围" }),
+    page.getByRole("button", { name: "View watch scope" }),
   ).toBeVisible();
 });

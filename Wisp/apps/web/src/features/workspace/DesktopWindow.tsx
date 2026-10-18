@@ -113,7 +113,7 @@ export function DesktopWindow({
   return (
     <section
       className={"desktop-window " + (active ? "active" : "")}
-      aria-label={material.title + "窗口"}
+      aria-label={material.title + " window"}
       style={{ left: x, top: y, width, height: w.height, zIndex: w.z }}
       onFocusCapture={() => {
         if (!active) activate(w.id);
@@ -135,8 +135,8 @@ export function DesktopWindow({
         <span>{material.title}</span>
         <button
           className="document-copy-handle"
-          aria-label={"拖入熔炉 " + material.title}
-          title="拖向灵感熔炉，或点击加入全文副本"
+          aria-label={"Drag into cauldron " + material.title}
+          title="Drag toward Inspiration Cauldron, or click to add a full-text copy"
           draggable
           onDragStart={(e) => {
             try {
@@ -149,11 +149,11 @@ export function DesktopWindow({
           onDragEnd={endDocumentDrag}
           onClick={() => requestDocumentCopy(material.id)}
         >
-          入炉
+          Add to cauldron
         </button>
         <button
-          title="最小化"
-          aria-label={"最小化" + material.title}
+          title="Minimize"
+          aria-label={"Minimize " + material.title}
           onClick={() => move(w.id, { minimized: true })}
         >
           −
@@ -162,7 +162,7 @@ export function DesktopWindow({
       <DocumentEditor material={material} />
       <div
         className="resize-handle"
-        aria-label={"缩放" + material.title}
+        aria-label={"Resize " + material.title}
         onPointerDown={(e) => gesture(e, true)}
       >
         ◢

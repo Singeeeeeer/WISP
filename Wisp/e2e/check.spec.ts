@@ -3,60 +3,60 @@ test("local Check persists exact evidence, detects stale source and recomputes o
   page,
 }) => {
   await page.goto("/");
-  const editor = page.getByLabel("书店活动提案正文");
+  const editor = page.getByLabel("Bookstore event proposal text");
   await editor.fill(
-    "😀活动说明。活动于11月8日开放。海报于11月10日定稿，随后开放报名。",
+    "😀 Event notes. The event is scheduled to open on November 8. The poster is scheduled to be finalized on November 10, followed by registration opening.",
   );
-  await expect(page.getByTestId("save-proposal")).toHaveText("已保存");
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await expect(page.getByTestId("save-proposal")).toHaveText("saved");
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Check" }).click();
-  await page.getByRole("button", { name: "运行本地检查" }).dblclick();
+  await page.getByRole("button", { name: "Run local check" }).dblclick();
   await expect(
-    page.getByRole("heading", { name: "发现需要核对的安排" }),
+    page.getByRole("heading", { name: "An arrangement needs review" }),
   ).toBeVisible();
   await expect(
-    page.getByText("海报于11月10日定稿，随后开放报名", { exact: true }),
+    page.getByText("The poster is scheduled to be finalized on November 10, followed by registration opening", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("dialog", { name: "Check 检查结果" }),
+    page.getByRole("dialog", { name: "Check result" }),
   ).toBeFocused();
-  await page.screenshot({ path: "docs/screenshots/local-check-findings.png" });
-  await page.getByRole("button", { name: "关闭检查结果" }).click();
-  await editor.fill("活动于11月8日开放。海报于11月5日定稿，随后开放报名。");
-  await expect(page.getByTestId("save-proposal")).toHaveText("已保存");
+  await page.screenshot({ path: "test-results/english/local-check-findings.png" });
+  await page.getByRole("button", { name: "Close check result" }).click();
+  await editor.fill("The event is scheduled to open on November 8. The poster is scheduled to be finalized on November 5, followed by registration opening.");
+  await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await page.reload();
-  await page.getByRole("button", { name: "处理记录", exact: true }).click();
-  await expect(page.getByRole("button", { name: "查看检查结果" })).toHaveCount(
+  await page.getByRole("button", { name: "Run history", exact: true }).click();
+  await expect(page.getByRole("button", { name: "View check result" })).toHaveCount(
     1,
   );
-  await page.getByRole("button", { name: "查看检查结果" }).click();
+  await page.getByRole("button", { name: "View check result" }).click();
   await expect(
-    page.getByText("原文已变化或不可用：这是旧版本的结果，不代表当前材料。"),
+    page.getByText("The source has changed or is unavailable. This result uses an older version and does not represent the current material."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "再次检查当前全文" }).click();
-  await expect(page.getByTestId("snapshot-text")).toContainText("11月5日");
-  await page.getByRole("button", { name: "运行本地检查" }).click();
+  await page.getByRole("button", { name: "Check current full text again" }).click();
+  await expect(page.getByTestId("snapshot-text")).toContainText("November 5");
+  await page.getByRole("button", { name: "Run local check" }).click();
   await expect(
-    page.getByRole("heading", { name: "本地规则未发现可报告的疑点" }),
+    page.getByRole("heading", { name: "Local rules found no reportable issue" }),
   ).toBeVisible();
-  await page.screenshot({ path: "docs/screenshots/local-check.png" });
+  await page.screenshot({ path: "test-results/english/local-check.png" });
 });
 
 test("selection only, empty input and failed persistence never claim success", async ({
   page,
 }) => {
   await page.goto("/");
-  const editor = page.getByLabel("书店活动提案正文");
-  await editor.fill("活动于11月8日开放。海报于11月10日定稿，随后开放报名。");
-  await expect(page.getByTestId("save-proposal")).toHaveText("已保存");
+  const editor = page.getByLabel("Bookstore event proposal text");
+  await editor.fill("The event is scheduled to open on November 8. The poster is scheduled to be finalized on November 10, followed by registration opening.");
+  await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await editor.press("Control+Home");
-  for (let i = 0; i < "活动于11月8日开放。".length; i++)
+  for (let i = 0; i < "The event is scheduled to open on November 8.".length; i++)
     await editor.press("Shift+ArrowRight");
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Check" }).click();
-  await page.getByRole("button", { name: "运行本地检查" }).click();
+  await page.getByRole("button", { name: "Run local check" }).click();
   await expect(
-    page.getByRole("heading", { name: "当前材料不在本地规则支持范围" }),
+    page.getByRole("heading", { name: "This material is outside the local rules' scope" }),
   ).toBeVisible();
   await page.evaluate(() => {
     Object.defineProperty(navigator, "clipboard", {
@@ -64,20 +64,20 @@ test("selection only, empty input and failed persistence never claim success", a
       value: { writeText: () => Promise.reject(new Error("denied")) },
     });
   });
-  await page.getByRole("button", { name: "复制结果" }).click();
+  await page.getByRole("button", { name: "Copy result" }).click();
   await expect(
-    page.getByText("复制失败，请手动选择结果文字复制。"),
+    page.getByText("Copy failed. Select and copy the result text manually."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "关闭检查结果" }).click();
+  await page.getByRole("button", { name: "Close check result" }).click();
   await editor.fill("");
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Check" }).click();
-  await page.getByRole("button", { name: "运行本地检查" }).click();
-  await expect(page.getByRole("alert")).toContainText("材料为空");
-  await page.getByRole("button", { name: "关闭材料面板" }).click();
-  await editor.fill("活动于11月8日开放。海报于11月10日定稿，随后开放报名。");
-  await expect(page.getByTestId("save-proposal")).toHaveText("已保存");
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Run local check" }).click();
+  await expect(page.getByRole("alert")).toContainText("Material is empty");
+  await page.getByRole("button", { name: "Close material panel" }).click();
+  await editor.fill("The event is scheduled to open on November 8. The poster is scheduled to be finalized on November 10, followed by registration opening.");
+  await expect(page.getByTestId("save-proposal")).toHaveText("saved");
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Check" }).click();
   await page.evaluate(() => {
     const original = IDBObjectStore.prototype.add;
@@ -91,13 +91,13 @@ test("selection only, empty input and failed persistence never claim success", a
       return original.apply(this, args);
     };
   });
-  await page.getByRole("button", { name: "运行本地检查" }).click();
+  await page.getByRole("button", { name: "Run local check" }).click();
   await expect(page.getByRole("alert")).toContainText("模拟磁盘写入失败");
   await expect(
-    page.getByRole("heading", { name: "发现需要核对的安排" }),
+    page.getByRole("heading", { name: "An arrangement needs review" }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "运行本地检查" }).click();
+  await page.getByRole("button", { name: "Run local check" }).click();
   await expect(
-    page.getByRole("heading", { name: "发现需要核对的安排" }),
+    page.getByRole("heading", { name: "An arrangement needs review" }),
   ).toBeVisible();
 });

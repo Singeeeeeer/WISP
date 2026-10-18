@@ -44,6 +44,8 @@ releases/
 # Documentation and exported document files
 *.md
 *.txt
+# Required API dependency lock (not a documentation artifact)
+!Wisp/requirements.lock.txt
 *.pdf
 *.doc
 *.docx

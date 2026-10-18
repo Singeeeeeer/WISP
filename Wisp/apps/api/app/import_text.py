@@ -11,16 +11,16 @@ MAX_TEXT = 60_000
 TIMEOUT = 30
 FORMATS = ('docx', 'pptx', 'xlsx', 'pdf')
 ERRORS = {
-    'IMPORT_FORMAT_UNSUPPORTED': (415, '仅支持 DOCX、PPTX、XLSX 和 PDF 文字提取。'),
-    'IMPORT_FILE_TOO_LARGE': (413, '单文件最多 20 MB，请拆分文件后重试。'),
-    'IMPORT_TEXT_TOO_LARGE': (413, '提取文字超过 60,000 UTF-16 单元，请拆分文件后重试。'),
-    'IMPORT_FILE_INVALID': (422, '文件损坏或实际格式与扩展名不符，请重新导出后重试。'),
-    'IMPORT_ENCRYPTED': (422, '暂不支持加密文件，请使用已解密的副本。'),
-    'IMPORT_NO_TEXT': (422, '未找到可提取文字；扫描件或纯图片需要先进行 OCR。'),
-    'IMPORT_LIMIT_EXCEEDED': (413, '文件内部内容或页数超过解析上限，请拆分文件后重试。'),
-    'IMPORT_TIMEOUT': (408, '读取超时并已停止，请拆分文件后重试。'),
-    'IMPORT_BUSY': (503, '当前有文件正在读取，请稍后重试。'),
-    'IMPORT_FAILED': (422, '文件读取失败，请重新导出后重试。'),
+    'IMPORT_FORMAT_UNSUPPORTED': (415, 'Only DOCX, PPTX, XLSX, and PDF text extraction are supported.'),
+    'IMPORT_FILE_TOO_LARGE': (413, 'A single file must not exceed 20 MB. Split the file and try again.'),
+    'IMPORT_TEXT_TOO_LARGE': (413, 'Extracted text exceeds 60,000 UTF-16 units. Split the file and try again.'),
+    'IMPORT_FILE_INVALID': (422, 'The file is corrupted or its format does not match the extension. Export it again and try again.'),
+    'IMPORT_ENCRYPTED': (422, 'Encrypted files are not supported yet. Use a decrypted copy.'),
+    'IMPORT_NO_TEXT': (422, 'No extractable text found. Scanned or image-only files require OCR first.'),
+    'IMPORT_LIMIT_EXCEEDED': (413, 'File contents or page count exceed the parsing limit. Split the file and try again.'),
+    'IMPORT_TIMEOUT': (408, 'Reading timed out and was stopped. Split the file and try again.'),
+    'IMPORT_BUSY': (503, 'A file is already being read. Try again later.'),
+    'IMPORT_FAILED': (422, 'Failed to read the file. Export it again and try again.'),
 }
 
 
@@ -117,7 +117,7 @@ def read_docx(data, output):
 
     for text in blocks(Document(io.BytesIO(data))):
         output.add(text)
-    return ['已提取正文及表格。图片、页眉页脚、批注、文本框和修订标记内的文字未纳入；请预览核对。']
+    return ['Text and tables were extracted. Images, headers, footers, comments, text boxes, and tracked changes were not included; review the preview.']
 
 
 def read_pptx(data, output):
@@ -145,9 +145,9 @@ def read_pptx(data, output):
                 output.add(shape.text)
 
     for number, slide in enumerate(presentation.slides, 1):
-        output.add(f'[幻灯片 {number}]', marker=True)
+        output.add(f'[Slide {number}]', marker=True)
         shapes(slide.shapes)
-    return ['按幻灯片及文件内对象顺序提取文字和表格，含隐藏幻灯片；请核对阅读顺序。', '图片、图表、SmartArt、演讲者备注和母版文字未转换。']
+    return ['Text and tables were extracted in slide and object order, including hidden slides; review the reading order.', 'Images, charts, SmartArt, speaker notes, and master text were not converted.']
 
 
 def read_xlsx(data, output):
@@ -179,21 +179,21 @@ def read_xlsx(data, output):
                         formula = value if isinstance(value, str) else getattr(value, 'text', '')
                         if not formula:
                             raise ImportFailure('IMPORT_FORMAT_UNSUPPORTED')
-                        values.append('[公式，未计算] ' + formula)
+                        values.append('[Formula, not calculated] ' + formula)
                     elif isinstance(value, (datetime, date, clock_time)):
                         values.append(value.isoformat())
                     else:
                         values.append(str(value))
                 if any(value.strip() for value in values):
                     rows.add(str(row_number) + '\t' + '\t'.join(values))
-            suffix = '（隐藏）' if sheet.sheet_state != 'visible' else ''
-            output.add(f'[工作表：{sheet.title}{suffix}]', marker=True)
-            output.add('行号\t' + '\t'.join(get_column_letter(n) for n in range(1, columns + 1)), marker=True)
+            suffix = ' (hidden)' if sheet.sheet_state != 'visible' else ''
+            output.add(f'[Worksheet: {sheet.title}{suffix}]', marker=True)
+            output.add('Row number\t' + '\t'.join(get_column_letter(n) for n in range(1, columns + 1)), marker=True)
             for row in rows.parts:
                 output.add(row)
     finally:
         workbook.close()
-    return ['包含隐藏工作表、隐藏行列中的单元格；保留行号和列位置，空白行省略。', '公式显示为原公式文字，不重新计算；数字格式、图片、图表和批注不保留。']
+    return ['Hidden worksheets and cells in hidden rows or columns are included; row numbers and column positions are preserved, and blank rows are omitted.', 'Formulas are shown as their original text and are not recalculated; number formats, images, charts, and comments are not preserved.']
 
 
 def read_pdf(data, output):
@@ -218,18 +218,18 @@ def read_pdf(data, output):
                 if contents is not None and len(contents.get_data()) > 8_000_000:
                     raise ImportFailure('IMPORT_LIMIT_EXCEEDED')
                 text = page.extract_text()
-                output.add(f'[第 {number} 页]', marker=True)
+                output.add(f'[Page {number}]', marker=True)
                 if text.strip():
                     output.add(text)
                 else:
                     empty.append(number)
-                    output.add('（本页未提取到文字）', marker=True)
+                    output.add('[No text extracted on this page]', marker=True)
     except LimitReachedError:
         raise ImportFailure('IMPORT_LIMIT_EXCEEDED') from None
-    warnings = ['仅提取已有文字层，不执行 OCR；复杂分栏、表格和文字顺序请核对原件。']
+    warnings = ['Only the existing text layer is extracted; OCR is not performed. Review complex columns, tables, and text order against the original.']
     if empty:
-        listed = '、'.join(map(str, empty[:20]))
-        warnings.append(f'第 {listed} 页' + (f'等共 {len(empty)} 页' if len(empty) > 20 else '') + '未提取到文字，可能为空白页或图片页。')
+        listed = ', '.join(map(str, empty[:20]))
+        warnings.append(f'Pages {listed}' + (f' and {len(empty) - 20} more' if len(empty) > 20 else '') + ' had no extracted text and may be blank or image-only.')
     return warnings
 
 

@@ -258,7 +258,7 @@ it("rejects v7 upgrade blocked by an old page without deleting the old material"
   const old = await openDB(name,6,{upgrade(db){db.createObjectStore("materials",{keyPath:"id"});}});
   const m=seeds()[0];
   await old.put("materials",m);
-  await expect(createRepository(name).listMaterials()).rejects.toThrow("其他 Wisp 标签页阻塞");
+  await expect(createRepository(name).listMaterials()).rejects.toThrow("blocked by another Wisp tab");
   expect(await old.get("materials",m.id)).toEqual(m);
   old.close();
   const repo=createRepository(name);

@@ -3,7 +3,7 @@ test("initial active material matches the frontmost restored window", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
   const front = await page
     .locator(".desktop-window")
     .evaluateAll((windows) =>

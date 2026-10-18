@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 async function open(page: Page, entry: string) {
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: entry, exact: true }).click();
 }
 test("Understand and Create expose explicit Gemini mode and default to local", async ({
@@ -10,17 +10,17 @@ test("Understand and Create expose explicit Gemini mode and default to local", a
   await page.goto("/");
   for (const entry of ["Understand", "Create"]) {
     await open(page, entry);
-    await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+    await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
       "local",
     );
-    await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+    await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
     await expect(
       page.getByRole("button", {
-        name: entry === "Understand" ? "运行 Gemini 理解" : "运行 Gemini 创作",
+        name: entry === "Understand" ? "Run Gemini Understand" : "Run Gemini Create",
         exact: true,
       }),
     ).toBeVisible();
-    await page.getByLabel("关闭材料面板", { exact: true }).click();
+    await page.getByLabel("Close material panel", { exact: true }).click();
   }
 });
 
@@ -78,14 +78,14 @@ async function clipboard(page: Page) {
   });
 }
 async function localExcerpt(page: Page) {
-  await page.getByLabel("本次摘录长度").selectOption("3");
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
-  await expect(page.getByLabel("本次摘要长度")).toHaveValue("standard");
-  await page.getByLabel("本次摘要长度").selectOption("brief");
-  await page.getByLabel("执行方式", { exact: true }).selectOption("local");
-  await expect(page.getByLabel("本次摘录长度")).toHaveValue("3");
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
-  await expect(page.getByLabel("本次摘要长度")).toHaveValue("brief");
+  await page.getByLabel("Excerpt length for this run").selectOption("3");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Summary length for this run")).toHaveValue("standard");
+  await page.getByLabel("Summary length for this run").selectOption("brief");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("local");
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("3");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Summary length for this run")).toHaveValue("brief");
 }
 test("Understand freezes selection, retries only saving, copies evidence and preserves brief in history and continuation", async ({
   page,
@@ -98,15 +98,15 @@ test("Understand freezes selection, retries only saving, copies evidence and pre
     return route.fulfill({ json: reply(sent, "understand") });
   });
   await page.goto("/");
-  const editor = page.getByLabel("书店活动提案正文");
+  const editor = page.getByLabel("Bookstore event proposal text");
   await editor.fill("只发送这句。私有未选中内容");
-  await expect(page.getByTestId("save-proposal")).toHaveText("已保存");
+  await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await editor.press("Control+Home");
   for (let i = 0; i < 6; i++) await editor.press("Shift+ArrowRight");
   await open(page, "Understand");
   await localExcerpt(page);
-  await page.getByLabel("本次摘要长度").selectOption("brief");
-  await page.getByLabel("补充要求", { exact: true }).fill("概括本次选区");
+  await page.getByLabel("Summary length for this run").selectOption("brief");
+  await page.getByLabel("Additional instruction", { exact: true }).fill("概括本次选区");
   await page.evaluate(() => {
     const add = IDBObjectStore.prototype.add;
     IDBObjectStore.prototype.add = function (
@@ -120,45 +120,45 @@ test("Understand freezes selection, retries only saving, copies evidence and pre
     };
   });
   await page
-    .getByRole("button", { name: "运行 Gemini 理解", exact: true })
+    .getByRole("button", { name: "Run Gemini Understand", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText("模拟文本落盘失败");
-  await expect(page.getByLabel("本次摘要长度")).toBeDisabled();
-  await expect(page.getByLabel("执行方式", { exact: true })).toBeDisabled();
-  await expect(page.getByLabel("补充要求", { exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "重试保存结果", exact: true }).click();
+  await expect(page.getByLabel("Summary length for this run")).toBeDisabled();
+  await expect(page.getByLabel("Execution mode", { exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Additional instruction", { exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Retry saving result", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：材料摘要" }),
+    page.getByRole("heading", { name: "Gemini: material summary" }),
   ).toBeVisible();
   await page.screenshot({
-    path: "docs/screenshots/gemini-understand-mocked-20261018.png",
+    path: "test-results/english/gemini-understand-mocked-20261018.png",
   });
   expect(calls).toBe(1);
   expect(sent.snapshot.text).toBe("只发送这句。");
   expect(sent.summaryStyle).toBe("brief");
   expect(sent).not.toHaveProperty("excerptLimit");
   await clipboard(page);
-  await page.getByRole("button", { name: "复制结果", exact: true }).click();
+  await page.getByRole("button", { name: "Copy result", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => (window as any).__copied))
     .toContain("原文依据 [0,6)：只发送这句。");
-  await page.getByRole("button", { name: "继续召唤使魔" }).click();
+  await page.getByRole("button", { name: "Summon familiar again" }).click();
   await expect(page.getByTestId("snapshot-text")).toHaveText("只发送这句。");
   await expect(
     page.getByRole("button", { name: /Page Sprite/ }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("本次摘要长度")).toHaveValue("brief");
-  await page.getByLabel("关闭材料面板", { exact: true }).click();
+  await expect(page.getByLabel("Summary length for this run")).toHaveValue("brief");
+  await page.getByLabel("Close material panel", { exact: true }).click();
   await page.reload();
-  await page.getByRole("button", { name: "处理记录", exact: true }).click();
+  await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page
-    .getByRole("button", { name: "查看Understand结果", exact: true })
+    .getByRole("button", { name: "View Understand result", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：材料摘要" }),
+    page.getByRole("heading", { name: "Gemini: material summary" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "重新处理当前全文" }).click();
-  await expect(page.getByLabel("本次摘要长度")).toHaveValue("brief");
+  await page.getByRole("button", { name: "Process current full text again" }).click();
+  await expect(page.getByLabel("Summary length for this run")).toHaveValue("brief");
 });
 test("Create renders pure text, copies labelled complete result or only draft and continues original material", async ({
   page,
@@ -170,56 +170,56 @@ test("Create renders pure text, copies labelled complete result or only draft an
   });
   await page.goto("/");
   await open(page, "Create");
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
   await page
-    .getByRole("button", { name: "运行 Gemini 创作", exact: true })
+    .getByRole("button", { name: "Run Gemini Create", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：创作草稿" }),
+    page.getByRole("heading", { name: "Gemini: creative draft" }),
   ).toBeVisible();
   await expect(page.getByTestId("gemini-draft")).toHaveText(draftText);
   await expect(page.getByTestId("gemini-draft").locator("script")).toHaveCount(
     0,
   );
   await page.screenshot({
-    path: "docs/screenshots/gemini-create-mocked-20261018.png",
+    path: "test-results/english/gemini-create-mocked-20261018.png",
   });
   expect(sent).not.toHaveProperty("summaryStyle");
   expect(sent).not.toHaveProperty("excerptLimit");
   await clipboard(page);
-  await page.getByRole("button", { name: "复制结果", exact: true }).click();
+  await page.getByRole("button", { name: "Copy result", exact: true }).click();
   for (const text of [
-    "AI草稿（待人工确认）",
+    "AI draft (requires human review)",
     "备选方向",
-    "采用的原文依据",
-    "创作假设",
-    "待补充信息",
+    "Source evidence used",
+    "Creative assumptions",
+    "Information to add",
     "mock-gemini-text",
-    "提示词",
+    "Prompt",
   ]) {
     await expect
       .poll(() => page.evaluate(() => (window as any).__copied))
       .toContain(text);
   }
-  await page.getByRole("button", { name: "仅复制草稿", exact: true }).click();
+  await page.getByRole("button", { name: "Copy draft only", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => (window as any).__copied))
     .toBe(draftText);
-  await page.getByRole("button", { name: "继续召唤使魔" }).click();
+  await page.getByRole("button", { name: "Summon familiar again" }).click();
   await expect(page.getByTestId("snapshot-text")).toHaveText(
     sent.snapshot.text,
   );
   await expect(
     page.getByRole("button", { name: /Alchemy Imp/ }),
   ).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
     "gemini",
   );
-  await page.getByLabel("关闭材料面板", { exact: true }).click();
+  await page.getByLabel("Close material panel", { exact: true }).click();
   await page.reload();
-  await page.getByRole("button", { name: "处理记录", exact: true }).click();
+  await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page
-    .getByRole("button", { name: "查看Create结果", exact: true })
+    .getByRole("button", { name: "View Create result", exact: true })
     .click();
   await expect(page.getByTestId("gemini-draft")).toHaveText(draftText);
 });
@@ -239,48 +239,48 @@ for (const [role, operation] of [
       await page.goto("/");
       await open(page, "Summon");
       await page.getByRole("button", { name: role, exact: false }).click();
-      await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
         "local",
       );
       if (operation === "understand") await localExcerpt(page);
       else
         await page
-          .getByLabel("执行方式", { exact: true })
+          .getByLabel("Execution mode", { exact: true })
           .selectOption("gemini");
       if (operation === "understand")
-        await page.getByLabel("本次摘要长度").selectOption("brief");
-      await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+        await page.getByLabel("Summary length for this run").selectOption("brief");
+      await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
       await expect(
-        page.getByRole("complementary", { name: "使魔任务状态" }),
-      ).toContainText("1 封未读");
+        page.getByRole("complementary", { name: "Familiar task status" }),
+      ).toContainText("1 unread");
       expect(sent).not.toHaveProperty("excerptLimit");
-      await page.getByRole("button", { name: "查看使魔任务" }).click();
-      await page.getByRole("button", { name: "查看回信" }).click();
+      await page.getByRole("button", { name: "View familiar tasks" }).click();
+      await page.getByRole("button", { name: "View reply" }).click();
       await expect(
         page.getByRole("heading", {
           name:
             operation === "understand"
-              ? "Gemini：材料摘要"
-              : "Gemini：创作草稿",
+              ? "Gemini: material summary"
+              : "Gemini: creative draft",
         }),
       ).toBeVisible();
       await expect(
-        page.getByRole("complementary", { name: "使魔任务状态" }),
-      ).toContainText("0 封未读");
-      await page.getByRole("button", { name: "重新委托当前全文" }).click();
-      await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+        page.getByRole("complementary", { name: "Familiar task status" }),
+      ).toContainText("0 unread");
+      await page.getByRole("button", { name: "Delegate current full text again" }).click();
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
         "gemini",
       );
       if (operation === "understand")
-        await expect(page.getByLabel("本次摘要长度")).toHaveValue("brief");
+        await expect(page.getByLabel("Summary length for this run")).toHaveValue("brief");
       await page.getByRole("button", { name: /Scout Bat/ }).click();
-      await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+      await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
         "local",
       );
-      await expect(page.getByLabel("本次摘要长度")).toHaveCount(0);
+      await expect(page.getByLabel("Summary length for this run")).toHaveCount(0);
       await page.getByRole("button", { name: /Page Sprite/ }).click();
-      await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
-      await expect(page.getByLabel("本次摘要长度")).toHaveValue("standard");
+      await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+      await expect(page.getByLabel("Summary length for this run")).toHaveValue("standard");
     },
   );
   test(
@@ -300,24 +300,24 @@ for (const [role, operation] of [
       await page.goto("/");
       await open(page, "Summon");
       await page.getByRole("button", { name: role, exact: false }).click();
-      await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
-      await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+      await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+      await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
       await expect.poll(() => calls).toBe(1);
-      await page.getByRole("button", { name: "查看使魔任务" }).click();
-      await page.getByRole("button", { name: "召回任务" }).click();
+      await page.getByRole("button", { name: "View familiar tasks" }).click();
+      await page.getByRole("button", { name: "Recall task" }).click();
       release();
-      await expect(page.getByTestId("task-card")).toContainText("已召回");
-      await expect(page.getByRole("button", { name: "查看回信" })).toHaveCount(
+      await expect(page.getByTestId("task-card")).toContainText("Cancelled");
+      await expect(page.getByRole("button", { name: "View reply" })).toHaveCount(
         0,
       );
-      await page.getByRole("button", { name: "重新委托当前全文" }).click();
-      await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+      await page.getByRole("button", { name: "Delegate current full text again" }).click();
+      await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
       await expect.poll(() => calls).toBe(2);
       await page.reload();
       release();
-      await page.getByRole("button", { name: "查看使魔任务" }).click();
+      await page.getByRole("button", { name: "View familiar tasks" }).click();
       await expect(
-        page.getByTestId("task-card").filter({ hasText: "已中断" }),
+        page.getByTestId("task-card").filter({ hasText: "Interrupted" }),
       ).toHaveCount(1);
       expect(calls).toBe(2);
     },
@@ -335,39 +335,39 @@ test("Gemini text completion does not trigger local proposals or alter local exc
     route.fulfill({ json: reply(route.request().postDataJSON(), "create") }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByRole("checkbox", { name: /Helpful proposals/ }).check();
-  await expect(page.getByText("设置已保存", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "关闭魔法书" }).click();
+  await expect(page.getByText("Settings saved", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close Grimoire" }).click();
   for (const entry of ["Understand", "Understand", "Understand", "Create"]) {
     await open(page, entry);
-    await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+    await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
     if (entry === "Understand")
-      await page.getByLabel("本次摘要长度").selectOption("brief");
+      await page.getByLabel("Summary length for this run").selectOption("brief");
     await page
       .getByRole("button", {
-        name: entry === "Understand" ? "运行 Gemini 理解" : "运行 Gemini 创作",
+        name: entry === "Understand" ? "Run Gemini Understand" : "Run Gemini Create",
         exact: true,
       })
       .click();
     await page
-      .getByRole("button", { name: "关闭处理结果", exact: true })
+      .getByRole("button", { name: "Close result", exact: true })
       .click();
   }
-  await expect(page.getByRole("button", { name: "查看关注范围" })).toHaveCount(
+  await expect(page.getByRole("button", { name: "View watch scope" })).toHaveCount(
     0,
   );
   await expect(
-    page.getByRole("complementary", { name: "主动提议", exact: true }),
+    page.getByRole("complementary", { name: "Helpful proposal", exact: true }),
   ).toHaveCount(0);
   await open(page, "Understand");
-  await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
     "local",
   );
-  await expect(page.getByLabel("本次摘录长度")).toHaveValue("8");
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
-  await expect(page.getByLabel("本次摘要长度")).toHaveValue("standard");
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("8");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await expect(page.getByLabel("Summary length for this run")).toHaveValue("standard");
 });
 
 for (const operation of ["understand", "create"] as const) {
@@ -388,29 +388,29 @@ for (const operation of ["understand", "create"] as const) {
       });
       await page.goto("/");
       await open(page, operation === "understand" ? "Understand" : "Create");
-      await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+      await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
       await page
         .getByRole("button", {
           name:
             operation === "understand"
-              ? "运行 Gemini 理解"
-              : "运行 Gemini 创作",
+              ? "Run Gemini Understand"
+              : "Run Gemini Create",
           exact: true,
         })
         .click();
       await expect(
-        page.getByRole("heading", { name: "Gemini：需要补充信息" }),
+        page.getByRole("heading", { name: "Gemini: more information needed" }),
       ).toBeVisible();
       await expect(
         page.getByText("请确认活动日期", { exact: true }),
       ).toBeVisible();
       if (operation === "create")
         await expect(
-          page.getByRole("button", { name: "仅复制草稿", exact: true }),
+          page.getByRole("button", { name: "Copy draft only", exact: true }),
         ).toBeDisabled();
       else
         await expect(
-          page.getByText("材料不足，尚未生成摘要。", { exact: true }),
+          page.getByText("Not enough material to generate a summary.", { exact: true }),
         ).toBeVisible();
     },
   );
@@ -426,12 +426,12 @@ test("Gemini continuation does not read local excerpt defaults", async ({
   );
   await page.goto("/");
   await open(page, "Understand");
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
   await page
-    .getByRole("button", { name: "运行 Gemini 理解", exact: true })
+    .getByRole("button", { name: "Run Gemini Understand", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：材料摘要" }),
+    page.getByRole("heading", { name: "Gemini: material summary" }),
   ).toBeVisible();
   await page.evaluate(async () => {
     const { useProposals } = await import("/src/services/proposal-runtime.ts");
@@ -443,11 +443,11 @@ test("Gemini continuation does not read local excerpt defaults", async ({
       return original();
     };
   });
-  await page.getByRole("button", { name: "继续召唤使魔" }).click();
-  await expect(page.getByLabel("本次摘要长度")).toHaveValue("standard");
+  await page.getByRole("button", { name: "Summon familiar again" }).click();
+  await expect(page.getByLabel("Summary length for this run")).toHaveValue("standard");
   expect(await page.evaluate(() => (window as any).__defaultReads)).toBe(0);
-  await page.getByLabel("执行方式", { exact: true }).selectOption("local");
-  await expect(page.getByLabel("本次摘录长度")).toHaveValue("8");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("local");
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("8");
   expect(
     await page.evaluate(() => (window as any).__defaultReads),
   ).toBeGreaterThan(0);

@@ -122,7 +122,7 @@ export function validateConnectionRequest(
     value.notes[0].text.length + value.notes[1].text.length > 60000
   )
     throw new Error(
-      "请选择两张不同的非空便笺，正文合计不能超过 60,000 个 UTF-16 单元。",
+      "Select two different non-empty notes with no more than 60,000 UTF-16 code units in total.",
     );
 }
 function validMetadata(value: unknown): value is GeminiMetadata {
@@ -222,6 +222,6 @@ export function validateConnectionResult(
       );
     })
   )
-    throw new Error("Gemini 关系结果校验或便笺绑定失败，未保存。");
+    throw new Error("Gemini relationship output or note binding validation failed; nothing was saved.");
   return value as unknown as ConnectionResult;
 }

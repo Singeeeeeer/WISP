@@ -8,19 +8,19 @@ export type GeminiOptions =
   | { operation: "check" | "create"; summaryStyle?: never }
   | { operation: "understand"; summaryStyle: SummaryStyle };
 export const geminiErrors: Record<string, string> = {
-  MODEL_AUTH_FAILED: "Gemini 鉴权失败，请检查服务端配置。",
-  MODEL_QUOTA_EXCEEDED: "Gemini 额度或速率受限，请稍后手动重试。",
-  MODEL_NOT_FOUND: "配置的 Gemini 模型不可用，请检查型号和权限。",
-  MODEL_UNAVAILABLE: "Gemini 服务暂时不可用。",
-  MODEL_TIMEOUT: "Gemini 请求超时，供应商可能已处理；重试可能再次计费。",
-  MODEL_CONNECTION_CLOSED: "Gemini 网络连接中断；重试可能再次计费。",
-  MODEL_NETWORK_ERROR: "Gemini 网络连接中断；重试可能再次计费。",
-  MODEL_OUTPUT_INVALID: "Gemini 输出未通过校验，未保存结果。",
-  MODEL_NOT_CONFIGURED: "Gemini 尚未配置，请配置本地服务端。",
-  NOT_CONFIGURED: "Gemini 尚未配置，请配置本地服务端。",
-  INVALID_REQUEST: "材料或补充要求不符合请求契约。",
-  REQUEST_IN_PROGRESS: "本次请求仍在处理中，请勿重复提交。",
-  REQUEST_CONFLICT: "提交标识已对应不同内容，请重新确认材料。",
+  MODEL_AUTH_FAILED: "Gemini authentication failed. Check the local service configuration.",
+  MODEL_QUOTA_EXCEEDED: "Gemini quota or rate limit reached. Please retry manually later.",
+  MODEL_NOT_FOUND: "The configured Gemini model is unavailable. Check the model name and permissions.",
+  MODEL_UNAVAILABLE: "Gemini is temporarily unavailable.",
+  MODEL_TIMEOUT: "The Gemini request timed out. The provider may have processed it; retrying may incur another charge.",
+  MODEL_CONNECTION_CLOSED: "The connection to Gemini was interrupted. Retrying may incur another charge.",
+  MODEL_NETWORK_ERROR: "The connection to Gemini was interrupted. Retrying may incur another charge.",
+  MODEL_OUTPUT_INVALID: "Gemini output failed validation. The result was not saved.",
+  MODEL_NOT_CONFIGURED: "Gemini is not configured. Configure the local service first.",
+  NOT_CONFIGURED: "Gemini is not configured. Configure the local service first.",
+  INVALID_REQUEST: "The material or additional instructions do not meet the request requirements.",
+  REQUEST_IN_PROGRESS: "This request is still being processed. Do not submit it again.",
+  REQUEST_CONFLICT: "This submission ID is already associated with different content. Confirm the materials again.",
 };
 export async function requestGemini(
   snapshot: MaterialSnapshot,
@@ -34,14 +34,14 @@ export async function requestGemini(
       ? !["brief", "standard"].includes(options.summaryStyle)
       : options.summaryStyle !== undefined)
   )
-    throw Error("操作与摘要参数不匹配。");
+    throw Error("Operation does not match the summary settings.");
   if (
     !snapshot.text.trim() ||
     snapshot.text.length > 60000 ||
     instruction.length > 4000
   )
     throw Error(
-      "材料必须非空且不超过60,000个UTF-16单元，补充要求最多4,000个。",
+      "The material must be non-empty and no longer than 60,000 UTF-16 units. Additional instructions may contain up to 4,000 units.",
     );
   let response: Response;
   try {
@@ -62,8 +62,8 @@ export async function requestGemini(
   } catch {
     throw Error(
       signal?.aborted
-        ? "已停止等待，供应商可能仍在处理并计费。"
-        : "请求中断或超时；供应商可能已处理，手动重试可能再次计费。",
+        ? "Waiting stopped. The provider may still be processing the request and may charge for it."
+        : "The request was interrupted or timed out. The provider may have processed it; a manual retry may incur another charge.",
     );
   }
   let data: unknown;
@@ -72,12 +72,12 @@ export async function requestGemini(
     if (raw.length > 2 * 1024 * 1024) throw Error();
     data = JSON.parse(raw);
   } catch {
-    throw Error("服务返回无效响应，未保存结果。");
+    throw Error("The service returned an invalid response. The result was not saved.");
   }
   if (!response.ok) {
     const code = (data as { error?: { code?: string } })?.error?.code;
     throw Error(
-      (code && geminiErrors[code]) || "Gemini 请求失败，请检查服务端状态后手动重试。",
+      (code && geminiErrors[code]) || "Gemini request failed. Check the local service status, then retry manually.",
     );
   }
   if (
@@ -89,7 +89,7 @@ export async function requestGemini(
     !sameValue(data.snapshot, snapshot) ||
     data.instruction !== instruction
   )
-    throw Error("Gemini 结果校验或材料绑定失败，未保存。");
+    throw Error("Gemini result validation or source binding failed. The result was not saved.");
   return data;
 }
 export function createGeminiSubmission(

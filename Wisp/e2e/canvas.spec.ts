@@ -47,33 +47,33 @@ async function isolateApi(page: Page) {
 }
 async function open(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "打开 Canvas 白板" }).click();
-  await expect(page.getByRole("region", { name: "Canvas 白板" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "新建便笺" })).toBeEnabled();
+  await page.getByRole("button", { name: "Open Canvas board" }).click();
+  await expect(page.getByRole("region", { name: "Canvas board" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New note" })).toBeEnabled();
 }
 async function add(page: Page, note: typeof first) {
-  await page.getByRole("button", { name: "新建便笺" }).click();
-  await page.getByLabel("便笺标题", { exact: true }).fill(note.title);
-  await page.getByLabel("便笺正文", { exact: true }).fill(note.text);
-  await page.getByRole("button", { name: "保存便笺", exact: true }).click();
-  await expect(page.getByLabel("便笺标题", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "New note" }).click();
+  await page.getByLabel("Note title", { exact: true }).fill(note.title);
+  await page.getByLabel("Note text", { exact: true }).fill(note.text);
+  await page.getByRole("button", { name: "Save note", exact: true }).click();
+  await expect(page.getByLabel("Note title", { exact: true })).toHaveCount(0);
 }
 async function selectPair(page: Page) {
   await page
-    .getByRole("article", { name: `便笺 ${first.title}`, exact: true })
+    .getByRole("article", { name: `Note ${first.title}`, exact: true })
     .click();
   await page
-    .getByRole("article", { name: `便笺 ${second.title}`, exact: true })
+    .getByRole("article", { name: `Note ${second.title}`, exact: true })
     .click({ modifiers: ["Shift"] });
-  await expect(page.getByText("已选 2 / 2 张", { exact: true })).toBeVisible();
+  await expect(page.getByText("Selected 2 / 2 notes", { exact: true })).toBeVisible();
 }
 async function proposals(page: Page, enabled: boolean) {
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page
-    .getByLabel("Helpful proposals（本地主动提议）")
+    .getByLabel("Helpful proposals (local suggestions)")
     .setChecked(enabled);
-  await page.getByRole("button", { name: "关闭魔法书" }).click();
+  await page.getByRole("button", { name: "Close Grimoire" }).click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -97,10 +97,10 @@ test("explicit analysis, evidence, keep, reload, movement, stale versions and ca
   await add(page, second);
   await selectPair(page);
   await expect(
-    page.getByRole("region", { name: "寻找联系提议" }),
+    page.getByRole("region", { name: "Find connection proposal" }),
   ).toBeVisible();
   expect(requests).toHaveLength(0);
-  await page.getByRole("button", { name: "寻找联系", exact: true }).click();
+  await page.getByRole("button", { name: "Find connection", exact: true }).click();
   await expect(
     page.locator(".canvas-lines path[data-state=candidate]"),
   ).toHaveCount(1);
@@ -111,18 +111,18 @@ test("explicit analysis, evidence, keep, reload, movement, stale versions and ca
     second.text,
   ]);
   await expect(page.locator(".canvas-saved-item")).toHaveCount(0);
-  await page.getByRole("button", { name: "保留关系", exact: true }).click();
+  await page.getByRole("button", { name: "Keep connection", exact: true }).click();
   await expect(
     page.locator(".canvas-lines path[data-state=confirmed]"),
   ).toHaveCount(1);
   await page.getByRole("button", { name: title, exact: true }).click();
-  await page.screenshot({ path: "docs/screenshots/pdf01-canvas.png" });
+  await page.screenshot({ path: "test-results/english/pdf01-canvas.png" });
   const note = page.getByRole("article", {
-    name: `便笺 ${first.title}`,
+    name: `Note ${first.title}`,
     exact: true,
   });
   const before = await note.boundingBox();
-  const grip = page.getByRole("button", { name: `移动便笺 ${first.title}` });
+  const grip = page.getByRole("button", { name: `Move note ${first.title}` });
   await grip.focus();
   await grip.press("ArrowRight");
   await expect
@@ -144,12 +144,12 @@ test("explicit analysis, evidence, keep, reload, movement, stale versions and ca
     .poll(() => note.evaluate((element) => parseFloat(element.style.top)))
     .toBeCloseTo(98, 1);
   await expect(grip).toBeEnabled();
-  await expect(note.getByText("版本 1")).toBeVisible();
+  await expect(note.getByText("Version 1")).toBeVisible();
   await expect(
     page.locator(".canvas-lines path[data-state=confirmed]"),
   ).toHaveCount(1);
   await page.reload();
-  await page.getByRole("button", { name: "打开 Canvas 白板" }).click();
+  await page.getByRole("button", { name: "Open Canvas board" }).click();
   await expect(page.locator(".canvas-saved-item")).toHaveCount(1);
   await expect(page.getByTestId("canvas-note")).toHaveCount(2);
   await expect
@@ -158,11 +158,11 @@ test("explicit analysis, evidence, keep, reload, movement, stale versions and ca
   await expect
     .poll(() => note.evaluate((element) => parseFloat(element.style.top)))
     .toBeCloseTo(98, 1);
-  await note.getByRole("button", { name: "编辑", exact: true }).click();
+  await note.getByRole("button", { name: "Edit", exact: true }).click();
   await page
-    .getByLabel("便笺正文", { exact: true })
+    .getByLabel("Note text", { exact: true })
     .fill(first.text + "第二天不再发光。");
-  await page.getByRole("button", { name: "保存便笺", exact: true }).click();
+  await page.getByRole("button", { name: "Save note", exact: true }).click();
   await expect(
     page.locator(".canvas-lines path[data-state=stale]"),
   ).toHaveCount(1);
@@ -175,7 +175,7 @@ test("explicit analysis, evidence, keep, reload, movement, stale versions and ca
   ).not.toContainText("第二天");
   page.once("dialog", (dialog) => dialog.accept());
   await page
-    .getByRole("button", { name: `移除便笺 ${first.title}`, exact: true })
+    .getByRole("button", { name: `Remove note ${first.title}`, exact: true })
     .click();
   await expect(page.getByTestId("canvas-note")).toHaveCount(1);
   await expect(page.locator(".canvas-lines path")).toHaveCount(0);
@@ -204,20 +204,20 @@ test("declining makes no request, manual action survives proposals off, and two-
   await add(page, { title: "独立想法", text: "书店需要一本新目录。" });
   await selectPair(page);
   await expect(
-    page.getByRole("region", { name: "寻找联系提议" }),
+    page.getByRole("region", { name: "Find connection proposal" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "暂时不用" }).click();
+  await page.getByRole("button", { name: "Not now" }).click();
   await page
-    .getByRole("checkbox", { name: "选择便笺 独立想法", exact: true })
+    .getByRole("checkbox", { name: "Select note 独立想法", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toContainText("每次选择两张");
-  await expect(page.getByText("已选 2 / 2 张", { exact: true })).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("Select exactly two notes");
+  await expect(page.getByText("Selected 2 / 2 notes", { exact: true })).toBeVisible();
   await proposals(page, false);
-  await expect(page.getByRole("region", { name: "寻找联系提议" })).toHaveCount(
+  await expect(page.getByRole("region", { name: "Find connection proposal" })).toHaveCount(
     0,
   );
   expect(calls).toBe(0);
-  await page.getByRole("button", { name: "寻找联系", exact: true }).click();
+  await page.getByRole("button", { name: "Find connection", exact: true }).click();
   await expect(
     page.getByText("这两张便笺目前没有足够依据。", { exact: true }),
   ).toBeVisible();
@@ -239,14 +239,14 @@ test("invalid evidence is rejected and storage retry does not call the model aga
   await add(page, first);
   await add(page, second);
   await selectPair(page);
-  await page.getByRole("button", { name: "寻找联系", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("校验");
+  await page.getByRole("button", { name: "Find connection", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("validation");
   await expect(
-    page.getByRole("button", { name: "保留关系", exact: true }),
+    page.getByRole("button", { name: "Keep connection", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "重试寻找联系" }).click();
+  await page.getByRole("button", { name: "Retry finding connection" }).click();
   await expect(
-    page.getByRole("button", { name: "保留关系", exact: true }),
+    page.getByRole("button", { name: "Keep connection", exact: true }),
   ).toBeEnabled();
   await page.evaluate(() => {
     const original = IDBObjectStore.prototype.add;
@@ -258,10 +258,10 @@ test("invalid evidence is rejected and storage retry does not call the model aga
       return original.apply(this, args);
     };
   });
-  await page.getByRole("button", { name: "保留关系", exact: true }).click();
+  await page.getByRole("button", { name: "Keep connection", exact: true }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.locator(".canvas-saved-item")).toHaveCount(0);
-  await page.getByRole("button", { name: "保留关系", exact: true }).click();
+  await page.getByRole("button", { name: "Keep connection", exact: true }).click();
   await expect(page.locator(".canvas-saved-item")).toHaveCount(1);
   expect(calls).toBe(2);
 });
@@ -284,14 +284,14 @@ test("closing cancels analysis and a late response never reappears", async ({
   await add(page, first);
   await add(page, second);
   await selectPair(page);
-  await page.getByRole("button", { name: "寻找联系", exact: true }).click();
+  await page.getByRole("button", { name: "Find connection", exact: true }).click();
   await expect.poll(() => started).toBe(true);
-  await expect(page.getByText("正在寻找联系…", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "关闭白板" }).click();
+  await expect(page.getByText("Finding a connection…", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close canvas" }).click();
   release();
-  await page.getByRole("button", { name: "打开 Canvas 白板" }).click();
+  await page.getByRole("button", { name: "Open Canvas board" }).click();
   await expect(
-    page.getByRole("button", { name: "寻找联系", exact: true }),
+    page.getByRole("button", { name: "Find connection", exact: true }),
   ).toBeEnabled();
   await expect(page.locator(".canvas-explanation")).toHaveCount(0);
   await expect(page.locator(".canvas-saved-item")).toHaveCount(0);
@@ -308,35 +308,35 @@ test("cross-tab conflicts preserve drafts and deleting a relation clears open de
   await add(page, first);
   await add(page, second);
   await selectPair(page);
-  await page.getByRole("button", { name: "寻找联系", exact: true }).click();
-  await page.getByRole("button", { name: "保留关系", exact: true }).click();
+  await page.getByRole("button", { name: "Find connection", exact: true }).click();
+  await page.getByRole("button", { name: "Keep connection", exact: true }).click();
   await page.getByRole("button", { name: title, exact: true }).click();
   const other = await context.newPage();
   await isolateApi(other);
   await open(other);
   other.once("dialog", (dialog) => dialog.accept());
-  await other.getByRole("button", { name: `移除连线 ${title}` }).click();
+  await other.getByRole("button", { name: `Remove connection ${title}` }).click();
   await expect(page.locator(".canvas-saved-item")).toHaveCount(0);
   await expect(page.locator(".canvas-explanation")).toHaveCount(0);
   await page
-    .getByRole("article", { name: `便笺 ${first.title}`, exact: true })
-    .getByRole("button", { name: "编辑", exact: true })
+    .getByRole("article", { name: `Note ${first.title}`, exact: true })
+    .getByRole("button", { name: "Edit", exact: true })
     .click();
   await page
-    .getByLabel("便笺正文", { exact: true })
+    .getByLabel("Note text", { exact: true })
     .fill("保留在本页的未保存草稿。");
   await other
-    .getByRole("article", { name: `便笺 ${first.title}`, exact: true })
-    .getByRole("button", { name: "编辑", exact: true })
+    .getByRole("article", { name: `Note ${first.title}`, exact: true })
+    .getByRole("button", { name: "Edit", exact: true })
     .click();
   await other
-    .getByLabel("便笺正文", { exact: true })
+    .getByLabel("Note text", { exact: true })
     .fill("另一个标签已保存的内容。");
-  await other.getByRole("button", { name: "保存便笺", exact: true }).click();
-  await expect(other.getByLabel("便笺正文", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "保存便笺", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("其他");
-  await expect(page.getByLabel("便笺正文", { exact: true })).toHaveValue(
+  await other.getByRole("button", { name: "Save note", exact: true }).click();
+  await expect(other.getByLabel("Note text", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Save note", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("another tab");
+  await expect(page.getByLabel("Note text", { exact: true })).toHaveValue(
     "保留在本页的未保存草稿。",
   );
   await other.close();
@@ -348,11 +348,11 @@ test("drag cancellation and upper dialogs preserve the board and draft on a smal
   await open(page);
   await add(page, first);
   const note = page.getByRole("article", {
-    name: `便笺 ${first.title}`,
+    name: `Note ${first.title}`,
     exact: true,
   });
   const before = await note.boundingBox();
-  const grip = page.getByRole("button", { name: `移动便笺 ${first.title}` });
+  const grip = page.getByRole("button", { name: `Move note ${first.title}` });
   await grip.hover();
   await page.mouse.down();
   await page.mouse.move(before!.x + 350, before!.y + 200);
@@ -362,18 +362,18 @@ test("drag cancellation and upper dialogs preserve the board and draft on a smal
   expect(
     await page.locator("html").getAttribute("data-wisp-gesture"),
   ).toBeNull();
-  await note.getByRole("button", { name: "编辑", exact: true }).click();
-  await page.getByLabel("便笺正文", { exact: true }).fill("暂存的想法");
+  await note.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Note text", { exact: true }).fill("暂存的想法");
   await proposals(page, false);
-  await expect(page.getByLabel("便笺正文", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Note text", { exact: true })).toHaveValue(
     "暂存的想法",
   );
   await page.setViewportSize({ width: 480, height: 780 });
   const bounds = await page
-    .getByRole("region", { name: "Canvas 白板" })
+    .getByRole("region", { name: "Canvas board" })
     .boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(480);
-  await page.getByRole("button", { name: "保存便笺", exact: true }).click();
-  await expect(page.getByLabel("便笺正文", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Save note", exact: true }).click();
+  await expect(page.getByLabel("Note text", { exact: true })).toHaveCount(0);
 });

@@ -74,7 +74,7 @@ function clearOperation() {
   clearInvitationTimer();
 }
 function message(error: unknown) {
-  return error instanceof Error ? error.message : "白板操作失败，请重试。";
+  return error instanceof Error ? error.message : "Canvas action failed. Please try again.";
 }
 function reconcileInvitation() {
   let state = useCanvas.getState();
@@ -150,7 +150,7 @@ function adoptCanvasData(
       ? {
           phase: "idle" as const,
           result: undefined,
-          error: "便笺内容已变化或被移除，请重新寻找联系。",
+          error: "A note changed or was removed. Find the connection again.",
         }
       : {}),
   });
@@ -196,7 +196,7 @@ export function selectCanvasNote(id: string, additive = false) {
     selected = state.selected.filter((value) => value !== id);
   else if (state.selected.length < 2) selected = [...state.selected, id];
   else {
-    useCanvas.setState({ error: "每次选择两张便笺，请先取消一张。" });
+    useCanvas.setState({ error: "Select exactly two notes. Deselect one note first." });
     return;
   }
   if (selected.join("\0") === state.selected.join("\0")) return;
@@ -237,7 +237,7 @@ export async function beginConnection() {
   )
     return;
   if (notes.length !== 2 || notes.some((note) => !note.text.trim())) {
-    useCanvas.setState({ error: "请选择两张有文字的便笺。" });
+    useCanvas.setState({ error: "Select two notes that contain text." });
     return;
   }
   clearOperation();
@@ -255,7 +255,7 @@ export async function beginConnection() {
     // Check storage before sending, then again before exposing the model result.
     const readable = await refreshCanvas();
     if (ticket !== operation || abort.signal.aborted) return;
-    if (!readable) throw new Error("无法核对当前便笺，请重新读取白板后重试。");
+    if (!readable) throw new Error("Could not verify the current notes. Reload the canvas and try again.");
     const result = validateConnectionResult(
       await requestConnection(request, abort.signal),
       request,
@@ -264,7 +264,7 @@ export async function beginConnection() {
     const verified = await refreshCanvas();
     if (ticket !== operation || abort.signal.aborted) return;
     if (!verified)
-      throw new Error("无法核对当前便笺，未保留本次结果，请重试。");
+      throw new Error("Could not verify the current notes. This result was not kept; please try again.");
     activeRequest = undefined;
     controller = undefined;
     useCanvas.setState({

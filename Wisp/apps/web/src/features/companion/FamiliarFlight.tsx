@@ -8,7 +8,7 @@ function targetBox() {
   const targets = [
     document.querySelector(".familiar-marker > span"),
     Array.from(document.querySelectorAll(".top-status button")).find(
-      (button) => button.textContent?.trim() === "魔法书",
+      (button) => button.textContent?.trim() === "Grimoire",
     ),
   ];
   for (const target of targets) {

@@ -98,7 +98,7 @@ it("rejects foreign scope, IDs, sources, instruction, operation or summary style
       { operation: "understand", summaryStyle: "standard" },
       save,
     );
-    await expect(submission.run()).rejects.toThrow("绑定");
+    await expect(submission.run()).rejects.toThrow(/binding|bound/);
     expect(save).not.toHaveBeenCalled();
     expect(submission.hasResult()).toBe(false);
   }
@@ -111,13 +111,13 @@ it("does not make a network request for invalid batch authorization", async () =
     requestBatchGemini(r.id, [r.snapshots[0]], r.instruction, {
       operation: "check",
     }),
-  ).rejects.toThrow("2～12");
+  ).rejects.toThrow("2–12");
   await expect(
     requestBatchGemini(r.id, r.snapshots, r.instruction, {
       operation: "check",
       summaryStyle: "brief",
     } as never),
-  ).rejects.toThrow("参数");
+  ).rejects.toThrow("summary settings");
   expect(f).not.toHaveBeenCalled();
 });
 it("isolates an aborted request even when the mocked transport ignores cancellation and responds late", async () => {
@@ -144,7 +144,7 @@ it("isolates an aborted request even when the mocked transport ignores cancellat
   const running = submission.run(controller.signal);
   controller.abort();
   respond(new Response(JSON.stringify(r)));
-  await expect(running).rejects.toThrow("迟到");
+  await expect(running).rejects.toThrow("late result");
   expect(save).not.toHaveBeenCalled();
   expect(submission.hasResult()).toBe(false);
 });

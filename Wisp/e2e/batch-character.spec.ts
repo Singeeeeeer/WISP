@@ -44,39 +44,39 @@ function reply(route: Route) {
 }
 
 async function prepare(page: Page, entry = "Understand") {
-  await page.getByRole("button", { name: "灵感熔炉", exact: true }).click();
+  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
   const cauldron = page.getByRole("dialog", {
-    name: "灵感熔炉",
+    name: "Inspiration Cauldron",
     exact: true,
   });
   const titles = ["角色集成甲", "角色集成乙"];
   for (const [index, title] of titles.entries()) {
     await cauldron
-      .getByRole("button", { name: "粘贴文本", exact: true })
+      .getByRole("button", { name: "Paste text", exact: true })
       .click();
-    await cauldron.getByLabel("新材料标题").fill(title);
+    await cauldron.getByLabel("New material title").fill(title);
     await cauldron
-      .getByLabel("粘贴正文")
+      .getByLabel("Pasted text")
       .fill(`虚构材料${index + 1}：周末阅读活动。`);
     await cauldron
-      .getByRole("button", { name: "确认加入", exact: true })
+      .getByRole("button", { name: "Confirm addition", exact: true })
       .click();
-    await expect(cauldron.getByLabel("材料标题", { exact: true })).toHaveValue(
+    await expect(cauldron.getByLabel("Material title", { exact: true })).toHaveValue(
       title,
     );
   }
   await cauldron
-    .getByRole("button", { name: "勾选多材料", exact: true })
+    .getByRole("button", { name: "Select multiple materials", exact: true })
     .click();
   for (const title of titles)
     await cauldron
-      .getByRole("checkbox", { name: `处理材料 ${title}`, exact: true })
+      .getByRole("checkbox", { name: `Process material ${title}`, exact: true })
       .check();
   await cauldron
-    .getByRole("button", { name: `${entry} 多材料`, exact: true })
+    .getByRole("button", { name: `${entry} multiple materials`, exact: true })
     .click();
   await expect(
-    page.getByRole("dialog", { name: "多材料确认", exact: true }),
+    page.getByRole("dialog", { name: "Multi-material confirmation", exact: true }),
   ).toBeVisible();
 }
 
@@ -90,7 +90,7 @@ async function held(page: Page) {
 
 async function run(page: Page) {
   await page
-    .getByRole("button", { name: "开始多材料处理", exact: true })
+    .getByRole("button", { name: "Start multi-material processing", exact: true })
     .click();
 }
 
@@ -99,7 +99,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 503, body: "Offline batch character test" }),
   );
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
 });
 
 test("batch brewing begins with processing, celebrates saved success and clears on close", async ({
@@ -133,11 +133,11 @@ test("batch brewing begins with processing, celebrates saved success and clears 
   );
   await requests[0].fulfill({ json: reply(requests[0]) });
   await expect(
-    page.getByRole("heading", { name: "多材料 Understand 结果", exact: true }),
+    page.getByRole("heading", { name: "Multi-material Understand result", exact: true }),
   ).toBeVisible();
   await expect(character).toHaveAttribute("data-phase", "success");
   await page
-    .getByRole("button", { name: "关闭多材料结果", exact: true })
+    .getByRole("button", { name: "Close multi-material result", exact: true })
     .click();
   await expect(character).not.toHaveAttribute("data-state", "brewing");
   await expect(character).toHaveAttribute("data-phase", "");
@@ -151,7 +151,7 @@ test("cancelled batch work and its late reply cannot restore an old brewing acti
   const character = page.locator(".companion");
   await run(page);
   await expect.poll(() => requests.length).toBe(1);
-  await page.getByRole("button", { name: "停止等待", exact: true }).click();
+  await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(character).not.toHaveAttribute("data-state", "brewing");
   await run(page);
@@ -159,11 +159,11 @@ test("cancelled batch work and its late reply cannot restore an old brewing acti
   await requests[0].fulfill({ json: reply(requests[0]) }).catch(() => {});
   await expect(character).toHaveAttribute("data-phase", "working");
   await expect(
-    page.getByRole("heading", { name: "多材料 Understand 结果", exact: true }),
+    page.getByRole("heading", { name: "Multi-material Understand result", exact: true }),
   ).toHaveCount(0);
   await requests[1].fulfill({ json: reply(requests[1]) });
   await expect(
-    page.getByRole("heading", { name: "多材料 Understand 结果", exact: true }),
+    page.getByRole("heading", { name: "Multi-material Understand result", exact: true }),
   ).toBeVisible();
   await expect(character).toHaveAttribute("data-phase", "success");
 });
@@ -191,10 +191,10 @@ test("batch save failure ends brewing and retry only saves the frozen reply", as
   await expect(character).not.toHaveAttribute("data-state", "brewing");
   await expect(character).toHaveAttribute("data-phase", "");
   await page
-    .getByRole("button", { name: "重试保存多材料结果", exact: true })
+    .getByRole("button", { name: "Retry saving multi-material result", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "多材料 Understand 结果", exact: true }),
+    page.getByRole("heading", { name: "Multi-material Understand result", exact: true }),
   ).toBeVisible();
   await expect(character).toHaveAttribute("data-phase", "success");
   expect(requests).toHaveLength(1);
@@ -225,7 +225,7 @@ test("a batch familiar flies only after enqueue; keyboard retry and real complet
     };
   });
   const submit = page.getByRole("button", {
-    name: "召唤多材料使魔",
+    name: "Summon multi-material familiar",
     exact: true,
   });
   const flight = page.locator(".familiar-flight");
@@ -262,8 +262,8 @@ test("a batch familiar flies only after enqueue; keyboard retry and real complet
   await expect.poll(() => requests.length).toBe(1);
   await requests[0].fulfill({ json: reply(requests[0]) });
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("1 封未读");
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("1 unread");
   await expect
     .poll(() =>
       page.evaluate(

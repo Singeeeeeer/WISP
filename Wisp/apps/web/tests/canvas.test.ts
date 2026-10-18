@@ -218,11 +218,11 @@ it("rejects invalid requests before fetch and never retries or exposes provider 
       { ...request(), notes: [request().notes[0], request().notes[0]] },
       new AbortController().signal,
     ),
-  ).rejects.toThrow("两张");
+  ).rejects.toThrow("two");
   expect(fetch).not.toHaveBeenCalled();
   await expect(
     requestConnection(request(), new AbortController().signal),
-  ).rejects.toThrow("鉴权失败");
+  ).rejects.toThrow("authentication failed");
   expect(fetch).toHaveBeenCalledTimes(1);
   fetch.mockResolvedValueOnce(
     new Response(
@@ -232,15 +232,15 @@ it("rejects invalid requests before fetch and never retries or exposes provider 
   );
   await expect(
     requestConnection(request(), new AbortController().signal),
-  ).rejects.toThrow("检查服务端状态");
+  ).rejects.toThrow("Check the local service status");
   fetch.mockResolvedValueOnce(new Response("not-json"));
   await expect(
     requestConnection(request(), new AbortController().signal),
-  ).rejects.toThrow("无效响应");
+  ).rejects.toThrow("invalid response");
   const cancelled = new AbortController();
   cancelled.abort();
   fetch.mockRejectedValueOnce(new DOMException("aborted", "AbortError"));
   await expect(requestConnection(request(), cancelled.signal)).rejects.toThrow(
-    "已停止等待",
+    "Waiting stopped",
   );
 });

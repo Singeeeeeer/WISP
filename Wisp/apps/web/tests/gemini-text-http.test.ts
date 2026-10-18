@@ -60,10 +60,10 @@ it("sends only operation options and binds returned style; retries saving withou
       operation: "understand",
       summaryStyle: "standard",
     }),
-  ).rejects.toThrow("绑定");
+  ).rejects.toThrow(/binding|bound/);
   await expect(
     (transport as any).requestGemini(s, "摘要", { operation: "create" }),
-  ).rejects.toThrow("绑定");
+  ).rejects.toThrow(/binding|bound/);
   const previous = f.mock.calls.length;
   await expect(
     (transport as any).requestGemini(s, "摘要", {

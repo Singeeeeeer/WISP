@@ -25,16 +25,16 @@ it("stores one batch result, deduplicates retry and rejects changed source autho
       snapshots: record.snapshots.map((s) => ({ ...s, materialVersion: 2 })),
     },
   ])
-    await expect(repo.saveRecord(other as never)).rejects.toThrow("提交标识");
+    await expect(repo.saveRecord(other as never)).rejects.toThrow("submission ID");
   const local = runText(
     "understand",
     { ...record.snapshots[0], id: record.id },
     "",
   );
-  await expect(repo.saveRecord(local)).rejects.toThrow("提交标识");
+  await expect(repo.saveRecord(local)).rejects.toThrow("submission ID");
   await expect(
     repo.saveRecord({ ...record, summaryEvidence: [] }),
-  ).rejects.toThrow("校验");
+  ).rejects.toThrow("validation");
 });
 it("keeps legacy check queries single-material while the complete record query includes batch checks", async () => {
   const repo = createRepository("batch-legacy-check-" + crypto.randomUUID()),
@@ -76,10 +76,10 @@ it("deduplicates complete batch tasks and rejects changing any frozen member or 
   await repo.enqueueTask(task);
   await expect(
     repo.enqueueTask({ ...task, instruction: "changed" }),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
   await expect(
     repo.enqueueTask({ ...task, snapshots: [...task.snapshots].reverse() }),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
   await expect(
     repo.enqueueTask({
       ...task,
@@ -87,7 +87,7 @@ it("deduplicates complete batch tasks and rejects changing any frozen member or 
       operation: "check",
       summaryStyle: undefined,
     }),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
   await expect(
     repo.enqueueTask({ ...task, snapshots: [task.snapshots[0]] }),
   ).rejects.toThrow();

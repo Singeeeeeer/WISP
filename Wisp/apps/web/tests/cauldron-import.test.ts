@@ -47,7 +47,7 @@ beforeEach(() => {
       ...useDocuments.getInitialState(),
       materials: [material],
       ready: true,
-      status: { [material.id]: "已保存" },
+      status: { [material.id]: "saved" },
       errors: {},
     },
     true,
@@ -120,7 +120,7 @@ it("claims a queued drop synchronously and preserves the first request on a seco
   });
   expect(() =>
     queueImport({ file: new File(["second"], "second.txt") }),
-  ).toThrow("已有未完成");
+  ).toThrow("A material preview is still open");
   expect(useCauldronImport.getState().owner).toBe(owner);
   expect(useCauldronImport.getState().request).toBe(first);
 });
@@ -144,7 +144,7 @@ it.each(["draft", "jointDraft", "watchDraft", "canvas", "book"] as const)(
     useInteraction.setState({ [field]: value });
     expect(() =>
       queueImport({ file: new File(["text"], "input.txt") }),
-    ).toThrow("当前面板");
+    ).toThrow("current panel");
     expect(useCauldronImport.getState().occupied).toBe(false);
     expect(useCauldronImport.getState().request).toBeUndefined();
     expect(useInteraction.getState().cauldron).toBe(false);
@@ -153,7 +153,7 @@ it.each(["draft", "jointDraft", "watchDraft", "canvas", "book"] as const)(
 
 it("blocks other dialogs but permits the cauldron's own dialog", () => {
   querySelector.mockReturnValue({ role: "dialog" });
-  expect(importBlockReason()).toContain("当前面板");
+  expect(importBlockReason()).toContain("current panel");
   expect(querySelector).toHaveBeenCalledWith(
     '[role="dialog"]:not(:has(.cauldron))',
   );
@@ -176,11 +176,11 @@ it("preserves a batch confirmation when file or document-copy imports are attemp
   useInteraction.setState({ batchDraft });
   expect(() =>
     queueImport({ file: new File(["text"], "input.txt") }),
-  ).toThrow("当前面板");
+  ).toThrow("current panel");
   requestDocumentCopy(material.id);
-  expect(useCauldronImport.getState().error).toContain("当前面板");
+  expect(useCauldronImport.getState().error).toContain("current panel");
   const drag = transfer();
-  expect(() => startDocumentDrag(material.id, drag)).toThrow("当前面板");
+  expect(() => startDocumentDrag(material.id, drag)).toThrow("current panel");
   expect(drag.getData(DOCUMENT_DRAG_TYPE)).toBe("");
   expect(useCauldronImport.getState().occupied).toBe(false);
   expect(useCauldronImport.getState().request).toBeUndefined();
@@ -195,7 +195,7 @@ it.each(["documents", "cauldron"])(
     else useCauldron.setState({ ready: false });
     expect(() =>
       queueImport({ file: new File(["text"], "input.txt") }),
-    ).toThrow("尚未就绪");
+    ).toThrow("not ready yet");
     expect(useCauldronImport.getState().occupied).toBe(false);
   },
 );
@@ -207,7 +207,7 @@ it("rejects a full cauldron without creating a draft and permits its twelfth slo
   }));
   useCauldron.setState({ entries });
   expect(() => queueImport({ file: new File(["text"], "input.txt") })).toThrow(
-    "12 份",
+    "12 materials",
   );
   expect(useCauldronImport.getState().occupied).toBe(false);
   useCauldron.setState({ entries: entries.slice(0, 11) });
@@ -224,24 +224,24 @@ it("rejects unsupported and oversized files before occupying a slot", () => {
   }
 });
 
-it.each(["待保存", "保存中", "保存失败"] as const)(
+it.each(["pending", "saving", "failed"] as const)(
   "rejects a document with save state %s",
   (status) => {
     useDocuments.setState({ status: { [material.id]: status } });
-    expect(() => copyFromDocument(material.id)).toThrow("先保存原文档");
+    expect(() => copyFromDocument(material.id)).toThrow("Save the original document");
     expect(useCauldronImport.getState().occupied).toBe(false);
   },
 );
 
 it("rejects missing documents, absent save confirmation and unresolved save errors", () => {
-  expect(() => copyFromDocument("missing")).toThrow("当前文档不可用");
+  expect(() => copyFromDocument("missing")).toThrow("current document is unavailable");
   useDocuments.setState({ status: {} });
-  expect(() => copyFromDocument(material.id)).toThrow("先保存原文档");
+  expect(() => copyFromDocument(material.id)).toThrow("Save the original document");
   useDocuments.setState({
-    status: { [material.id]: "已保存" },
+    status: { [material.id]: "saved" },
     errors: { [material.id]: "另一标签页有更新" },
   });
-  expect(() => copyFromDocument(material.id)).toThrow("保存冲突");
+  expect(() => copyFromDocument(material.id)).toThrow("save conflicts");
 });
 
 it("selection-only copy never falls back to full text for missing, stale or invalid selection", () => {
@@ -287,19 +287,19 @@ it("reports unavailable current documents without opening a preview", () => {
   requestDocumentCopy(currentDocumentId());
   expect(useCauldronImport.getState().occupied).toBe(false);
   expect(useCauldronImport.getState().request).toBeUndefined();
-  expect(useCauldronImport.getState().error).toContain("打开并选择");
+  expect(useCauldronImport.getState().error).toContain("Open and select");
 });
 
 it("accepts only the active private drag token and invalidates it on drag end or replacement", () => {
   const external = transfer();
   external.setData(DOCUMENT_DRAG_TYPE, material.id);
-  expect(() => draggedDocument(external)).toThrow("已失效");
+  expect(() => draggedDocument(external)).toThrow("no longer available");
   const first = transfer();
   startDocumentDrag(material.id, first);
   expect(first.effectAllowed).toBe("copy");
   expect(first.getData(DOCUMENT_DRAG_TYPE)).not.toBe(material.id);
   external.setData(DOCUMENT_DRAG_TYPE, crypto.randomUUID());
-  expect(() => draggedDocument(external)).toThrow("已失效");
+  expect(() => draggedDocument(external)).toThrow("no longer available");
   const captured = draggedDocument(first);
   expect(captured).toMatchObject({
     text: material.text,
@@ -307,10 +307,10 @@ it("accepts only the active private drag token and invalidates it on drag end or
   });
   const second = transfer();
   startDocumentDrag(material.id, second);
-  expect(() => draggedDocument(first)).toThrow("已失效");
+  expect(() => draggedDocument(first)).toThrow("no longer available");
   expect(draggedDocument(second).id).not.toBe(captured.id);
   endDocumentDrag();
-  expect(() => draggedDocument(second)).toThrow("已失效");
+  expect(() => draggedDocument(second)).toThrow("no longer available");
 });
 
 it("captures drag contents before subsequent document edits and refuses blocked drag starts", () => {
@@ -326,7 +326,7 @@ it("captures drag contents before subsequent document edits and refuses blocked 
   endDocumentDrag();
   claimImport();
   const blocked = transfer();
-  expect(() => startDocumentDrag(material.id, blocked)).toThrow("已有未完成");
+  expect(() => startDocumentDrag(material.id, blocked)).toThrow("A material preview is still open");
   expect(blocked.getData(DOCUMENT_DRAG_TYPE)).toBe("");
-  expect(() => draggedDocument(blocked)).toThrow("已失效");
+  expect(() => draggedDocument(blocked)).toThrow("no longer available");
 });

@@ -65,7 +65,7 @@ class ConnectionTests(unittest.TestCase):
         self.assertEqual(data['connections'][0]['evidence'],[
             {'noteId':'left','quote':'aba','start':4,'end':7},
             {'noteId':'right','quote':'aba','start':8,'end':11}])
-        self.assertEqual(data['metadata']['promptVersion'],'gemini-connection-prompt-1')
+        self.assertEqual(data['metadata']['promptVersion'],'gemini-connection-prompt-2')
         self.assertEqual(data['metadata']['validatorVersion'],'quote-occurrence-utf16-1')
         self.assertEqual(data['metadata']['usage'],{'total_tokens':17})
         self.assertTrue(client.get('/api/health').json()['model_connected'])

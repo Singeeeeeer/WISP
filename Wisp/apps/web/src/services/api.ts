@@ -6,15 +6,15 @@ export async function checkHealth(): Promise<string> {
     if (!response.ok) throw Error();
     const data = await response.json();
     if (data.service !== "wisp" || data.jobs_enabled !== false)
-      return "API 状态不符合 Wisp 契约";
+      return "API status does not match the Wisp contract";
     if (data.model_status === "verified")
-      return "API 在线 · Gemini 本次服务运行期间曾调用成功";
+      return "API online · Gemini has completed a call during this service run";
     if (data.model_status === "configured")
-      return "API 在线 · Gemini 已配置，尚未验证";
+      return "API online · Gemini is configured but not yet verified";
     return data.model_connected === false
-      ? "API 在线 · AI 未接通"
-      : "API 状态不符合 Wisp 契约";
+      ? "API online · AI is not connected"
+      : "API status does not match the Wisp contract";
   } catch {
-    return "API 未连接 · 本地编辑可用";
+    return "API offline · local editing is available";
   }
 }

@@ -47,8 +47,8 @@ let browser, page;
 const requests = [];
 const captureJobs = [];
 const pageErrors = [];
-const cauldron = () => page.getByRole("dialog", { name: "灵感熔炉", exact: true });
-const venue = () => page.getByRole("region", { name: "场地说明窗口", exact: true });
+const cauldron = () => page.getByRole("dialog", { name: "Inspiration Cauldron", exact: true });
+const venue = () => page.getByRole("region", { name: "Venue notes window", exact: true });
 const filename = "synthetic-live-book-club.txt";
 const syntheticText = "虚构验收材料😀。星光读书会计划于11月8日14点开放，最多20人。海报11月10日定稿后开放报名。预算2000元，已报价1500元。";
 const originalText = "虚构场地记录😀\n星光读书会计划于11月8日14点开放，最多20人。海报11月10日定稿后开放报名。\n不属于选区的虚构备注。";
@@ -71,7 +71,7 @@ async function records(store) {
 }
 
 async function saveCandidate(source) {
-  await cauldron().getByRole("button", { name: "确认加入", exact: true }).click();
+  await cauldron().getByRole("button", { name: "Confirm addition", exact: true }).click();
   await expect(cauldron().getByTestId("material-detail")).toBeVisible();
   const material = (await records("materials")).find((value) => value.source === source);
   assert.ok(material, "Material must exist after UI confirmation");
@@ -95,10 +95,10 @@ async function prepare(testCase) {
     assert.equal(material.origin.fileName, filename);
     return material;
   }
-  const editor = page.getByLabel("场地说明正文", { exact: true });
+  const editor = page.getByLabel("Venue notes text", { exact: true });
   if (testCase.input === "document_copy") {
     await editor.fill(originalText);
-    await expect(page.getByTestId("save-venue")).toHaveText("已保存");
+    await expect(page.getByTestId("save-venue")).toHaveText("Saved");
   }
   const original = (await records("materials")).find((value) => value.id === "venue");
   let start = 0, end = originalText.length;
@@ -108,9 +108,9 @@ async function prepare(testCase) {
     await editor.press("Control+Home");
     for (const _ of Array.from(originalText.slice(0, start))) await editor.press("ArrowRight");
     for (const _ of Array.from(originalText.slice(start, end))) await editor.press("Shift+ArrowRight");
-    await venue().getByRole("button", { name: "选区副本入炉", exact: true }).click();
+    await venue().getByRole("button", { name: "Add selection copy to cauldron", exact: true }).click();
   } else {
-    await venue().getByRole("button", { name: "全文副本入炉", exact: true }).click();
+    await venue().getByRole("button", { name: "Add full-text copy to cauldron", exact: true }).click();
   }
   await expect(cauldron().getByTestId("copy-preview")).toHaveText(originalText.slice(start, end));
   const material = await saveCandidate(testCase.input);
@@ -136,13 +136,13 @@ async function runCase(testCase) {
     name: testCase.operation[0].toUpperCase() + testCase.operation.slice(1), exact: true,
   }).click();
   await expect(page.getByTestId("snapshot-text")).toHaveText(material.text);
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
-  await page.getByLabel("补充要求", { exact: true }).fill(
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Additional instructions", { exact: true }).fill(
     testCase.operation === "create" ? "仅根据这份虚构材料写一条简短活动邀请，不确定日期安排时明确说明。" :
       testCase.operation === "check" ? "核对这份虚构活动材料的时间安排。" : "概括这份虚构材料，保持简短。",
   );
   if (testCase.operation === "understand")
-    await page.getByLabel("本次摘要长度").selectOption("brief");
+    await page.getByLabel("Summary length for this run").selectOption("brief");
   const before = requests.length;
   const endpoint = `/api/${testCase.operation}`;
   const responsePromise = page.waitForResponse((response) =>
@@ -150,7 +150,7 @@ async function runCase(testCase) {
   { timeout: 205000 }).catch(() => undefined);
   testCase.status = "submitted";
   testCase.submittedAt = new Date().toISOString();
-  const action = { understand: "运行 Gemini 理解", check: "运行 Gemini 检查", create: "运行 Gemini 创作" };
+  const action = { understand: "Run Gemini Understand", check: "Run Gemini Check", create: "Run Gemini Create" };
   await page.getByRole("button", { name: action[testCase.operation], exact: true }).click();
   const response = await responsePromise;
   await Promise.all(captureJobs);
@@ -189,13 +189,13 @@ async function runCase(testCase) {
   assert.equal(result.execution, "gemini");
   assert.deepEqual(result.snapshot, snapshot);
   assert.equal(result.instruction, submitted[0].request.instruction);
-  await expect(page.getByRole("heading", { name: /^Gemini：/ })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: /^Gemini:/ })).toBeVisible({ timeout: 15000 });
   const saved = (await records("checks")).find((record) => record.id === snapshot.id);
   assert.deepEqual(saved, result, "UI must persist the same fully bound model result");
   testCase.resultSourceBound = true;
   testCase.resultPersisted = true;
   testCase.status = "passed";
-  await page.getByText("执行信息", { exact: true }).click();
+  await page.getByText("Execution details", { exact: true }).click();
   return true;
 }
 
@@ -229,7 +229,7 @@ try {
     })());
   });
   await page.goto(baseURL);
-  await expect(page.getByTestId("save-venue")).toHaveText("已保存");
+  await expect(page.getByTestId("save-venue")).toHaveText("Saved");
   assert.equal((await records("checks")).length, 0, "The isolated context must start without records");
   for (let index = 0; index < cases.length; index++) {
     const testCase = cases[index];
@@ -251,8 +251,8 @@ try {
       for (const remaining of cases.slice(index + 1)) remaining.reason = `Stopped after ${testCase.operation}: ${testCase.errorCode ?? "verification failed"}; no retry submitted`;
       break;
     }
-    await page.getByRole("button", { name: testCase.status === "failed" ? "关闭材料面板" :
-      testCase.operation === "check" ? "关闭检查结果" : "关闭处理结果", exact: true }).click();
+    await page.getByRole("button", { name: testCase.status === "failed" ? "Close material panel" :
+      testCase.operation === "check" ? "Close check result" : "Close result", exact: true }).click();
   }
   report.storedResults = await records("checks");
   report.modelCalls = requests.length;

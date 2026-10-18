@@ -108,7 +108,7 @@ export function Cauldron() {
     if (lock.current || reading) return;
     if (mode) {
       setError(
-        "这份材料尚未加入，请先确认加入，或点击“取消新增”放弃本次输入。",
+        "This material has not been added. Confirm the addition, or click “Cancel new material” to discard this input.",
       );
       return;
     }
@@ -175,7 +175,7 @@ export function Cauldron() {
       if (ticket === readingTicket.current) {
         finish("error");
         setError(
-          e instanceof Error ? e.message : "文件读取失败，请重新选择文件",
+          e instanceof Error ? e.message : "Could not read file. Select it again.",
         );
       }
     } finally {
@@ -199,10 +199,10 @@ export function Cauldron() {
     setBusy(true);
     setError("");
     try {
-      if (mode === "file" && !file) throw new Error("请先选择并成功读取文件");
+      if (mode === "file" && !file) throw new Error("Choose a file and wait for it to finish loading first.");
       let m = candidate.current;
       if (!m) {
-        if (mode === "copy") throw new Error("副本预览已失效，请重新获取。");
+        if (mode === "copy") throw new Error("The copy preview is no longer valid. Fetch it again.");
         m = createTextMaterial({
           id: draftId,
           title,
@@ -227,7 +227,7 @@ export function Cauldron() {
       }
     } catch (e) {
       finish("error");
-      setError(e instanceof Error ? e.message : "材料保存失败，请重试");
+      setError(e instanceof Error ? e.message : "Could not save material. Please retry.");
     } finally {
       lock.current = false;
       setBusy(false);
@@ -249,7 +249,7 @@ export function Cauldron() {
       finish("success");
     } catch (e) {
       finish("error");
-      setError(e instanceof Error ? e.message : "成员保存失败，请重试");
+      setError(e instanceof Error ? e.message : "Could not update the cauldron. Please retry.");
     } finally {
       lock.current = false;
       setBusy(false);
@@ -257,46 +257,46 @@ export function Cauldron() {
     }
   }
   return (
-    <Dialog title="灵感熔炉" close={close}>
+    <Dialog title="Inspiration Cauldron" close={close}>
       <div className="cauldron" aria-busy={busy || reading}>
         <div className="panel-heading">
           <div>
-            <div className="eyebrow">IDEA CAULDRON · LOCAL TEXT</div>
-            <h2>灵感熔炉</h2>
+            <div className="eyebrow">INSPIRATION CAULDRON · LOCAL TEXT</div>
+            <h2>Inspiration Cauldron</h2>
           </div>
           <button
-            aria-label="关闭熔炉"
+            aria-label="Close Inspiration Cauldron"
             onClick={close}
             disabled={busy || reading}
           >
             ×
           </button>
         </div>
-        <p>收好手边的文字，选择一份或勾选多份，确认范围后再交给 Wisp。</p>
+        <p>Collect text here, select one or more materials, confirm the range, then hand it to Wisp.</p>
         <div className="cauldron-toolbar">
           <button
             disabled={!!mode || busy || !ready}
             onClick={() => begin("new_text")}
           >
-            新建材料
+            New material
           </button>
           <button
             disabled={!!mode || busy || !ready}
             onClick={() => begin("pasted_text")}
           >
-            粘贴文本
+            Paste text
           </button>
           <button
             disabled={!!mode || busy || !ready}
             onClick={() => begin("file")}
           >
-            导入文件
+            Import file
           </button>
           <button
             disabled={!!mode || busy || !ready || !currentId}
             onClick={() => requestDocumentCopy(currentId)}
           >
-            当前文档全文副本
+            Full copy of current document
           </button>
           <button
             disabled={
@@ -308,35 +308,34 @@ export function Cauldron() {
             }
             onClick={() => requestDocumentCopy(currentId, true)}
           >
-            当前选区副本
+            Copy of current selection
           </button>
-          <span>{entries.length} / 12 份在熔炉中</span>
+          <span>{entries.length} / 12 in cauldron</span>
         </div>
         <p className="notice">
-          可将单个 TXT、DOCX、PPTX、XLSX 或 PDF
-          拖入页面；文档标题栏的“入炉”把手可拖向熔炉。预览确认保存后才加入。
+          Drop one TXT, DOCX, PPTX, XLSX, or PDF file onto this page, or drag a document’s “Add to cauldron” handle to Inspiration Cauldron. Material is added only after you confirm the preview and save it.
         </p>
         {(error || loadError) && (
           <p className="error" role="alert">
             {error || loadError}
           </p>
         )}
-        {!ready && <p role="status">正在读取材料列表…</p>}
+        {!ready && <p role="status">Loading material list…</p>}
         {mode ? (
-          <section className="cauldron-form" aria-label="新增材料">
+          <section className="cauldron-form" aria-label="New material">
             <h3>
               {mode === "new_text"
-                ? "新建空白材料"
+                ? "Create blank material"
                 : mode === "pasted_text"
-                  ? "加入粘贴文本"
+                  ? "Add pasted text"
                   : mode === "copy"
-                    ? "确认冻结文字副本"
-                    : "读取文件文字副本"}
+                    ? "Confirm frozen text copy"
+                    : "Review extracted file text"}
             </h3>
             {mode === "file" && (
               <>
                 <label className="field-label">
-                  选择文件
+                  Choose file
                   <input
                     type="file"
                     accept=".txt,.docx,.pptx,.xlsx,.pdf"
@@ -348,21 +347,20 @@ export function Cauldron() {
                   />
                 </label>
                 <p className="notice">
-                  TXT（UTF-8）、DOCX、PPTX、XLSX、PDF · 单文件最多 20 MB · 最多
-                  60,000 个 UTF-16 单元。在本机读取为可编辑的文字副本， 不调用
-                  Gemini，不修改或监控原文件。PDF 仅提取文字层，不含 OCR。
+                  TXT (UTF-8), DOCX, PPTX, XLSX, PDF · One file up to 20 MB · Up to 60,000 UTF-16 units.
+                  Files are read locally as editable text without calling Gemini. The original file is not modified or monitored. PDF import extracts only the text layer; OCR is not supported.
                 </p>
                 {reading && (
                   <div className="cauldron-toolbar">
-                    <p role="status">正在读取文件…</p>
+                    <p role="status">Reading file…</p>
                     <button
                       onClick={() => {
                         captureOutcome()("cancel");
                         stopReading();
-                        setReadNotice("已停止读取，可重新选择文件。");
+                        setReadNotice("Reading stopped; you can choose another file.");
                       }}
                     >
-                      停止读取
+                      Stop reading
                     </button>
                   </div>
                 )}
@@ -374,12 +372,12 @@ export function Cauldron() {
               </>
             )}
             <label className="field-label">
-              新材料标题
+              New material title
               <input
                 maxLength={120}
                 value={title}
                 disabled={busy || reading || mode === "copy"}
-                placeholder="未命名材料"
+                placeholder="Untitled material"
                 onChange={(e) => {
                   changedInput();
                   setTitle(e.target.value);
@@ -389,7 +387,7 @@ export function Cauldron() {
             {mode === "pasted_text" && (
               <>
                 <label className="field-label">
-                  粘贴正文
+                  Pasted text
                   <textarea
                     value={text}
                     disabled={busy}
@@ -400,7 +398,7 @@ export function Cauldron() {
                   />
                 </label>
                 <label className="field-label">
-                  来源备注（可选，用户填写）
+                  Source note (optional)
                   <input
                     value={note}
                     maxLength={500}
@@ -422,9 +420,9 @@ export function Cauldron() {
                   </p>
                 ))}
                 <label className="field-label">
-                  导入文字预览（可编辑）
+                  Imported text preview (editable)
                   <textarea
-                    aria-label="导入文字预览"
+                    aria-label="Imported text preview"
                     data-testid="import-preview"
                     value={text}
                     disabled={busy || reading}
@@ -443,18 +441,18 @@ export function Cauldron() {
                   {copy.text}
                 </pre>
                 <p className="notice">
-                  标题、正文、原版本与范围已冻结。保存成功后，原文变化不会改变此副本；如其他标签页修改了原文，请取消本次新增，备份未保存的正文后重新载入页面，再获取副本。
+                  Title, text, source version, and range are frozen. Once saved, source changes will not change this copy. If another tab changed the source, cancel this addition, back up unsaved text, reload the page, and fetch the copy again.
                 </p>
               </section>
             )}
             {mode !== "new_text" && (
               <p>
-                {text.length.toLocaleString()} / 60,000 UTF-16 单元 ·
-                加入前不会保存
+                {text.length.toLocaleString("en-US")} / 60,000 UTF-16 units ·
+                Not saved until added
               </p>
             )}
             {mode === "new_text" && (
-              <p>保存后打开空白编辑窗口；正文为空时不能运行能力。</p>
+              <p>After saving, a blank editor opens. Add text before using an ability.</p>
             )}
             <div className="panel-actions">
               <button
@@ -475,7 +473,7 @@ export function Cauldron() {
                   candidate.current = undefined;
                 }}
               >
-                取消新增
+                Cancel new material
               </button>
               <button
                 className="primary"
@@ -483,10 +481,10 @@ export function Cauldron() {
                 onClick={() => void add()}
               >
                 {busy
-                  ? "正在保存材料…"
+                  ? "Saving material…"
                   : mode === "new_text"
-                    ? "确认新建"
-                    : "确认加入"}
+                    ? "Confirm creation"
+                    : "Confirm addition"}
               </button>
             </div>
           </section>
@@ -494,13 +492,13 @@ export function Cauldron() {
           <>
             <div className="cauldron-toolbar">
               <button aria-pressed={!all} onClick={() => setAll(false)}>
-                熔炉中的材料
+                Materials in cauldron
               </button>
               <button aria-pressed={all} onClick={() => setAll(true)}>
-                全部本地材料
+                All local materials
               </button>
               <button onClick={() => void refreshCauldron()}>
-                刷新材料列表
+                Refresh material list
               </button>
               <button
                 aria-pressed={batchSelecting}
@@ -510,15 +508,15 @@ export function Cauldron() {
                   setError("");
                 }}
               >
-                {batchSelecting ? "退出多材料选择" : "勾选多材料"}
+                {batchSelecting ? "Exit multi-material selection" : "Select multiple materials"}
               </button>
             </div>
             {batchSelecting && (
-              <section className="scope" aria-label="多材料处理">
-                <strong>已选 {picked.length} / 12 份</strong>
+              <section className="scope" aria-label="Multi-material processing">
+                <strong>Selected {picked.length} / 12 items</strong>
                 <p role="status">
-                  全文合计 {pickedUnits.toLocaleString()} UTF-16 单元 · 本次处理上限 60,000。
-                  {pickedUnits > 60000 ? "请在下一步逐份缩小范围，超限不会提交。" : "下一步可逐份确认全文或选段。"}
+                  Total full text: {pickedUnits.toLocaleString("en-US")} UTF-16 units · Limit for this run: 60,000.{" "}
+                  {pickedUnits > 60000 ? "Narrow each range in the next step; text over the limit will not be submitted." : "In the next step, confirm the full text or a selection from each material."}
                 </p>
                 <div className="cauldron-actions">
                   {(["understand", "check", "create", "summon"] as const).map((entry) => (
@@ -527,44 +525,44 @@ export function Cauldron() {
                       disabled={busy || !ready || picked.length < 2}
                       onClick={() => {
                         try { prepareBatch(picked, entry); }
-                        catch (e) { setError(e instanceof Error ? e.message : "材料不可用"); }
+                        catch (e) { setError(e instanceof Error ? e.message : "Material unavailable"); }
                       }}
                     >
-                      {entry[0].toUpperCase() + entry.slice(1)} 多材料
+                      {entry[0].toUpperCase() + entry.slice(1)} multiple materials
                     </button>
                   ))}
                 </div>
-                <p className="subtle">勾选 2～12 份熔炉材料。综合处理使用 Gemini；点击入口仅确认，不立即发送。单份本地规则请退出多材料选择。</p>
+                <p className="subtle">Select 2–12 materials from the cauldron. Combined processing uses Gemini; selecting an ability opens the confirmation panel before anything is sent. Exit multi-material selection to use local rules with one material.</p>
               </section>
             )}
             <div className="cauldron-grid">
-              <div className="cauldron-list" aria-label="材料列表">
+              <div className="cauldron-list" aria-label="Material list">
                 {!visible.length && (
-                  <p className="empty">熔炉还是空的。加入一份文字开始吧。</p>
+                  <p className="empty">The cauldron is empty. Add some text to begin.</p>
                 )}
                 {visible.map((m) => (
                   <div className="cauldron-item" key={m.id}>
                   {batchSelecting && (
                     <input
                       type="checkbox"
-                      aria-label={"处理材料 " + m.title}
-                      title={member(m.id) ? "加入本次处理" : "请先加入熔炉"}
+                      aria-label={"Process material " + m.title}
+                      title={member(m.id) ? "Include in this run" : "Add to the cauldron first"}
                       disabled={!member(m.id) || busy}
                       checked={picked.includes(m.id)}
                       onChange={(e) => setChecked(e.target.checked ? [...picked, m.id] : picked.filter((id) => id !== m.id))}
                     />
                   )}
                   <button
-                    aria-label={"选择材料 " + m.title}
+                    aria-label={"Select material " + m.title}
                     aria-pressed={selected === m.id}
                     onClick={() => {
                       useCauldron.setState({ selected: m.id });
                       setError("");
                     }}
                   >
-                    <strong>{m.title || "未命名材料"}</strong>
+                    <strong>{m.title || "Untitled material"}</strong>
                     <small>
-                      {member(m.id) ? "熔炉中" : "本地保存"} · {status[m.id]}
+                      {member(m.id) ? "In cauldron" : "Saved locally"} · {status[m.id]}
                     </small>
                     <small>{sourceDescription(m)}</small>
                   </button>
@@ -578,7 +576,7 @@ export function Cauldron() {
                 {material ? (
                   <>
                     <label className="field-label">
-                      材料标题
+                      Material title
                       <input
                         maxLength={120}
                         value={material.title}
@@ -591,15 +589,15 @@ export function Cauldron() {
                       <span data-testid="material-save-status" role="status">
                         {status[material.id]}
                       </span>{" "}
-                      · 版本 {material.version} ·{" "}
-                      {material.text.length.toLocaleString()} UTF-16 单元
+                      · Version {material.version} ·{" "}
+                      {material.text.length.toLocaleString("en-US")} UTF-16 units
                     </p>
                     <SourceInfo value={material} />
                     {errors[material.id] && (
                       <p role="alert" className="error">
                         {errors[material.id]}
                         <button onClick={() => retrySave(material.id)}>
-                          重试保存
+                          Retry save
                         </button>
                       </p>
                     )}
@@ -608,11 +606,11 @@ export function Cauldron() {
                         w.materialId === material.id && w.status === "active",
                     ) && (
                       <p className="notice">
-                        这份材料正在持续关注中。移出熔炉不会停止关注。
+                        This material is being watched. Removing it from the cauldron will not stop watching.
                       </p>
                     )}
                     <pre className="cauldron-preview">
-                      {material.text || "空白材料，请打开编辑补充正文。"}
+                      {material.text || "Empty material. Open the editor to add text."}
                     </pre>
                     <div className="cauldron-toolbar">
                       <button
@@ -622,7 +620,7 @@ export function Cauldron() {
                           useInteraction.setState({ cauldron: false });
                         }}
                       >
-                        打开编辑
+                        Open editor
                       </button>
                       <button
                         disabled={busy || !ready}
@@ -630,11 +628,11 @@ export function Cauldron() {
                           void membership(material.id, !member(material.id))
                         }
                       >
-                        {member(material.id) ? "移出熔炉" : "加入熔炉"}
+                        {member(material.id) ? "Remove from cauldron" : "Add to cauldron"}
                       </button>
                     </div>
                     <p className="notice">
-                      移出只腾出容器名额。材料、结果、任务与持续关注均保留，可从“全部本地材料”重新加入。
+                      Removing a material frees a cauldron slot. Its text, results, tasks, and watches remain; add it again from “All local materials”.
                     </p>
                     {!batchSelecting && <div className="cauldron-actions">
                       {(
@@ -660,14 +658,14 @@ export function Cauldron() {
                       ))}
                     </div>}
                     {!batchSelecting && <p className="subtle">
-                      仅处理当前选中材料的全文。下一步仍需确认范围，不沿用文档选区。
+                      Only the selected material’s full text is processed. You must still confirm the range next; the document selection is not reused.
                       {material.text.length > 60000
-                        ? "全文超出处理上限，可打开编辑选择较小范围。"
+                        ? " Full text exceeds the limit; open the editor and choose a smaller range."
                         : ""}
                     </p>}
                   </>
                 ) : (
-                  <p className="empty">选择一份材料，查看来源与处理入口。</p>
+                  <p className="empty">Select a material to view its source and actions.</p>
                 )}
               </section>
             </div>

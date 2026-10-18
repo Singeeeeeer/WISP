@@ -35,37 +35,35 @@ export function WatchPanel({ source }: { source: MaterialSnapshot }) {
       finishWatchInvitation("completed");
       useInteraction.setState({ watchDraft: undefined });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "关注保存失败，请重试");
+      setError(e instanceof Error ? e.message : "Could not save watch. Please retry.");
     } finally {
       lock.current = false;
       setBusy(false);
     }
   }
   return (
-    <Dialog title="持续关注确认" close={close}>
-      <h2>让 Scout Bat 关注这份文本</h2>
+    <Dialog title="Confirm continuous watch" close={close}>
+      <h2>Let Scout Bat watch this text</h2>
       <p className="notice">
-        范围是这份文本的全文，不沿用 Check 的局部选区。确认后以版本{" "}
+        Watching covers the full text, regardless of the selection used for Check. After confirmation, version{" "}
         {source.materialVersion}{" "}
-        为起点，只检查之后已保存的新版本，不立即重复检查。
+        is the baseline; only later saved versions are checked, without an immediate repeat.
       </p>
       <section className="scope">
         <strong>{source.title}</strong>
         <SourceInfo value={source} />
         <p>
-          来源 ID：{source.materialId} · 全文 UTF-16 范围 [0, {source.end})
+          Source ID: {source.materialId} · Full text UTF-16 range [0, {source.end})
         </p>
         <pre>{source.text}</pre>
       </section>
       <p>
-        仅在发起关注的本页打开期间运行；其他 Wisp
-        标签页可查看或停止。关闭或刷新后会中断，不自动恢复。连续编辑会合并，单次检查完成后再处理较新的已保存版本。可在魔法书
-        Familiars 随时停止关注。
+        Watching runs only while the page that started it remains open; other Wisp tabs can view or stop it. Closing or refreshing interrupts it, and it does not resume automatically. Consecutive edits are combined; newer saved versions are processed after each check completes. Open Familiars in the Grimoire to stop watching at any time.
       </p>
       <p className="notice">{CHECK_LIMIT}</p>
       {current?.version !== source.materialVersion && (
         <p className="notice">
-          材料已变化，请更新范围后确认。
+          The material changed. Update the range and confirm.
           {current && (
             <button
               disabled={busy}
@@ -73,14 +71,13 @@ export function WatchPanel({ source }: { source: MaterialSnapshot }) {
                 useInteraction.setState({ watchDraft: snapshot(current) })
               }
             >
-              更新关注全文
+              Update watched full text
             </button>
           )}
         </p>
       )}
       <p>
-        关闭 Helpful proposals
-        只停止新提议；要撤销此授权，请使用“停止关注”。空白或超限版本会跳过并说明原因，检查失败不会对同版本无限重试。
+        Turning off Helpful proposals only stops new proposals. Use “Stop watching” to end this watch. Empty versions and versions over the limit are skipped with a reason; failed checks are not retried indefinitely for the same version.
       </p>
       {error && <p role="alert">{error}</p>}
       <div className="panel-actions">
@@ -90,10 +87,10 @@ export function WatchPanel({ source }: { source: MaterialSnapshot }) {
           }
           onClick={() => void confirm()}
         >
-          {busy ? "正在保存关注…" : "确认开始关注"}
+          {busy ? "Saving watch…" : "Confirm and start watching"}
         </button>
         <button disabled={busy} onClick={close}>
-          取消持续关注
+          Cancel continuous watch
         </button>
       </div>
     </Dialog>
@@ -112,43 +109,43 @@ export function WatchList() {
     try {
       await stopWatching(id);
     } catch (e) {
-      setFailure(e instanceof Error ? e.message : "停止失败，请重试");
+      setFailure(e instanceof Error ? e.message : "Could not stop watching. Please retry.");
     } finally {
       setBusy(false);
     }
   }
   return (
     <section>
-      <h3>持续关注</h3>
+      <h3>Continuous watch</h3>
       {(error || failure) && (
         <p role="alert">
           {failure || error}
-          <button onClick={() => void recoverWatches()}>刷新关注记录</button>
+          <button onClick={() => void recoverWatches()}>Refresh watch records</button>
         </p>
       )}
-      {!watches.length && <p>尚未授权持续关注。</p>}
+      {!watches.length && <p>Continuous watch has not been authorized.</p>}
       {watches.map((w) => (
         <section className="scope" key={w.id} data-testid="watch-card">
           <strong>Scout Bat · {w.title}</strong>
           <SourceInfo value={w.baseline} />
           <p>
             {w.status === "active"
-              ? "关注中"
+              ? "Watching"
               : w.status === "stopped"
-                ? "已停止"
-                : "已中断"}{" "}
-            · 全文 · 起点版本 {w.baseline.materialVersion} · 最近处理/跳过版本{" "}
+                ? "Stopped"
+                : "Interrupted"}{" "}
+            · Full text · baseline version {w.baseline.materialVersion} · latest processed/skipped version{" "}
             {w.lastVersion}
           </p>
           <p>{w.notice}</p>
           <small>
-            关注 ID：{w.id} · 明确确认于{" "}
-            {new Date(w.confirmedAt).toLocaleString()}
+            Watch ID: {w.id} · Confirmed on{" "}
+            {new Date(w.confirmedAt).toLocaleString("en-US")}
           </small>
           <div className="panel-actions">
             {w.status === "active" ? (
               <button disabled={busy} onClick={() => void stop(w.id)}>
-                停止关注
+                Stop watching
               </button>
             ) : (
               <button
@@ -170,7 +167,7 @@ export function WatchList() {
                     });
                 }}
               >
-                重新确认关注
+                Confirm watch again
               </button>
             )}
           </div>

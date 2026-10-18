@@ -24,6 +24,10 @@ import {
 } from "../domain/task";
 import { openDB, type IDBPDatabase, type DBSchema } from "idb";
 import { seeds, selectText, type Material } from "../domain/model";
+import {
+  ENGLISH_SEED_MIGRATION_KEY,
+  migrateLegacySeed,
+} from "../domain/seed-migration";
 import { type CheckRecord } from "../domain/check";
 import { validateProcessing, sameValue } from "../domain/processing";
 interface WispDB extends DBSchema {
@@ -100,7 +104,7 @@ export function createRepository(name = "wisp-module-one") {
           wasBlocked = true;
           reject(
             new Error(
-              "存储升级被其他 Wisp 标签页阻塞。请先保存或复制那些页面中的草稿，再关闭其他 Wisp 标签页并重新载入。",
+              "A storage upgrade is blocked by another Wisp tab. Save or copy drafts in the other tabs, close them, then reload this page.",
             ),
           );
         },
@@ -131,8 +135,8 @@ export function createRepository(name = "wisp-module-one") {
         material &&
         materialIdentity(existing) !== materialIdentity(material)
       )
-        throw new Error("材料标识已对应不同内容，未覆盖原材料。");
-      if (!existing && !material) throw new Error("材料不存在。");
+        throw new Error("This material ID is already associated with different content. The original material was not overwritten.");
+      if (!existing && !material) throw new Error("Material not found.");
       if (!existing && material) {
         const origin = material.origin;
         if (
@@ -149,7 +153,7 @@ export function createRepository(name = "wisp-module-one") {
               material.source !== "selection_copy") ||
             origin?.kind !== material.source
           )
-            throw new Error("副本来源或范围无效，请重新选择原文后重试。");
+            throw new Error("The copy source or range is invalid. Select the source text again and retry.");
           const original = await materials.get(copy.materialId);
           if (
             !original ||
@@ -159,19 +163,19 @@ export function createRepository(name = "wisp-module-one") {
             original.text.slice(copy.start, copy.end) !== material.text
           )
             throw new Error(
-              "原文已变化或移除。请取消新增，备份未保存的正文后重新载入页面，再创建副本。",
+              "The source text changed or was removed. Cancel the addition, back up any unsaved text, reload the page, then create the copy again.",
             );
           selectText(original, copy.start, copy.end);
           if (
             material.source === "document_copy" &&
             (copy.start !== 0 || copy.end !== original.text.length)
           )
-            throw new Error("全文副本范围无效，请重新选择原文后重试。");
+            throw new Error("The full-text copy range is invalid. Select the source text again and retry.");
         }
       }
       const entry = await entries.get(materialId);
       if (!entry && (await entries.count()) >= 12)
-        throw new Error("灵感熔炉最多容纳 12 份材料，请先移出一份。");
+        throw new Error("The Inspiration Cauldron can hold up to 12 materials. Remove one first.");
       if (!existing && material) await materials.add(material);
       if (!entry)
         await entries.add({ materialId, addedAt: new Date().toISOString() });
@@ -205,7 +209,7 @@ export function createRepository(name = "wisp-module-one") {
     ): Promise<CanvasNote> {
       const frozen = structuredClone(note);
       if (!validateCanvasNote(frozen))
-        throw new Error("便笺内容或位置无效，未保存。");
+        throw new Error("The note content or position is invalid. It was not saved.");
       const tx = (await getDb()).transaction("canvasNotes", "readwrite");
       try {
         const previous = await tx.store.get(frozen.id);
@@ -215,7 +219,7 @@ export function createRepository(name = "wisp-module-one") {
             : !previous || previous.revision !== expectedRevision
         )
           throw new Error(
-            "保存冲突：其他标签页已修改或移除此便笺。请复制草稿后重新载入白板。",
+            "Save conflict: another tab changed or removed this note. Copy your draft, then reload the canvas.",
           );
         const changed =
           previous &&
@@ -225,7 +229,7 @@ export function createRepository(name = "wisp-module-one") {
           frozen.version !==
             (previous ? previous.version + (changed ? 1 : 0) : 1)
         )
-          throw new Error("便笺版本不匹配，未保存。请重新载入白板后重试。");
+          throw new Error("Note version mismatch. It was not saved. Reload the canvas and try again.");
         await tx.store.put(frozen);
         await tx.done;
         return frozen;
@@ -253,7 +257,7 @@ export function createRepository(name = "wisp-module-one") {
         const previous = await notes.get(id);
         if (!previous || previous.revision !== expectedRevision)
           throw new Error(
-            "删除冲突：其他标签页已修改或移除此便笺。请重新载入白板后确认。",
+            "Delete conflict: another tab changed or removed this note. Reload the canvas and confirm again.",
           );
         for (const record of await connections.getAll())
           if (record.notes.some((note) => note.id === id))
@@ -281,7 +285,7 @@ export function createRepository(name = "wisp-module-one") {
         typeof savedAt !== "string" ||
         !Number.isFinite(Date.parse(savedAt))
       )
-        throw new Error("只有已确认的有效候选关系才能保留。");
+        throw new Error("Only a confirmed, valid connection candidate can be kept.");
       const tx = (await getDb()).transaction(
         ["canvasNotes", "canvasConnections"],
         "readwrite",
@@ -298,12 +302,12 @@ export function createRepository(name = "wisp-module-one") {
             current.filter((note): note is CanvasNote => !!note),
           )
         )
-          throw new Error("便笺已变化或移除，此候选已失效。请重新寻找联系。");
+          throw new Error("A note changed or was removed, so this candidate is no longer valid. Find the connection again.");
         const existing = await connections.get(result.id);
         if (existing) {
           const { savedAt: previousSavedAt, ...previous } = existing;
           if (!sameValue(previous, result))
-            throw new Error("提交标识已用于其他关系，未覆盖已有关系。");
+            throw new Error("This submission ID has already been used for another connection. The existing connection was not overwritten.");
           await tx.done;
           return existing;
         }
@@ -367,8 +371,8 @@ export function createRepository(name = "wisp-module-one") {
         await tx.done;
         throw new Error(
           active
-            ? "这份文本已经在关注中"
-            : "材料已变化或尚未保存，请更新范围后确认",
+            ? "This text is already being watched."
+            : "The material changed or has not been saved. Update the scope and confirm again.",
         );
       }
       await tx.objectStore("watches").add(w);
@@ -405,8 +409,8 @@ export function createRepository(name = "wisp-module-one") {
           updatedAt: new Date().toISOString(),
           notice:
             status === "stopped"
-              ? "已停止，不再创建检查"
-              : "发起页面已结束，请重新确认后关注",
+              ? "Stopped. No further checks will be created."
+              : "The initiating page has closed. Confirm again to start watching.",
         });
         for (const task of await tx.objectStore("tasks").getAll()) {
           if (
@@ -457,7 +461,7 @@ export function createRepository(name = "wisp-module-one") {
       await tx.objectStore("watches").put({
         ...w,
         lastVersion: task.snapshot.materialVersion,
-        notice: "已委托版本 " + task.snapshot.materialVersion + "，请查看回信",
+        notice: "Delegated version " + task.snapshot.materialVersion + "; check the reply.",
         updatedAt: new Date().toISOString(),
       });
       await tx.done;
@@ -466,7 +470,7 @@ export function createRepository(name = "wisp-module-one") {
     async enqueueTask(task: Task): Promise<Task> {
       task = structuredClone(task);
       if (isBatchTask(task) ? !validBatchTask(task) : task.execution === "gemini" && !validGeminiTask(task))
-        throw new Error("Gemini 仅允许角色与参数匹配的一次性任务");
+        throw new Error("Gemini supports only one-time tasks with matching roles and parameters.");
       const tx = (await getDb()).transaction("tasks", "readwrite");
       const existing = await tx.store.get(task.id);
       if (
@@ -484,7 +488,7 @@ export function createRepository(name = "wisp-module-one") {
             isBatchTask(task) ? task.snapshots : task.snapshot))
       ) {
         await tx.done;
-        throw new Error("提交标识已对应另一份委托，请关闭后重新确认材料。");
+        throw new Error("This submission ID is already associated with another task. Close and confirm the materials again.");
       }
       if (!existing) await tx.store.add(task);
       await tx.done;
@@ -500,7 +504,7 @@ export function createRepository(name = "wisp-module-one") {
       const previous = await tx.store.get(id);
       if (!previous) {
         await tx.done;
-        throw new Error("任务不存在");
+        throw new Error("Task not found.");
       }
       let next: Task;
       try {
@@ -520,7 +524,7 @@ export function createRepository(name = "wisp-module-one") {
           ? validateJoint(record)
           : validateProcessing(record))
       )
-        throw new Error("结果引用校验失败，未保存。");
+        throw new Error("Result citation validation failed. The result was not saved.");
       const tx = (await getDb()).transaction("checks", "readwrite");
       const existing = await tx.store.get(record.id);
       if (
@@ -545,7 +549,7 @@ export function createRepository(name = "wisp-module-one") {
                 (existing.excerptLimit ?? 8) !== (record.excerptLimit ?? 8))))
       ) {
         await tx.done;
-        throw new Error("提交标识已用于其他操作，请重新确认材料。");
+        throw new Error("This submission ID has already been used for another operation. Confirm the materials again.");
       }
       if (!existing) await tx.store.add(record);
       await tx.done;
@@ -570,14 +574,28 @@ export function createRepository(name = "wisp-module-one") {
         ["materials", "preferences"],
         "readwrite",
       );
-      if (!(await tx.objectStore("preferences").get("initialized"))) {
+      const materials = tx.objectStore("materials");
+      const preferences = tx.objectStore("preferences");
+      if (!(await preferences.get("initialized"))) {
         for (const m of seeds()) {
-          if (!(await tx.objectStore("materials").get(m.id)))
-            await tx.objectStore("materials").put(m);
+          if (!(await materials.get(m.id))) await materials.put(m);
         }
-        await tx.objectStore("preferences").put(true, "initialized");
+        await preferences.put(true, "initialized");
       }
-      const result = await tx.objectStore("materials").getAll();
+      if (!(await preferences.get(ENGLISH_SEED_MIGRATION_KEY))) {
+        const currentSeeds = seeds();
+        const updatedAt = new Date().toISOString();
+        for (const englishSeed of currentSeeds) {
+          const migrated = migrateLegacySeed(
+            await materials.get(englishSeed.id),
+            englishSeed,
+            updatedAt,
+          );
+          if (migrated) await materials.put(migrated);
+        }
+        await preferences.put(true, ENGLISH_SEED_MIGRATION_KEY);
+      }
+      const result = await materials.getAll();
       await tx.done;
       return result;
     },
@@ -588,7 +606,7 @@ export function createRepository(name = "wisp-module-one") {
       if (!previous || previous.version !== expectedVersion) {
         await tx.done;
         throw new Error(
-          "保存冲突：其他标签页已修改此文档。请复制当前内容后重新载入。",
+          "Save conflict: another tab changed this document. Copy the current content, then reload the page.",
         );
       }
       await tx.store.put(material);

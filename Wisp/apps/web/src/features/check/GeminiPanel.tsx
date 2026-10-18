@@ -53,7 +53,7 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
       if (
         submission.current?.hasResult() &&
         !record &&
-        !window.confirm("结果尚未保存，关闭会放弃本页待保存结果。仍要关闭吗？")
+        !window.confirm("The result is not saved yet. Closing will discard the pending result on this page. Close anyway?")
       )
         return;
       if (!record) captureOutcome()("cancel");
@@ -106,7 +106,7 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
             ? "cancel"
             : "error",
         );
-        setError(e instanceof Error ? e.message : "检查失败");
+        setError(e instanceof Error ? e.message : "Check failed");
       }
       if (!submission.current?.hasResult()) submission.current = undefined;
     } finally {
@@ -120,9 +120,9 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
       title={
         record
           ? operation === "check"
-            ? "Check 检查结果"
-            : labels[operation] + " 处理结果"
-          : "材料确认"
+            ? "Check result"
+            : labels[operation] + " result"
+          : "Material confirmation"
       }
       close={close}
     >
@@ -135,7 +135,7 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
       ) : (
         <>
           <div className="eyebrow">{labels[operation]} · Gemini</div>
-          <h2>确认本次处理材料</h2>
+          <h2>Confirm material for this run</h2>
           <ExecutionChoice
             value="gemini"
             disabled={frozen}
@@ -158,7 +158,7 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
             />
           )}
           <label className="field-label" htmlFor="gemini-instruction">
-            补充要求
+            Additional instruction
           </label>
           <textarea
             id="gemini-instruction"
@@ -176,32 +176,31 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
             <strong>{draft.snapshot.title}</strong>
             <SourceInfo value={draft.snapshot} />
             <p>
-              版本 {draft.snapshot.materialVersion} · UTF-16 范围 [
+              Version {draft.snapshot.materialVersion} · UTF-16 range [
               {draft.snapshot.start}, {draft.snapshot.end})
             </p>
             <pre data-testid="snapshot-text">{draft.snapshot.text}</pre>
           </div>
           {current?.version !== draft.snapshot.materialVersion && (
             <p className="notice">
-              原文已经变化，仍使用上述副本。
+              The source has changed; this run will still use the copy shown above.
               <button disabled={frozen || !current} onClick={reset}>
-                更新为当前全文
+                Update to current full text
               </button>
             </p>
           )}
-          {saveStatus !== "已保存" && (
+          {saveStatus !== "saved" && (
             <p className="notice">
-              原文尚未成功保存；本次仅处理确认副本，结果保存不代表原文已落盘。
+              The source has not been saved successfully. This run processes only the confirmed copy; saving the result does not save the source.
             </p>
           )}
           <p>
-            点击运行后，本次文本与补充要求经本地服务端发送至
-            Gemini，可能产生费用。不发送其他材料，不自动重试。网络失败后手动重试可能再次计费。
+            After clicking Run, this text and instruction are sent through the local service to
+            Gemini. Charges may apply. No other material is sent, and there is no automatic retry. A manual retry after a network failure may incur another charge.
           </p>
           {submission.current?.hasResult() && (
             <p className="notice">
-              已收到模型结果但尚未保存；重试仅保存，不再次调用
-              Gemini。刷新页面会丢失本页待保存结果。
+              The model result was received but has not been saved. Retrying only saves the result and does not call Gemini again. Refreshing the page loses this unsaved result.
             </p>
           )}
           {error && (
@@ -216,22 +215,22 @@ export function GeminiPanel({ draft }: { draft: ActionDraft }) {
               onClick={(e) => void submit(e.currentTarget)}
             >
               {busy
-                ? "正在处理并保存…"
+                ? "Processing and saving…"
                 : submission.current?.hasResult()
-                  ? "重试保存结果"
+                  ? "Retry saving result"
                   : operation === "check"
-                    ? "运行 Gemini 检查"
+                    ? "Run Gemini Check"
                     : operation === "understand"
-                      ? "运行 Gemini 理解"
-                      : "运行 Gemini 创作"}
+                      ? "Run Gemini Understand"
+                      : "Run Gemini Create"}
             </button>
             {busy && (
               <button onClick={() => controller.current?.abort()}>
-                停止等待
+                Stop waiting
               </button>
             )}
-            <button aria-label="关闭材料面板" disabled={busy} onClick={close}>
-              继续自己工作
+            <button aria-label="Close material panel" disabled={busy} onClick={close}>
+              Continue working
             </button>
           </div>
         </>

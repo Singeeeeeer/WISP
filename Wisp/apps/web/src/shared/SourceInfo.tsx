@@ -11,28 +11,27 @@ export function SourceInfo({
       <p>{sourceDescription(value)}</p>
       {o && (
         <p>
-          加入于 {new Date(o.addedAt).toLocaleString()}
+          Added {new Date(o.addedAt).toLocaleString("en-US")}
           {(o.kind === "pasted_text" || o.copy?.source === "pasted_text") &&
           o.note
-            ? " · 来源备注由用户填写，未核实出处"
+            ? " · Source note supplied by the user; origin not verified"
             : ""}
         </p>
       )}
       {o?.copy && (
         <p>
-          冻结自原文范围 [{o.copy.start}, {o.copy.end})
-          （UTF-16 单元）。保存后不随原文修改而更新。
+          Frozen from source range [{o.copy.start}, {o.copy.end}) (UTF-16 units). This copy does not update when the source changes.
         </p>
       )}
       {(o?.kind.endsWith("_file") || o?.fileName) && (
         <p>
-          {o.encoding ? `${o.encoding} · ` : "文字提取副本 · "}
-          {o.byteSize?.toLocaleString()} bytes · 原文件修改于{" "}
+          {o.encoding ? `${o.encoding} · ` : "Extracted-text copy · "}
+          {o.byteSize?.toLocaleString("en-US")} bytes · Original file modified{" "}
           {o.lastModified === undefined
-            ? "未记录"
-            : new Date(o.lastModified).toLocaleString()}
-          。这是导入副本，不监控或写回磁盘文件。
-          {!o.encoding && "图片、版式和交互内容不包含在文字副本中。"}
+            ? "Not recorded"
+            : new Date(o.lastModified).toLocaleString("en-US")}
+          . This is an imported copy; the disk file is not monitored or written back.
+          {!o.encoding && " Images, layout, and interactive content are not included in the text copy."}
         </p>
       )}
     </div>

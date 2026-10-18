@@ -19,7 +19,7 @@ const channel =
 const delay = () => new Promise<void>((resolve) => setTimeout(resolve, 500));
 function report(e: unknown) {
   useWatches.setState({
-    error: e instanceof Error ? e.message : "关注记录不可用，请重试",
+    error: e instanceof Error ? e.message : "Watch records are unavailable. Please try again.",
   });
 }
 let generation = 0;
@@ -39,7 +39,7 @@ async function changed() {
 export function startWatching(s: MaterialSnapshot): Promise<void> {
   if (!navigator.locks || typeof Worker === "undefined")
     return Promise.reject(
-      new Error("持续关注需要 Web Locks 和 Worker，请使用支持它们的浏览器。"),
+      new Error("Continuous watching requires Web Locks and Workers. Use a browser that supports them."),
     );
   let watch: Watch;
   try {
@@ -54,7 +54,7 @@ export function startWatching(s: MaterialSnapshot): Promise<void> {
         { ifAvailable: true },
         async (lock) => {
           if (!lock)
-            throw new Error("这份文本已由另一个页面关注，请先停止已有关注。");
+            throw new Error("This text is already being watched in another tab. Stop the existing watch first.");
           await repository.startWatch(watch);
           let alive = true;
           owners.set(watch.id, () => {
@@ -74,7 +74,7 @@ export function startWatching(s: MaterialSnapshot): Promise<void> {
               );
               if (currentWatch?.status !== "active") break;
               const material = await repository.readMaterial(watch.materialId);
-              if (!material) throw new Error("关注材料已不可用");
+              if (!material) throw new Error("Watched material is unavailable.");
               if (material.version <= currentWatch.lastVersion) continue;
               if (pendingVersion !== material.version) {
                 pendingVersion = material.version;
@@ -86,7 +86,7 @@ export function startWatching(s: MaterialSnapshot): Promise<void> {
                 await repository.noteWatch(
                   watch.id,
                   material.version,
-                  `版本 ${material.version} 材料为空或超出 60,000 字符范围，已跳过；等待下一有效版本`,
+                  `Version ${material.version} is empty or exceeds the 60,000-character limit, so it was skipped. Waiting for the next valid version.`,
                 );
               } else {
                 await submitWatchTask(watchTask(currentWatch, material));
@@ -118,7 +118,7 @@ export async function stopWatching(id: string) {
 let recovery: Promise<void> | undefined;
 export function recoverWatches() {
   return (recovery ??= (async () => {
-    if (!navigator.locks) throw new Error("当前浏览器无法管理持续关注");
+    if (!navigator.locks) throw new Error("This browser cannot manage continuous watching.");
     for (const w of await repository.listWatches()) {
       if (w.status !== "active") continue;
       await navigator.locks.request(

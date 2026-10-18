@@ -20,7 +20,7 @@ export async function requestBatchGemini(
       ? !["brief", "standard"].includes(options.summaryStyle)
       : options.summaryStyle !== undefined)
   )
-    throw Error("操作与摘要参数不匹配。");
+    throw Error("Operation does not match the summary settings.");
   if (
     !text(id, 200) ||
     !validBatchSnapshots(snapshots) ||
@@ -28,7 +28,7 @@ export async function requestBatchGemini(
     instruction.length > 4000
   )
     throw Error(
-      "需要 2～12 份独立非空材料，总量最多 60,000 个 UTF-16 单元；补充要求最多 4,000 个。",
+      "Choose 2–12 distinct, non-empty materials totaling no more than 60,000 UTF-16 units. Additional instructions may contain up to 4,000 units.",
     );
   const frozen = structuredClone(snapshots),
     frozenOptions = structuredClone(options);
@@ -52,8 +52,8 @@ export async function requestBatchGemini(
   } catch {
     throw Error(
       signal?.aborted
-        ? "已停止等待，供应商可能仍在处理并计费。"
-        : "请求中断或超时；供应商可能已处理，手动重试可能再次计费。",
+        ? "Waiting stopped. The provider may still be processing the request and may charge for it."
+        : "The request was interrupted or timed out. The provider may have processed it; a manual retry may incur another charge.",
     );
   }
   let data: unknown;
@@ -62,16 +62,16 @@ export async function requestBatchGemini(
     if (raw.length > 2 * 1024 * 1024) throw Error();
     data = JSON.parse(raw);
   } catch {
-    throw Error("服务返回无效响应，未保存结果。");
+    throw Error("The service returned an invalid response. The result was not saved.");
   }
   if (!response.ok) {
     const code = (data as { error?: { code?: string } })?.error?.code;
     throw Error(
       (code && geminiErrors[code]) ||
-        "Gemini 请求失败，请检查服务端状态后手动重试。",
+        "Gemini request failed. Check the local service status, then retry manually.",
     );
   }
-  if (signal?.aborted) throw Error("已停止等待，未接受迟到结果。");
+  if (signal?.aborted) throw Error("Waiting stopped. A late result was not accepted.");
   if (
     !validateBatch(data) ||
     data.id !== id ||
@@ -81,7 +81,7 @@ export async function requestBatchGemini(
     !sameValue(data.snapshots, frozen) ||
     data.instruction !== instruction
   )
-    throw Error("Gemini 多材料结果校验或材料绑定失败，未保存。");
+    throw Error("Gemini multi-material result validation or source binding failed. The result was not saved.");
   return data;
 }
 export function createBatchSubmission(
@@ -99,7 +99,7 @@ export function createBatchSubmission(
     hasResult: () => !!result,
     run(signal?: AbortSignal): Promise<BatchRecord> {
       return (pending ??= (async () => {
-        if (signal?.aborted) throw Error("已停止等待。");
+        if (signal?.aborted) throw Error("Waiting stopped.");
         result ??= await requestBatchGemini(
           id,
           frozen,
@@ -107,7 +107,7 @@ export function createBatchSubmission(
           frozenOptions,
           signal,
         );
-        if (signal?.aborted) throw Error("已停止等待，未保存结果。");
+        if (signal?.aborted) throw Error("Waiting stopped. The result was not saved.");
         return save(result);
       })().finally(() => {
         pending = undefined;

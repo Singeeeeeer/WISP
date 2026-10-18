@@ -12,12 +12,12 @@ import { sourceDescription } from "../../domain/cauldron";
 import { labels } from "../../domain/local-text";
 
 const usageLabels: Record<string, string> = {
-  total_input_tokens: "输入",
-  total_output_tokens: "输出",
-  total_thought_tokens: "思考",
-  total_cached_tokens: "缓存",
-  total_tool_use_tokens: "工具",
-  total_tokens: "总计",
+  total_input_tokens: "Input",
+  total_output_tokens: "Output",
+  total_thought_tokens: "Thoughts",
+  total_cached_tokens: "Cached",
+  total_tool_use_tokens: "Tools",
+  total_tokens: "Total",
 };
 export function GeminiTextResult({
   record: r,
@@ -43,18 +43,18 @@ export function GeminiTextResult({
   const [copied, setCopied] = useState("");
   const meta = r.metadata;
   const evidenceText = (e: Evidence) =>
-    "原文依据 [" +
+    "Source evidence [" +
     (r.snapshot.start + e.start) +
-    "," +
+    ", " +
     (r.snapshot.start + e.end) +
-    ")：" +
+    "): " +
     e.quote;
   const evidence = (items: Evidence[]) =>
     items.map((e, i) => (
       <blockquote key={i}>
         <pre>{e.quote}</pre>
         <small>
-          原文版本 {r.snapshot.materialVersion} · UTF-16 区间 [
+          Source text version {r.snapshot.materialVersion} · UTF-16 range [
           {r.snapshot.start + e.start}, {r.snapshot.start + e.end})
         </small>
       </blockquote>
@@ -65,11 +65,11 @@ export function GeminiTextResult({
       const body =
         r.operation === "understand"
           ? [
-              "摘要长度：" + (r.summaryStyle === "brief" ? "简短" : "标准"),
-              "材料概述",
-              r.summary || "材料不足，尚未生成摘要。",
+              "Summary length: " + (r.summaryStyle === "brief" ? "Brief" : "Standard"),
+              "Material overview",
+              r.summary || "Not enough material to generate a summary.",
               ...r.summaryEvidence.map(evidenceText),
-              "要点",
+              "Key points",
               ...r.keyPoints.flatMap((p) => [
                 p.title,
                 p.explanation,
@@ -77,17 +77,17 @@ export function GeminiTextResult({
               ]),
             ]
           : [
-              "AI草稿（待人工确认）",
-              r.draft || "材料不足，尚未生成草稿。",
-              "备选方向（建议）",
+              "AI draft (requires human review)",
+              r.draft || "Not enough material to generate a draft.",
+              "Alternative directions (suggestions)",
               ...r.alternatives.flatMap((a) => [a.title, a.description]),
-              "采用的原文依据",
+              "Source evidence used",
               ...r.sourceFacts.flatMap((f) => [
                 f.statement,
                 ...f.evidence.map(evidenceText),
               ]),
-              "创作假设",
-              ...(r.assumptions.length ? r.assumptions : ["无"]),
+              "Creative assumptions",
+              ...(r.assumptions.length ? r.assumptions : ["None"]),
             ];
       const text =
         draftOnly && r.operation === "create"
@@ -96,55 +96,55 @@ export function GeminiTextResult({
               labels[r.operation] + " · Gemini",
               geminiTextHeading(r),
               GEMINI_TEXT_LIMIT,
-              stale ? "旧版本结果，不代表当前材料" : "",
-              r.snapshot.title + " · 版本 " + r.snapshot.materialVersion,
-              "生成时间：" + r.createdAt,
+              stale ? "Old-version result; not the current material" : "",
+              r.snapshot.title + " · Version " + r.snapshot.materialVersion,
+              "Created: " + r.createdAt,
               sourceDescription(r.snapshot),
-              "补充要求：" + r.instruction,
+              "Additional instruction: " + r.instruction,
               ...body,
-              "待补充信息",
-              ...(r.missingInformation.length ? r.missingInformation : ["无"]),
-              "模型：" + meta.modelId,
-              "提示词：" + meta.promptVersion,
-              "校验：" + meta.validatorVersion,
-              "耗时(ms)：" + meta.durationMs,
-              "供应商返回用量：" +
-                (meta.usage ? JSON.stringify(meta.usage) : "未提供，不作估算"),
+              "Information to add",
+              ...(r.missingInformation.length ? r.missingInformation : ["None"]),
+              "Model: " + meta.modelId,
+              "Prompt: " + meta.promptVersion,
+              "Validator: " + meta.validatorVersion,
+              "Duration (ms): " + meta.durationMs,
+              "Provider-reported usage: " +
+                (meta.usage ? JSON.stringify(meta.usage) : "Not provided; no estimate"),
             ].join("\n");
       await navigator.clipboard.writeText(text);
       if (finish("success"))
-        setCopied(draftOnly ? "已仅复制草稿正文" : "已复制结果");
+        setCopied(draftOnly ? "Draft text copied" : "Result copied");
     } catch {
-      if (finish("error")) setCopied("复制失败，请手动选择结果文字复制。");
+      if (finish("error")) setCopied("Copy failed. Select and copy the result text manually.");
     }
   }
   return (
     <>
-      <div className="eyebrow">{labels[r.operation]} · Gemini · 已保存</div>
+      <div className="eyebrow">{labels[r.operation]} · Gemini · Saved</div>
       <h2>{geminiTextHeading(r)}</h2>
       <p>
-        {r.snapshot.title} · 版本 {r.snapshot.materialVersion} ·{" "}
-        {new Date(r.createdAt).toLocaleString()}
+        {r.snapshot.title} · Version {r.snapshot.materialVersion} ·{" "}
+        {new Date(r.createdAt).toLocaleString("en-US")}
       </p>
       <SourceInfo value={r.snapshot} />
       {stale && (
         <p role="status" className="notice">
-          原文已变化或不可用：这是旧版本的结果，不代表当前材料。
+          The source has changed or is unavailable. This result uses an older version and does not represent the current material.
         </p>
       )}
       <p className="notice">{GEMINI_TEXT_LIMIT}</p>
-      {r.instruction && <p>补充要求：{r.instruction}</p>}
+      {r.instruction && <p>Additional instruction: {r.instruction}</p>}
       {r.operation === "understand" ? (
         <>
           <p>
-            本次摘要长度：
+            Summary length for this run:{" "}
             {r.summaryStyle === "brief"
-              ? "简短 · 最多 3 个要点"
-              : "标准 · 最多 8 个要点"}
+              ? "Brief · up to 3 key points"
+              : "Standard · up to 8 key points"}
           </p>
           <section className="scope">
-            <h3>材料概述</h3>
-            <pre>{r.summary || "材料不足，尚未生成摘要。"}</pre>
+            <h3>Material overview</h3>
+            <pre>{r.summary || "Not enough material to generate a summary."}</pre>
             {evidence(r.summaryEvidence)}
           </section>
           {r.keyPoints.map((p, i) => (
@@ -158,13 +158,13 @@ export function GeminiTextResult({
       ) : (
         <>
           <section className="scope">
-            <h3>AI草稿（待人工确认）</h3>
+            <h3>AI draft (requires human review)</h3>
             <pre data-testid="gemini-draft">
-              {r.draft || "材料不足，尚未生成草稿。"}
+              {r.draft || "Not enough material to generate a draft."}
             </pre>
           </section>
           <section className="scope">
-            <h3>备选方向（建议）</h3>
+            <h3>Alternative directions (suggestions)</h3>
             {r.alternatives.length ? (
               r.alternatives.map((a, i) => (
                 <div key={i}>
@@ -173,11 +173,11 @@ export function GeminiTextResult({
                 </div>
               ))
             ) : (
-              <p>没有备选方向。</p>
+              <p>No alternative directions.</p>
             )}
           </section>
           <section className="scope">
-            <h3>采用的原文依据</h3>
+            <h3>Source evidence used</h3>
             {r.sourceFacts.length ? (
               r.sourceFacts.map((f, i) => (
                 <div key={i}>
@@ -186,11 +186,11 @@ export function GeminiTextResult({
                 </div>
               ))
             ) : (
-              <p>没有采用可引用的原文事实。</p>
+              <p>No citable source facts were used.</p>
             )}
           </section>
           <section className="scope">
-            <h3>创作假设</h3>
+            <h3>Creative assumptions</h3>
             {r.assumptions.length ? (
               <ul>
                 {r.assumptions.map((a, i) => (
@@ -198,13 +198,13 @@ export function GeminiTextResult({
                 ))}
               </ul>
             ) : (
-              <p>未列出创作假设；仍需人工核对。</p>
+              <p>No creative assumptions listed; human review is still required.</p>
             )}
           </section>
         </>
       )}
       <section className="scope">
-        <h3>待补充信息</h3>
+        <h3>Information to add</h3>
         {r.missingInformation.length ? (
           <ul>
             {r.missingInformation.map((v, i) => (
@@ -212,49 +212,49 @@ export function GeminiTextResult({
             ))}
           </ul>
         ) : (
-          <p>未列出，不代表材料完整。</p>
+          <p>None listed; this does not mean the material is complete.</p>
         )}
       </section>
       <details className="scope">
-        <summary>执行信息</summary>
+        <summary>Execution details</summary>
         <p>
-          模型：{meta.modelId} · 耗时 {Math.round(meta.durationMs)} ms
+          Model: {meta.modelId} · Duration: {Math.round(meta.durationMs)} ms
         </p>
         <p>
-          提示词 {meta.promptVersion} · 校验 {meta.validatorVersion}
+          Prompt {meta.promptVersion} · Validator {meta.validatorVersion}
         </p>
-        <p>供应商返回用量（tokens）：</p>
+        <p>Provider-reported usage (tokens):</p>
         {meta.usage ? (
           Object.entries(meta.usage).map(([key, value]) => (
             <p key={key}>
-              {usageLabels[key] ?? key}：{value}
+              {usageLabels[key] ?? key}: {value}
             </p>
           ))
         ) : (
-          <p>未提供，不作估算</p>
+          <p>Not provided; no estimate</p>
         )}
       </details>
       <details className="scope">
-        <summary>查看本次完整材料副本</summary>
+        <summary>View the complete material copy for this run</summary>
         <pre data-testid="check-source">{r.snapshot.text}</pre>
       </details>
       <p role="status">{copied}</p>
       <div className="panel-actions">
-        <button onClick={() => void copy()}>复制结果</button>
+        <button onClick={() => void copy()}>Copy result</button>
         {r.operation === "create" && (
           <button
             disabled={!r.draft}
-            title="只复制草稿正文，不含依据、假设和执行信息"
+            title="Copy draft text only; excludes evidence, assumptions, and execution details"
             onClick={() => void copy(true)}
           >
-            仅复制草稿
+            Copy draft only
           </button>
         )}
-        {summon && <button onClick={summon}>继续召唤使魔</button>}
+        {summon && <button onClick={summon}>Summon familiar again</button>}
         <button disabled={!current} onClick={again}>
-          {againLabel ?? "重新处理当前全文"}
+          {againLabel ?? "Process current full text again"}
         </button>
-        <button onClick={close}>关闭处理结果</button>
+        <button onClick={close}>Close result</button>
       </div>
     </>
   );

@@ -16,11 +16,11 @@ export function openBatchDraft(batchDraft: BatchDraft) {
 
 export function prepareBatch(ids: string[], entry: BatchDraft["entry"]) {
   if (ids.length < 2 || ids.length > 12 || new Set(ids).size !== ids.length)
-    throw new Error("请选择 2～12 份不同材料。");
+    throw new Error("Select 2–12 different materials.");
   const materials = useDocuments.getState().materials;
   const snapshots = ids.map((id) => {
     const material = materials.find((m) => m.id === id);
-    if (!material) throw new Error("材料不可用，请刷新后重新选择。");
+    if (!material) throw new Error("Material unavailable. Refresh and select it again.");
     return snapshot(material);
   });
   // Oversized full texts may enter confirmation so the user can choose smaller ranges.

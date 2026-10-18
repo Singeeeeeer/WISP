@@ -5,7 +5,7 @@ describe("material boundaries", () => {
     const m = { ...seeds()[0], text: "A😀BC" };
     const s = selectText(m, 1, 3);
     expect(s.selectedText).toBe("😀");
-    expect(() => snapshot({ ...m, version: m.version + 1 }, s)).toThrow("选区");
+    expect(() => snapshot({ ...m, version: m.version + 1 }, s)).toThrow("selection");
   });
   it("rejects partial surrogate characters and empty selections", () => {
     const m = { ...seeds()[0], text: "A😀BC" };

@@ -83,7 +83,7 @@ it.each([
   { ...result(), warnings: Array(10).fill("提".repeat(200)) },
 ])("rejects a malformed or unbound parser result %#", async (value) => {
   respond(value);
-  await expect(readFileText(file(), signal())).rejects.toThrow("无效响应");
+  await expect(readFileText(file(), signal())).rejects.toThrow("invalid response");
 });
 
 it("accepts the UTF-16 boundary and maximum warning list", async () => {
@@ -97,18 +97,18 @@ it("accepts the UTF-16 boundary and maximum warning list", async () => {
 });
 
 it.each([
-  ["IMPORT_FORMAT_UNSUPPORTED", "仅支持"],
+  ["IMPORT_FORMAT_UNSUPPORTED", "Only TXT, DOCX, PPTX, XLSX, and PDF"],
   ["IMPORT_FILE_TOO_LARGE", "20 MB"],
   ["IMPORT_TEXT_TOO_LARGE", "60,000"],
-  ["IMPORT_FILE_INVALID", "损坏"],
-  ["IMPORT_ENCRYPTED", "加密"],
-  ["IMPORT_NO_TEXT", "不含 OCR"],
-  ["IMPORT_LIMIT_EXCEEDED", "拆分"],
-  ["IMPORT_TIMEOUT", "超时"],
-  ["IMPORT_BUSY", "正忙"],
-  ["IMPORT_FAILED", "读取失败"],
-  ["unknown", "读取失败"],
-  ["constructor", "读取失败"],
+  ["IMPORT_FILE_INVALID", "corrupted"],
+  ["IMPORT_ENCRYPTED", "Encrypted"],
+  ["IMPORT_NO_TEXT", "require OCR first"],
+  ["IMPORT_LIMIT_EXCEEDED", "Split"],
+  ["IMPORT_TIMEOUT", "timed out"],
+  ["IMPORT_BUSY", "already being read"],
+  ["IMPORT_FAILED", "Failed to read the file"],
+  ["unknown", "Failed to read the file"],
+  ["constructor", "Failed to read the file"],
 ])(
   "maps %s to a fixed message without exposing server details",
   async (code, message) => {
@@ -122,12 +122,12 @@ it("rejects HTML and oversized responses without exposing raw data", async () =>
     "fetch",
     vi.fn().mockResolvedValue(new Response("<html>PRIVATE</html>")),
   );
-  await expect(readFileText(file(), signal())).rejects.toThrow("无效响应");
+  await expect(readFileText(file(), signal())).rejects.toThrow("invalid response");
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue(new Response(" ".repeat(512_001))),
   );
-  await expect(readFileText(file(), signal())).rejects.toThrow("无效响应");
+  await expect(readFileText(file(), signal())).rejects.toThrow("invalid response");
 });
 
 it("does not send an already cancelled read and rejects a late response", async () => {
@@ -162,6 +162,6 @@ it("reports network failures without exposing transport internals", async () => 
     vi.fn().mockRejectedValue(new Error("PRIVATE_NETWORK_DETAIL")),
   );
   await expect(readFileText(file(), signal())).rejects.toThrow(
-    "本机文件读取中断或超时",
+    "Local file reading was interrupted or timed out",
   );
 });

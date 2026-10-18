@@ -43,6 +43,7 @@ class GeminiTextTests(unittest.TestCase):
             self.assertEqual(result['schemaVersion'],'gemini-'+op+'-1')
             self.assertEqual(result['snapshot'],req['snapshot'])
             self.assertEqual(result['metadata']['usage'],{'total_tokens':9})
+            self.assertEqual(result['metadata']['promptVersion'],'gemini-'+op+'-prompt-2')
             evidence=result['summaryEvidence'] if op=='understand' else result['sourceFacts'][0]['evidence']
             self.assertEqual(evidence,[{'start':4,'end':7,'quote':'aba'}])
             self.assertEqual(c.post('/api/'+op,json=req).json(),result)

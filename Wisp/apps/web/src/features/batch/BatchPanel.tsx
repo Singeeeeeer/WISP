@@ -77,7 +77,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
     if (
       submission.current?.hasResult() &&
       !record &&
-      !window.confirm("结果尚未保存，关闭会放弃本页待保存结果。仍要关闭吗？")
+      !window.confirm("The result is not saved yet. Closing will discard the pending result on this page. Close anyway?")
     )
       return;
     if (!record) captureOutcome()("cancel");
@@ -93,7 +93,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
       snapshots[index] = sliceBatchSnapshot(source, start, end);
       change({ snapshots });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "请选择完整、非空文字片段。");
+      setError(e instanceof Error ? e.message : "Select a complete, non-empty text range.");
     }
   }
   function selectWithKeyboard(
@@ -211,7 +211,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
         finish(cancelled ? "cancel" : "error");
         setRunState(cancelled ? "cancelled" : "failed");
         setError(
-          e instanceof Error ? e.message : "多材料处理失败，请手动重试。",
+          e instanceof Error ? e.message : "Multi-material processing failed. Please retry manually.",
         );
       }
       if (!submission.current?.hasResult()) submission.current = undefined;
@@ -223,7 +223,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
 
   return (
     <FloatingPanel
-      title={record ? `多材料 ${operationLabel} 结果` : "多材料确认"}
+      title={record ? `Multi-material ${operationLabel} result` : "Multi-material confirmation"}
       busy={busy}
       close={close}
     >
@@ -252,16 +252,16 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
           <>
             <div className="eyebrow">
               {draft.entry === "summon" ? "SUMMON" : operationLabel} · GEMINI ·
-              多材料
+              Multi-material
             </div>
-            <h2>确认这 {draft.snapshots.length} 份材料</h2>
+            <h2>Confirm these {draft.snapshots.length} materials</h2>
             {draft.fromResult && (
               <p className="notice">
-                沿用结果所依据的原始材料副本，不把生成结果作为原文。核对后再提交。
+                The original material copy used for this result will be reused; the generated result will not become source text. Review it before submitting.
               </p>
             )}
             <p className="notice">
-              综合处理仅使用下方明确确认的文字。本地规则保留在单材料入口。引用需人工核对，不代表事实已经验证。
+              Multi-material processing uses only the text explicitly confirmed below. Local rules remain available in single-material mode. Citations require human review and do not verify facts.
             </p>
             {draft.entry === "summon" && (
               <div className="role-grid">
@@ -288,7 +288,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
               />
             )}
             <label className="field-label">
-              多材料补充要求
+              Additional instruction for this multi-material run
               <textarea
                 className="instruction"
                 value={draft.instruction}
@@ -298,9 +298,8 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
               />
             </label>
             <p className={valid ? "notice" : "error"} role="status">
-              已确认 {draft.snapshots.length} 份 · 合计 {total.toLocaleString()}{" "}
-              / 60,000 UTF-16 单元。
-              {!valid && "每份须非空且合计不超过上限；请缩小范围后再提交。"}
+              {draft.snapshots.length} confirmed items · Total: {total.toLocaleString("en-US")} / 60,000 UTF-16 units.
+              {!valid && " Each item must be non-empty and the combined text must stay within the limit. Reduce a range before submitting."}
             </p>
             {draft.snapshots.map((s, index) => {
               const current = materials.find((m) => m.id === s.materialId);
@@ -315,36 +314,36 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
                 <section
                   className="scope"
                   key={s.materialId}
-                  aria-label={`材料 ${n} 确认范围`}
+                  aria-label={`Material ${n} confirmed range`}
                 >
                   <h3>
                     {n}. {s.title}
                   </h3>
                   <SourceInfo value={s} />
                   <p>
-                    版本 {s.materialVersion} · UTF-16 范围 [{s.start}, {s.end})
-                    · {s.text.length.toLocaleString()} 单元
+                    Version {s.materialVersion} · UTF-16 range [{s.start}, {s.end})
+                    · {s.text.length.toLocaleString("en-US")} units
                   </p>
                   {stale && (
                     <p className="notice">
-                      原文已变化或不可用，仍使用这里的冻结副本。
+                      The source changed or is unavailable; this frozen copy will still be used.
                     </p>
                   )}
-                  {saveStatus[s.materialId] !== "已保存" && (
+                  {saveStatus[s.materialId] !== "saved" && (
                     <p className="notice">
-                      原文尚未成功保存；本次仅保存确认副本及结果。
+                      The source has not been saved successfully; this run saves only the confirmed copy and result.
                     </p>
                   )}
                   <pre data-testid={`batch-snapshot-${n}`}>
-                    {s.text || "空白范围"}
+                    {s.text || "Empty range"}
                   </pre>
                   <details>
-                    <summary>调整材料 {n} 的处理范围</summary>
+                    <summary>Adjust the text range for material {n}</summary>
                     <p className="subtle">
-                      拖选文字，或用 Home／End 和 Shift＋左右方向键选择。
+                      Select text, or use Home/End and Shift + arrow keys.
                     </p>
                     <label className="field-label">
-                      材料 {n} 范围预览
+                      Material {n} range preview
                       <textarea
                         readOnly
                         disabled={frozen}
@@ -367,13 +366,13 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
                         disabled={frozen || !range || range[0] === range[1]}
                         onClick={() => useRange(index)}
                       >
-                        使用材料 {n} 选中片段
+                        Use the selected excerpt from material {n}
                       </button>
                       <button
                         disabled={frozen}
                         onClick={() => useRange(index, true)}
                       >
-                        恢复材料 {n} 全文
+                        Restore the full text for material {n}
                       </button>
                     </div>
                   </details>
@@ -381,10 +380,10 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
               );
             })}
             <p className="notice">
-              仅本次编号对应的文字、要求及摘要设置经本机服务发送至
-              Gemini，可能产生费用；标题、文件名和来源备注不外发。结果不修改原文。
+              Only the numbered text, instruction, and summary settings for this run are sent through the local service to
+              Gemini; charges may apply. Titles, filenames, and source notes are not sent. Results do not modify source text.
               {draft.entry === "summon" &&
-                "使魔依赖当前页面；刷新或关闭会中断，召回不保证撤销供应商处理或费用。"}
+                " The familiar depends on this page; refreshing or closing interrupts it. Recall cannot undo provider processing or charges."}
             </p>
             {error && (
               <p className="error" role="alert">
@@ -400,26 +399,26 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
                 onClick={(event) => void submit(event)}
               >
                 {busy
-                  ? "正在处理并保存…"
+                  ? "Processing and saving…"
                   : submission.current?.hasResult()
-                    ? "重试保存多材料结果"
+                    ? "Retry saving multi-material result"
                     : draft.entry === "summon"
-                      ? "召唤多材料使魔"
-                      : "开始多材料处理"}
+                      ? "Summon multi-material familiar"
+                      : "Start multi-material processing"}
               </button>
               {busy &&
                 draft.entry !== "summon" &&
                 !submission.current?.hasResult() && (
                   <button onClick={() => controller.current?.abort()}>
-                    停止等待
+                    Stop waiting
                   </button>
                 )}
               <button
-                aria-label="关闭多材料确认"
+                aria-label="Close multi-material confirmation"
                 disabled={busy}
                 onClick={close}
               >
-                继续自己工作
+                Continue working
               </button>
             </div>
           </>

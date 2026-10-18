@@ -9,26 +9,26 @@ export function fileSource(fileName: string): FileSource {
   const format = /\.(txt|docx|pptx|xlsx|pdf)$/i
     .exec(fileName)?.[1]
     .toLowerCase();
-  if (!format) throw new Error("仅支持 TXT、DOCX、PPTX、XLSX 和 PDF 文件。");
+  if (!format) throw new Error("Only TXT, DOCX, PPTX, XLSX, and PDF files are supported.");
   return `${format}_file` as FileSource;
 }
 export function normalizeText(text: string): string {
   return text.replace(/\r\n?/g, "\n");
 }
 function validateText(text: string, allowEmpty: boolean) {
-  if (text.includes("\0")) throw new Error("文本包含 NUL 字符，无法导入。");
+  if (text.includes("\0")) throw new Error("The text contains a NUL character and cannot be imported.");
   if (text.length > MAX_TEXT)
-    throw new Error("文本最多 60,000 个 UTF-16 单元。");
-  if (!allowEmpty && !text.trim()) throw new Error("请提供非空文本。");
+    throw new Error("Text is limited to 60,000 UTF-16 code units.");
+  if (!allowEmpty && !text.trim()) throw new Error("Provide non-empty text.");
 }
 export function decodeTxt(fileName: string, bytes: Uint8Array): string {
-  if (!/\.txt$/i.test(fileName)) throw new Error("仅支持 .txt 文件。");
-  if (bytes.byteLength > MAX_BYTES) throw new Error("单个文件不能超过 20 MB。");
+  if (!/\.txt$/i.test(fileName)) throw new Error("Only .txt files are supported.");
+  if (bytes.byteLength > MAX_BYTES) throw new Error("A single file cannot exceed 20 MB.");
   let text: string;
   try {
     text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    throw new Error("文件不是有效的 UTF-8，请转换编码后重试。");
+    throw new Error("The file is not valid UTF-8. Convert its encoding and try again.");
   }
   text = normalizeText(text);
   validateText(text, false);
@@ -47,7 +47,7 @@ export function createTextMaterial(input: {
   const now = new Date().toISOString();
   const origin: MaterialOrigin = { kind: input.source, addedAt: now };
   if ((input.note?.length ?? 0) > 2000)
-    throw new Error("来源说明过长，未保存。");
+    throw new Error("The source note is too long and was not saved.");
   if (input.note?.trim()) origin.note = input.note.trim();
   if (input.source.endsWith("_file")) {
     const file = input.file;
@@ -56,15 +56,15 @@ export function createTextMaterial(input: {
       file.name.length > 1000 ||
       fileSource(file.name) !== input.source
     )
-      throw new Error("文件来源与格式不匹配。");
+      throw new Error("The file source and format do not match.");
     if (
       !Number.isSafeInteger(file.size) ||
       file.size < 0 ||
       file.size > MAX_BYTES
     )
-      throw new Error("单个文件不能超过 20 MB。");
+      throw new Error("A single file cannot exceed 20 MB.");
     if (!Number.isSafeInteger(file.lastModified) || file.lastModified < 0)
-      throw new Error("文件修改时间无效。");
+      throw new Error("The file modification time is invalid.");
     Object.assign(origin, {
       fileName: file.name,
       byteSize: file.size,
@@ -72,7 +72,7 @@ export function createTextMaterial(input: {
       ...(input.source === "txt_file" ? { encoding: "UTF-8" } : {}),
     });
   }
-  let title = (input.title.trim() || input.file?.name || "未命名材料").slice(
+  let title = (input.title.trim() || input.file?.name || "Untitled material").slice(
     0,
     120,
   );
@@ -98,22 +98,22 @@ export function sourceDescription(value: {
   if (kind === "document_copy" || kind === "selection_copy") {
     const copy = origin?.copy;
     return (
-      (kind === "document_copy" ? "全文副本" : "选区副本") +
+      (kind === "document_copy" ? "Full-text copy" : "Selection copy") +
       (copy ? ` · ${copy.title} · v${copy.materialVersion}` : "") +
-      (origin?.fileName ? " · 原文件：" + origin.fileName : "") +
+      (origin?.fileName ? " · Original file: " + origin.fileName : "") +
       (origin?.note ? " · " + origin.note : "")
     );
   }
   const label = kind?.endsWith("_file")
     ? kind.replace("_file", "").toUpperCase() +
-      " 文件" +
+      " file" +
       (origin?.fileName ? " · " + origin.fileName : "")
     : kind === "new_text"
-      ? "新建文本"
+      ? "New text"
       : kind === "pasted_text"
-        ? "粘贴文本"
+        ? "Pasted text"
         : kind === "virtual_document"
-          ? "本地文档"
-          : "历史记录未保存详细来源";
+          ? "Local document"
+          : "History does not include detailed source information";
   return label + (origin?.note ? " · " + origin.note : "");
 }

@@ -4,10 +4,10 @@ test("magic ring follows invocation, keeps four directions, and stays still for 
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
   await page.mouse.move(700, 400);
   await page.keyboard.press("q");
-  const ring = page.getByRole("menu", { name: "基础能力" });
+  const ring = page.getByRole("menu", { name: "Core abilities" });
   await expect(ring).toBeVisible();
   const before = await ring.boundingBox();
   expect(before!.x + before!.width / 2).toBeCloseTo(700, 0);
@@ -30,10 +30,10 @@ test("magic ring follows invocation, keeps four directions, and stays still for 
   expect(left!.x).toBeLessThan(top!.x);
   await page.getByRole("menuitem", { name: "Check" }).hover();
   expect(await ring.boundingBox()).toEqual(before);
-  await page.screenshot({ path: "docs/screenshots/magic-ring.png" });
+  await page.screenshot({ path: "test-results/english/magic-ring.png" });
   await page.getByRole("menuitem", { name: "Check" }).click();
   await expect(
-    page.getByRole("button", { name: "运行本地检查" }),
+    page.getByRole("button", { name: "Run local check" }),
   ).toBeEnabled();
 });
 
@@ -41,9 +41,9 @@ test("ring clamps at edges and keyboard can select and dismiss", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
   await page.mouse.click(12, 780, { button: "right" });
-  const ring = page.getByRole("menu", { name: "基础能力" });
+  const ring = page.getByRole("menu", { name: "Core abilities" });
   await expect(ring).toBeVisible();
   const bounds = await ring.boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
@@ -62,7 +62,7 @@ test("supplied sprite loads, follows pointer, and settings keep entries usable",
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
   expect(
     await page.evaluate(async () => {
       const img = new Image();
@@ -75,21 +75,21 @@ test("supplied sprite loads, follows pointer, and settings keep entries usable",
   await expect
     .poll(async () => (await page.locator(".companion").boundingBox())?.x)
     .toBeGreaterThan(1090);
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings" }).click();
-  await page.getByLabel("减少动态效果").check();
+  await page.getByLabel("Reduce motion").check();
   await expect(page.locator(".companion")).toHaveClass("companion still");
-  await page.getByLabel("显示小魔女").uncheck();
+  await page.getByLabel("Show the witch").uncheck();
   await expect(page.locator(".companion")).toHaveCount(0);
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 640, height: 650 });
-  await page.getByRole("button", { name: "打开基础能力" }).click();
-  const ring = page.getByRole("menu", { name: "基础能力" });
+  await page.getByRole("button", { name: "Open core abilities" }).click();
+  const ring = page.getByRole("menu", { name: "Core abilities" });
   await expect(ring).toBeVisible();
   const box = await ring.boundingBox();
   expect(box!.x + box!.width).toBeLessThanOrEqual(640);
   expect(box!.y + box!.height).toBeLessThanOrEqual(650);
   await expect(page.locator(".ring-center .wisp-sprite")).toHaveCount(0);
   await page.getByRole("menuitem", { name: "Summon" }).click();
-  await expect(page.getByRole("button", { name: "召唤使魔" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Summon familiar" })).toBeEnabled();
 });

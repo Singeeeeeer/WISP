@@ -86,7 +86,7 @@ it.each([
     original.version,
   );
   await expect(repo.createCauldronMaterial(pending)).rejects.toThrow(
-    "重新载入页面",
+    "reload the page",
   );
   expect(await repo.readMaterial(pending.id)).toBeUndefined();
   expect(await repo.listCauldronEntries()).toEqual([]);
@@ -99,7 +99,7 @@ it("rejects a missing source without leaving a material or membership", async ()
   await db.delete("materials", original.id);
   db.close();
   await expect(repo.createCauldronMaterial(pending)).rejects.toThrow(
-    "重新载入页面",
+    "reload the page",
   );
   expect(await repo.readMaterial(pending.id)).toBeUndefined();
   expect(await repo.listCauldronEntries()).toEqual([]);
@@ -117,7 +117,7 @@ it.each([
   async (range) => {
     const { repo, original } = await setup();
     const pending = copyOf(original, range);
-    await expect(repo.createCauldronMaterial(pending)).rejects.toThrow("选区");
+    await expect(repo.createCauldronMaterial(pending)).rejects.toThrow("selection");
     expect(await repo.readMaterial(pending.id)).toBeUndefined();
     expect(await repo.listCauldronEntries()).toEqual([]);
   },
@@ -132,19 +132,19 @@ it("rejects a partial range labeled as a full copy and inconsistent copy kinds",
       source: "document_copy",
       origin: { ...partial.origin!, kind: "document_copy" },
     }),
-  ).rejects.toThrow("全文副本范围");
+  ).rejects.toThrow("full-text copy range");
   await expect(
     repo.createCauldronMaterial({
       ...partial,
       source: "pasted_text",
     }),
-  ).rejects.toThrow("副本来源");
+  ).rejects.toThrow("copy source");
   await expect(
     repo.createCauldronMaterial({
       ...partial,
       origin: { kind: "selection_copy", addedAt: capturedAt },
     }),
-  ).rejects.toThrow("副本来源");
+  ).rejects.toThrow("copy source");
   expect(await repo.listCauldronEntries()).toEqual([]);
 });
 
@@ -181,7 +181,7 @@ it.each([
     const altered = structuredClone(frozen);
     altered.origin!.copy = { ...altered.origin!.copy!, ...change };
     await expect(repo.createCauldronMaterial(altered)).rejects.toThrow(
-      "材料标识",
+      "material ID",
     );
     expect(await repo.readMaterial(frozen.id)).toEqual(frozen);
     expect(await repo.listCauldronEntries()).toHaveLength(1);

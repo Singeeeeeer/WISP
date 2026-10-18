@@ -99,13 +99,13 @@ it("upgrades v7 without changing materials, existing results, settings, tasks or
 
 it("requires revision locks and increments content versions only for edits", async () => {
   const { repo, name, a, b } = await setup();
-  await expect(repo.saveCanvasNote(a, null)).rejects.toThrow("冲突");
+  await expect(repo.saveCanvasNote(a, null)).rejects.toThrow("conflict");
   await expect(
     repo.saveCanvasNote({ ...a, revision: 2, version: 2, x: 40 }, 1),
-  ).rejects.toThrow("版本");
+  ).rejects.toThrow("version");
   await expect(
     repo.saveCanvasNote({ ...a, revision: 2, title: "编辑" }, 1),
-  ).rejects.toThrow("版本");
+  ).rejects.toThrow("version");
   const moved = { ...a, revision: 2, x: 80 };
   expect(await repo.saveCanvasNote(moved, 1)).toEqual(moved);
   expect(
@@ -128,7 +128,7 @@ it("requires revision locks and increments content versions only for edits", asy
   expect(
     connectionIsCurrent(relation(a, b), await repo.listCanvasNotes()),
   ).toBe(false);
-  await expect(repo.deleteCanvasNote(a.id, 2)).rejects.toThrow("冲突");
+  await expect(repo.deleteCanvasNote(a.id, 2)).rejects.toThrow("conflict");
   expect(await repo.listCanvasNotes()).toHaveLength(2);
 });
 
@@ -144,7 +144,7 @@ it("saves once for the same pair/version even with reversed order or concurrent 
       ...first,
       connections: [{ ...first.connections[0], title: "不同结果" }],
     }),
-  ).rejects.toThrow("提交标识");
+  ).rejects.toThrow("submission ID");
   await repo.deleteCanvasConnection(first.id);
   const results = await Promise.all(
     ["one", "two"].map((id) =>
@@ -170,7 +170,7 @@ it("checks actual saved contents when retaining results, preserving old relation
   );
   await expect(
     repo.saveCanvasConnection(relation(a, b, "stale")),
-  ).rejects.toThrow("已失效");
+  ).rejects.toThrow("no longer valid");
   const stored = await repo.listCanvasConnections();
   expect(stored).toHaveLength(1);
   expect(connectionIsCurrent(stored[0], await repo.listCanvasNotes())).toBe(
@@ -180,7 +180,7 @@ it("checks actual saved contents when retaining results, preserving old relation
   expect(await repo.listCanvasConnections()).toEqual([]);
   await expect(
     repo.saveCanvasConnection(relation(a, b, "missing")),
-  ).rejects.toThrow("已失效");
+  ).rejects.toThrow("no longer valid");
 });
 
 it("rejects empty or invalid relationships without persisting them", async () => {
@@ -191,10 +191,10 @@ it("rejects empty or invalid relationships without persisting them", async () =>
       connections: [],
       reason: "没有联系",
     }),
-  ).rejects.toThrow("有效候选");
+  ).rejects.toThrow("valid connection candidate");
   const invalid = relation(a, b);
   invalid.connections[0].evidence[0].quote = "假的";
-  await expect(repo.saveCanvasConnection(invalid)).rejects.toThrow("校验");
+  await expect(repo.saveCanvasConnection(invalid)).rejects.toThrow("validation");
   expect(await repo.listCanvasConnections()).toEqual([]);
 });
 

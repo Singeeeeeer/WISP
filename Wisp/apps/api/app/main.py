@@ -19,14 +19,14 @@ from .gemini import Gemini, ModelFailure, strict_json
 
 logger=logging.getLogger('wisp')
 MESSAGES={
-    'MODEL_NOT_CONFIGURED':'模型服务尚未配置', 'MODEL_AUTH_FAILED':'模型服务认证失败',
-    'MODEL_NOT_FOUND':'配置的模型不可用', 'MODEL_QUOTA_EXCEEDED':'模型服务额度受限，请稍后重试',
-    'MODEL_UNAVAILABLE':'模型服务暂时不可用', 'MODEL_TIMEOUT':'模型请求超时，请稍后重试',
-    'MODEL_CONNECTION_CLOSED':'无法连接模型服务，请稍后重试', 'MODEL_OUTPUT_INVALID':'模型返回未通过验证，请重试',
-    'INVALID_REQUEST':'请求格式或材料范围无效', 'REQUEST_TOO_LARGE':'请求内容超过大小限制',
-    'REQUEST_CONFLICT':'该快照标识已用于不同请求', 'REQUEST_IN_PROGRESS':'该请求正在处理',
-    'SERVER_BUSY':'服务忙，请稍后重试', 'NOT_IMPLEMENTED':'尚未启用后台任务服务',
-    'HTTP_ERROR':'请求无法处理', 'INTERNAL_ERROR':'服务暂时不可用'}
+    'MODEL_NOT_CONFIGURED':'Model service is not configured', 'MODEL_AUTH_FAILED':'Model service authentication failed',
+    'MODEL_NOT_FOUND':'Configured model is unavailable', 'MODEL_QUOTA_EXCEEDED':'Model service quota exceeded. Try again later.',
+    'MODEL_UNAVAILABLE':'Model service is temporarily unavailable', 'MODEL_TIMEOUT':'Model request timed out. Try again later.',
+    'MODEL_CONNECTION_CLOSED':'Unable to connect to the model service. Try again later.', 'MODEL_OUTPUT_INVALID':'Model output failed validation. Try again.',
+    'INVALID_REQUEST':'Request format or material scope is invalid', 'REQUEST_TOO_LARGE':'Request content exceeds the size limit',
+    'REQUEST_CONFLICT':'This snapshot identifier was used for a different request', 'REQUEST_IN_PROGRESS':'This request is already being processed',
+    'SERVER_BUSY':'Service is busy. Try again later.', 'NOT_IMPLEMENTED':'Background task service is not enabled',
+    'HTTP_ERROR':'The request could not be processed', 'INTERNAL_ERROR':'Service is temporarily unavailable'}
 
 
 def create_app(settings=None, *, transport=None):
@@ -145,7 +145,7 @@ def create_app(settings=None, *, transport=None):
 
     @api.post('/api/jobs')
     async def unavailable_jobs():
-        raise HTTPException(status_code=501,detail='尚未启用后台任务服务')
+        raise HTTPException(status_code=501,detail='Background task service is not enabled')
 
     return api
 

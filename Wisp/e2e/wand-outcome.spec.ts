@@ -52,21 +52,21 @@ async function fail(route: Route) {
 
 async function openCheck(page: Page) {
   await page
-    .getByRole("button", { name: "打开书店活动提案", exact: true })
+    .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
   await page.mouse.click(1100, 300, { button: "right" });
   await page.getByRole("menuitem", { name: "Check", exact: true }).click();
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
 }
 
 async function completeCheck(page: Page) {
   await page.route("**/api/check", succeed);
   await openCheck(page);
   await page
-    .getByRole("button", { name: "运行 Gemini 检查", exact: true })
+    .getByRole("button", { name: "Run Gemini Check", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：需要补充信息", exact: true }),
+    page.getByRole("heading", { name: "Gemini: more information needed", exact: true }),
   ).toBeVisible();
 }
 
@@ -140,7 +140,7 @@ test.beforeEach(async ({ page }) => {
   );
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
   await expect(page.locator(".wand-outcome")).toHaveAttribute(
     "data-outcome",
     "none",
@@ -167,11 +167,11 @@ test("pending work and failed persistence never claim success, while retry succe
   });
   const outcome = page.locator(".wand-outcome");
   await page
-    .getByRole("button", { name: "运行 Gemini 检查", exact: true })
+    .getByRole("button", { name: "Run Gemini Check", exact: true })
     .click();
   await expect.poll(() => requests.length).toBe(1);
   await expect(
-    page.getByRole("button", { name: "正在处理并保存…", exact: true }),
+    page.getByRole("button", { name: "Processing and saving…", exact: true }),
   ).toBeDisabled();
   await expect(outcome).toHaveAttribute("data-outcome", "none");
   await succeed(requests[0]);
@@ -179,12 +179,12 @@ test("pending work and failed persistence never claim success, while retry succe
   await expect(outcome).toHaveAttribute("data-outcome", "error");
   expect(await outcomeHistory(page)).not.toContain("success");
   await expect(
-    page.getByRole("heading", { name: "Gemini：需要补充信息", exact: true }),
+    page.getByRole("heading", { name: "Gemini: more information needed", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "重试保存结果", exact: true }).click();
+  await page.getByRole("button", { name: "Retry saving result", exact: true }).click();
   await expect(outcome).toHaveAttribute("data-outcome", "success");
   await expect(
-    page.getByRole("heading", { name: "Gemini：需要补充信息", exact: true }),
+    page.getByRole("heading", { name: "Gemini: more information needed", exact: true }),
   ).toBeVisible();
   expect(requests).toHaveLength(1);
   const records = await page.evaluate(
@@ -221,19 +221,19 @@ test("request failure, retry and cancellation report the actual result and ignor
   await observeOutcomes(page);
   const outcome = page.locator(".wand-outcome");
   const run = page.getByRole("button", {
-    name: "运行 Gemini 检查",
+    name: "Run Gemini Check",
     exact: true,
   });
   await run.click();
   await expect.poll(() => requests.length).toBe(1);
   await fail(requests[0]);
-  await expect(page.getByRole("alert")).toContainText("Gemini 服务暂时不可用");
+  await expect(page.getByRole("alert")).toContainText("Gemini is temporarily unavailable");
   await expect(outcome).toHaveAttribute("data-outcome", "error");
   await run.click();
   await expect.poll(() => requests.length).toBe(2);
   await expect(outcome).toHaveAttribute("data-outcome", "none");
-  await page.getByRole("button", { name: "停止等待", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("已停止等待");
+  await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Waiting stopped");
   await expect(outcome).toHaveAttribute("data-outcome", "cancel");
   await run.click();
   await expect.poll(() => requests.length).toBe(3);
@@ -242,7 +242,7 @@ test("request failure, retry and cancellation report the actual result and ignor
   await frames(page);
   await expect(outcome).toHaveAttribute("data-outcome", "none");
   await expect(
-    page.getByRole("heading", { name: "Gemini：需要补充信息", exact: true }),
+    page.getByRole("heading", { name: "Gemini: more information needed", exact: true }),
   ).toHaveCount(0);
   await fail(requests[2]);
   await expect(outcome).toHaveAttribute("data-outcome", "error");
@@ -255,7 +255,7 @@ test("copy feedback waits for the real clipboard promise and distinguishes resol
   await completeCheck(page);
   await clipboardPromises(page);
   const outcome = page.locator(".wand-outcome");
-  const copy = page.getByRole("button", { name: "复制结果", exact: true });
+  const copy = page.getByRole("button", { name: "Copy result", exact: true });
   await copy.click();
   await expect(outcome).toHaveAttribute("data-outcome", "none");
   expect(
@@ -264,7 +264,7 @@ test("copy feedback waits for the real clipboard promise and distinguishes resol
     ),
   ).toContain("Check · Gemini");
   await settleCopy(page, 0, true);
-  await expect(page.getByText("已复制结果", { exact: true })).toBeVisible();
+  await expect(page.getByText("Result copied", { exact: true })).toBeVisible();
   await expect(outcome).toHaveAttribute("data-outcome", "success");
   const anchor = await outcome.evaluate((element) => ({
     left: getComputedStyle(element).left,
@@ -281,7 +281,7 @@ test("copy feedback waits for the real clipboard promise and distinguishes resol
   await expect(outcome).toHaveAttribute("data-outcome", "none");
   await settleCopy(page, 1, false);
   await expect(
-    page.getByText("复制失败，请手动选择结果文字复制。", { exact: true }),
+    page.getByText("Copy failed. Select and copy the result text manually.", { exact: true }),
   ).toBeVisible();
   await expect(outcome).toHaveAttribute("data-outcome", "error");
 });
@@ -293,7 +293,7 @@ test("newer copy wins over an older completion and removing the source suppresse
   await clipboardPromises(page);
   await observeOutcomes(page);
   const outcome = page.locator(".wand-outcome");
-  const copy = page.getByRole("button", { name: "复制结果", exact: true });
+  const copy = page.getByRole("button", { name: "Copy result", exact: true });
   await copy.click();
   await copy.click();
   await settleCopy(page, 1, true);
@@ -301,18 +301,18 @@ test("newer copy wins over an older completion and removing the source suppresse
   await settleCopy(page, 0, false);
   await frames(page);
   await expect(outcome).toHaveAttribute("data-outcome", "success");
-  await expect(page.getByText("已复制结果", { exact: true })).toBeVisible();
+  await expect(page.getByText("Result copied", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("复制失败，请手动选择结果文字复制。", { exact: true }),
+    page.getByText("Copy failed. Select and copy the result text manually.", { exact: true }),
   ).toHaveCount(0);
   expect(await outcomeHistory(page)).not.toContain("error");
   await copy.click();
   await expect(outcome).toHaveAttribute("data-outcome", "none");
   const beforeUnmount = (await outcomeHistory(page)).length;
-  await page.getByRole("button", { name: "关闭检查结果", exact: true }).click();
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Close check result", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await expect(
-    page.getByRole("dialog", { name: "魔法书", exact: true }),
+    page.getByRole("dialog", { name: "Grimoire", exact: true }),
   ).toBeVisible();
   await settleCopy(page, 2, true);
   await frames(page);
@@ -321,43 +321,43 @@ test("newer copy wins over an older completion and removing the source suppresse
     "success",
   );
   await expect(
-    page.getByRole("dialog", { name: "魔法书", exact: true }),
+    page.getByRole("dialog", { name: "Grimoire", exact: true }),
   ).toBeVisible();
 });
 
 test("cauldron cancellation and saved removal report results even when the action button disappears", async ({
   page,
 }) => {
-  await page.getByRole("button", { name: "灵感熔炉", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "灵感熔炉", exact: true });
+  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Inspiration Cauldron", exact: true });
   const outcome = page.locator(".wand-outcome");
-  await dialog.getByRole("button", { name: "粘贴文本", exact: true }).click();
-  await dialog.getByLabel("粘贴正文").fill("这份输入将明确取消。");
-  await dialog.getByRole("button", { name: "取消新增", exact: true }).click();
+  await dialog.getByRole("button", { name: "Paste text", exact: true }).click();
+  await dialog.getByLabel("Pasted text").fill("这份输入将明确取消。");
+  await dialog.getByRole("button", { name: "Cancel new material", exact: true }).click();
   await expect(outcome).toHaveAttribute("data-outcome", "cancel");
   await expect(dialog).toContainText("0 / 12");
-  await dialog.getByRole("button", { name: "粘贴文本", exact: true }).click();
-  await dialog.getByLabel("新材料标题").fill("结果反馈材料");
-  await dialog.getByLabel("粘贴正文").fill("移出熔炉仍然保留已保存正文。");
-  await dialog.getByRole("button", { name: "确认加入", exact: true }).click();
+  await dialog.getByRole("button", { name: "Paste text", exact: true }).click();
+  await dialog.getByLabel("New material title").fill("结果反馈材料");
+  await dialog.getByLabel("Pasted text").fill("移出熔炉仍然保留已保存正文。");
+  await dialog.getByRole("button", { name: "Confirm addition", exact: true }).click();
   await expect(outcome).toHaveAttribute("data-outcome", "success");
-  await expect(dialog.getByLabel("材料标题", { exact: true })).toHaveValue(
+  await expect(dialog.getByLabel("Material title", { exact: true })).toHaveValue(
     "结果反馈材料",
   );
   await expect(outcome).toHaveAttribute("data-outcome", "none", {
     timeout: 2000,
   });
-  await dialog.getByRole("button", { name: "移出熔炉", exact: true }).click();
+  await dialog.getByRole("button", { name: "Remove from cauldron", exact: true }).click();
   await expect(outcome).toHaveAttribute("data-outcome", "success");
   await expect(dialog).toContainText("0 / 12");
   await expect(
-    dialog.getByRole("button", { name: "移出熔炉", exact: true }),
+    dialog.getByRole("button", { name: "Remove from cauldron", exact: true }),
   ).toHaveCount(0);
   await dialog
-    .getByRole("button", { name: "全部本地材料", exact: true })
+    .getByRole("button", { name: "All local materials", exact: true })
     .click();
   await dialog
-    .getByRole("button", { name: "选择材料 结果反馈材料", exact: true })
+    .getByRole("button", { name: "Select material result反馈材料", exact: true })
     .click();
   await expect(dialog.getByTestId("material-detail")).toContainText(
     "移出熔炉仍然保留已保存正文。",
@@ -368,10 +368,10 @@ for (const source of ["application", "system"] as const) {
   test(`${source} reduced motion and a hidden witch keep a static, brief outcome without blocking editing`, async ({
     page,
   }) => {
-    await page.getByRole("button", { name: "魔法书", exact: true }).click();
+    await page.getByRole("button", { name: "Grimoire", exact: true }).click();
     await page.getByRole("button", { name: "Settings", exact: true }).click();
-    await page.getByLabel("显示小魔女").uncheck();
-    if (source === "application") await page.getByLabel("减少动态效果").check();
+    await page.getByLabel("Show the witch").uncheck();
+    if (source === "application") await page.getByLabel("Reduce motion").check();
     else await page.emulateMedia({ reducedMotion: "reduce" });
     await page.keyboard.press("Escape");
     await expect(page.locator(".companion")).toHaveCount(0);
@@ -384,7 +384,7 @@ for (const source of ["application", "system"] as const) {
       ),
     ).toBe(0);
     await expect(outcome).toHaveCSS("pointer-events", "none");
-    const editor = page.getByLabel("书店活动提案正文");
+    const editor = page.getByLabel("Bookstore event proposal text");
     await editor.fill("结果提示显示期间仍可编辑原文。");
     await expect(editor).toHaveValue("结果提示显示期间仍可编辑原文。");
     await expect(outcome).toHaveAttribute("data-outcome", "none", {

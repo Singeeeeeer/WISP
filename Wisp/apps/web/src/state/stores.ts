@@ -23,7 +23,7 @@ const materialChannel =
   typeof BroadcastChannel === "undefined"
     ? undefined
     : new BroadcastChannel("wisp-materials");
-type SaveStatus = "已保存" | "待保存" | "保存中" | "保存失败";
+type SaveStatus = "saved" | "pending" | "saving" | "failed";
 interface Documents {
   materials: Material[];
   ready: boolean;
@@ -55,7 +55,7 @@ export const useDocuments = create<Documents>((set, get) => ({
             }
           : m,
       ),
-      status: { ...get().status, [id]: "待保存" },
+      status: { ...get().status, [id]: "pending" },
     });
     useInteraction.setState({
       selection: undefined,
@@ -76,13 +76,13 @@ export async function saveDocument(id: string) {
       const m = useDocuments.getState().materials.find((x) => x.id === id);
       if (!m || m.version === savedVersions[id]) break;
       useDocuments.setState((s) => ({
-        status: { ...s.status, [id]: "保存中" },
+        status: { ...s.status, [id]: "saving" },
       }));
       await repository.saveMaterial(m, savedVersions[id]);
       savedVersions[id] = m.version;
       materialChannel?.postMessage("changed");
     }
-    useDocuments.setState((s) => ({ status: { ...s.status, [id]: "已保存" } }));
+    useDocuments.setState((s) => ({ status: { ...s.status, [id]: "saved" } }));
   } catch (e) {
     useDocuments.setState((s) => ({
       errors: {
@@ -90,9 +90,9 @@ export async function saveDocument(id: string) {
         [id]:
           e instanceof Error
             ? e.message
-            : "本机保存失败，请复制正文备份后重试。",
+            : "Local save failed. Copy the text as a backup and try again.",
       },
-      status: { ...s.status, [id]: "保存失败" },
+      status: { ...s.status, [id]: "failed" },
     }));
   } finally {
     saving.delete(id);
@@ -115,7 +115,7 @@ export function adoptMaterials(incoming: Material[]) {
     if (
       !next ||
       openIds.has(m.id) ||
-      current.status[m.id] !== "已保存" ||
+      current.status[m.id] !== "saved" ||
       current.errors[m.id] ||
       next.version <= m.version
     )
@@ -133,7 +133,7 @@ export function adoptMaterials(incoming: Material[]) {
     materials: [...materials, ...added],
     status: {
       ...current.status,
-      ...Object.fromEntries(added.map((m) => [m.id, "已保存" as const])),
+      ...Object.fromEntries(added.map((m) => [m.id, "saved" as const])),
     },
   });
   reconcile(true, useDocuments.getState().materials);
@@ -157,7 +157,7 @@ export function openMaterial(id: string) {
 }
 export function prepareMaterial(id: string, entry: ActionDraft["entry"]) {
   const m = useDocuments.getState().materials.find((m) => m.id === id);
-  if (!m) throw new Error("材料不可用，请刷新材料列表");
+  if (!m) throw new Error("Material is unavailable. Refresh the material list.");
   useInteraction.setState({
     cauldron: false,
     menu: false,
@@ -186,7 +186,7 @@ function persistLayout() {
   layoutTimer = setTimeout(() => {
     void repository
       .writePreference("windows", useWorkspace.getState().windows)
-      .catch(() => useWorkspace.setState({ error: "窗口布局保存失败" }));
+      .catch(() => useWorkspace.setState({ error: "Window layout could not be saved" }));
   }, 150);
 }
 export const useWorkspace = create<Workspace>((set, get) => ({
@@ -254,7 +254,7 @@ export const useInteraction = create<Interaction>((set, get) => ({
       .getState()
       .materials.find((m) => m.id === w?.materialId);
     if (!m) {
-      set({ message: "请先打开并选择一份文档", menu: false });
+      set({ message: "Open and select a document first", menu: false });
       return;
     }
     if (get().selectionError?.materialId === m.id) {
@@ -280,12 +280,12 @@ export const useInteraction = create<Interaction>((set, get) => ({
   },
   updateSettings(patch) {
     const next = { ...get().settings, ...patch };
-    set({ settings: next, settingsStatus: "设置保存中" });
+    set({ settings: next, settingsStatus: "Saving settings" });
     setProposalsEnabled(next.helpfulProposals);
     settingsQueue = settingsQueue
       .then(() => repository.writePreference("settings", next))
-      .then(() => set({ settingsStatus: "设置已保存" }))
-      .catch(() => set({ settingsStatus: "设置保存失败" }));
+      .then(() => set({ settingsStatus: "Settings saved" }))
+      .catch(() => set({ settingsStatus: "Settings could not be saved" }));
   },
 }));
 let boot: Promise<void> | undefined;
@@ -346,14 +346,14 @@ export function initialize() {
       useDocuments.setState({
         materials,
         ready: true,
-        status: Object.fromEntries(materials.map((m) => [m.id, "已保存"])),
+        status: Object.fromEntries(materials.map((m) => [m.id, "saved"])),
       });
     } catch (error) {
       useDocuments.setState({
         fatal:
           error instanceof Error
             ? error.message
-            : "无法打开本机存储。请检查浏览器存储权限后重新载入；为避免丢失内容，当前不进入编辑。",
+            : "Local storage could not be opened. Check browser storage permissions and reload. Editing is disabled to prevent data loss.",
       });
     }
   })());

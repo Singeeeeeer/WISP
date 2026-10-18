@@ -3,13 +3,13 @@ import path from "node:path";
 
 const fixture = (file: string) => path.resolve("e2e/fixtures/pdf02", file);
 async function open(page: Page) {
-  await page.getByRole("button", { name: "灵感熔炉", exact: true }).click();
-  return page.getByRole("dialog", { name: "灵感熔炉" });
+  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
+  return page.getByRole("dialog", { name: "Inspiration Cauldron" });
 }
 async function start(page: Page) {
   await page.goto("/");
   const dialog = await open(page);
-  await dialog.getByRole("button", { name: "导入文件", exact: true }).click();
+  await dialog.getByRole("button", { name: "Import file", exact: true }).click();
   return dialog;
 }
 test.beforeEach(async ({ page }) => {
@@ -32,7 +32,7 @@ for (const [format, marker] of [
   }) => {
     const d = await start(page);
     await d
-      .getByLabel("选择文件")
+      .getByLabel("Choose file")
       .setInputFiles(fixture(`book-club.${format}`));
     const preview = d.getByTestId("import-preview");
     await expect(preview).toHaveValue(
@@ -40,10 +40,10 @@ for (const [format, marker] of [
     );
     const edited = (await preview.inputValue()) + "\n预览时补充说明。";
     await preview.fill(edited);
-    await d.getByLabel("新材料标题").fill(`${format}材料`);
+    await d.getByLabel("New material title").fill(`${format}材料`);
     if (format === "xlsx")
-      await page.screenshot({ path: "docs/screenshots/pdf02-import.png" });
-    await d.getByRole("button", { name: "确认加入", exact: true }).click();
+      await page.screenshot({ path: "test-results/english/pdf02-import.png" });
+    await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
     await expect(d.getByTestId("material-detail")).toContainText(
       `book-club.${format}`,
     );
@@ -53,7 +53,7 @@ for (const [format, marker] of [
     await page.reload();
     const restored = await open(page);
     await restored
-      .getByRole("button", { name: `选择材料 ${format}材料`, exact: true })
+      .getByRole("button", { name: `Select material ${format}材料`, exact: true })
       .click();
     await expect(restored.getByTestId("material-detail")).toContainText(
       `book-club.${format}`,
@@ -63,7 +63,7 @@ for (const [format, marker] of [
       .click();
     await expect(page.getByTestId("snapshot-text")).toHaveText(edited);
     await expect(page.getByRole("dialog")).toContainText(
-      format.toUpperCase() + " 文件",
+      format.toUpperCase() + " file",
     );
   });
 }
@@ -72,25 +72,25 @@ test("invalid and empty files clear a previous preview and never save", async ({
   page,
 }) => {
   const d = await start(page);
-  const input = d.getByLabel("选择文件");
+  const input = d.getByLabel("Choose file");
   await input.setInputFiles(fixture("book-club.docx"));
   await expect(d.getByTestId("import-preview")).toHaveValue(/星光/);
   await input.setInputFiles(fixture("blank.pdf"));
-  await expect(d.getByRole("alert")).toContainText("未找到可导入的文字");
+  await expect(d.getByRole("alert")).toContainText("No extractable text found");
   await expect(d.getByTestId("import-preview")).toHaveCount(0);
   await input.setInputFiles({
     name: "broken.docx",
     mimeType: "application/octet-stream",
     buffer: Buffer.from("broken"),
   });
-  await expect(d.getByRole("alert")).toContainText("文件损坏");
+  await expect(d.getByRole("alert")).toContainText("corrupted");
   await input.setInputFiles({
     name: "large.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.alloc(20_000_001),
   });
   await expect(d.getByRole("alert")).toContainText("20 MB");
-  await d.getByRole("button", { name: "取消新增", exact: true }).click();
+  await d.getByRole("button", { name: "Cancel new material", exact: true }).click();
   await expect(d).toContainText("0 / 12");
 });
 
@@ -117,11 +117,11 @@ test("stopping a delayed parser keeps a later TXT preview", async ({
       .catch(() => {});
   });
   const d = await start(page);
-  await d.getByLabel("选择文件").setInputFiles(fixture("book-club.docx"));
+  await d.getByLabel("Choose file").setInputFiles(fixture("book-club.docx"));
   await expect.poll(() => started).toBe(true);
-  await d.getByRole("button", { name: "停止读取", exact: true }).click();
+  await d.getByRole("button", { name: "Stop reading", exact: true }).click();
   await d
-    .getByLabel("选择文件")
+    .getByLabel("Choose file")
     .setInputFiles({
       name: "later.txt",
       mimeType: "text/plain",
@@ -131,7 +131,7 @@ test("stopping a delayed parser keeps a later TXT preview", async ({
   release();
   await page.waitForTimeout(200);
   await expect(d.getByTestId("import-preview")).toHaveValue("新的文字");
-  await d.getByRole("button", { name: "确认加入", exact: true }).click();
+  await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
   await expect(d.getByTestId("material-detail")).toContainText("later.txt");
 });
 
@@ -143,7 +143,7 @@ test("failed imported-material save keeps edited preview and retries without par
     if (request.url().includes("/api/import-text")) parses++;
   });
   const d = await start(page);
-  await d.getByLabel("选择文件").setInputFiles(fixture("book-club.pdf"));
+  await d.getByLabel("Choose file").setInputFiles(fixture("book-club.pdf"));
   await expect(d.getByTestId("import-preview")).toHaveValue(/Starlight/);
   await d.getByTestId("import-preview").fill("修改后的文字😀");
   await page.evaluate(() => {
@@ -158,12 +158,12 @@ test("failed imported-material save keeps edited preview and retries without par
       return original.apply(this, args);
     };
   });
-  await d.getByRole("button", { name: "确认加入", exact: true }).click();
+  await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
   await expect(d.getByRole("alert")).toContainText("模拟入炉失败");
   await expect(d.getByTestId("import-preview")).toHaveValue("修改后的文字😀");
-  await d.getByRole("button", { name: "确认加入", exact: true }).click();
+  await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
   await expect(
-    d.getByRole("button", { name: "选择材料 book-club.pdf", exact: true }),
+    d.getByRole("button", { name: "Select material book-club.pdf", exact: true }),
   ).toHaveCount(1);
   await expect(d).toContainText("1 / 12");
   expect(parses).toBe(1);

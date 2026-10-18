@@ -105,7 +105,7 @@ it.each(formats)(
     });
     expect(material.origin).not.toHaveProperty("encoding");
     expect(sourceDescription(material)).toContain(
-      `${format.toUpperCase()} 文件`,
+      `${format.toUpperCase()} file`,
     );
     const frozen = snapshot(material);
     expect(Object.isFrozen(frozen)).toBe(true);
@@ -185,7 +185,7 @@ it.each(
     );
     await expect(
       requestGemini(source, answer.instruction, options),
-    ).rejects.toThrow("绑定");
+    ).rejects.toThrow(/binding|bound/);
   },
 );
 
@@ -208,7 +208,7 @@ it("rejects mismatched extensions and malformed file metadata before creating im
     createTextMaterial({ ...base, text: "😀".repeat(30_001) }),
   ).toThrow("60,000");
   expect(() => createTextMaterial({ ...base, note: "x".repeat(2001) })).toThrow(
-    "说明",
+    "source note",
   );
   expect(
     createTextMaterial({

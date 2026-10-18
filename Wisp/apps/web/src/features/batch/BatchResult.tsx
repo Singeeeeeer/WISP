@@ -10,7 +10,7 @@ import "./batch.css";
 export function BatchSources({ snapshots }: { snapshots: MaterialSnapshot[] }) {
   const materials = useDocuments((s) => s.materials);
   return (
-    <div aria-label="本次多材料来源">
+    <div aria-label="Sources for this multi-material run">
       {snapshots.map((s, index) => {
         const current = materials.find((m) => m.id === s.materialId);
         const stale =
@@ -21,19 +21,19 @@ export function BatchSources({ snapshots }: { snapshots: MaterialSnapshot[] }) {
         return (
           <section className="scope" key={s.id}>
             <strong>
-              材料 {index + 1} · {s.title}
+              Material {index + 1} · {s.title}
             </strong>
             <p>
-              版本 {s.materialVersion} · UTF-16 范围 [{s.start}, {s.end})
+              Version {s.materialVersion} · UTF-16 range [{s.start}, {s.end})
             </p>
             <SourceInfo value={s} />
             {stale && (
               <p role="status" className="notice">
-                此来源已变化或不可用：保留的是旧版本副本。
+                This source changed or is unavailable; the copy from the old version is retained.
               </p>
             )}
             <details>
-              <summary>查看材料 {index + 1} 冻结文字</summary>
+              <summary>View the frozen text for material {index + 1}</summary>
               <pre>{s.text}</pre>
             </details>
           </section>
@@ -45,7 +45,7 @@ export function BatchSources({ snapshots }: { snapshots: MaterialSnapshot[] }) {
 
 function evidenceLabel(e: BatchEvidence, snapshots: MaterialSnapshot[]) {
   const s = snapshots[e.sourceIndex - 1];
-  return `材料 ${e.sourceIndex} · ${s.title} · 版本 ${s.materialVersion} · UTF-16 区间 [${s.start + e.start}, ${s.start + e.end})`;
+  return `Material ${e.sourceIndex} · ${s.title} · Version ${s.materialVersion} · UTF-16 range [${s.start + e.start}, ${s.start + e.end})`;
 }
 function Evidence({
   items,
@@ -74,44 +74,44 @@ function copyText(r: BatchRecord) {
     r.operation === "check"
       ? [
           r.findings.length
-            ? "疑点需人工核对"
+            ? "Findings require human review"
             : r.outcome === "needs_information"
-              ? "需要补充信息"
-              : "未发现明显问题（不代表材料正确）",
+              ? "More information needed"
+              : "No obvious issues found (this does not mean the material is correct)",
           ...r.findings.map(
             (f) =>
-              `${f.title}\n${f.explanation}\n建议：${f.suggestion}\n${refs(f.evidence)}`,
+              `${f.title}\n${f.explanation}\nSuggestion: ${f.suggestion}\n${refs(f.evidence)}`,
           ),
         ]
       : r.operation === "understand"
         ? [
-            r.summary || "材料不足，尚未生成摘要。",
+            r.summary || "Not enough material to generate a summary.",
             refs(r.summaryEvidence),
             ...r.keyPoints.map(
               (p) => `${p.title}\n${p.explanation}\n${refs(p.evidence)}`,
             ),
           ]
         : [
-            "AI 草稿（待人工确认）",
-            r.draft || "材料不足，尚未生成草稿。",
+            "AI draft (requires human review)",
+            r.draft || "Not enough material to generate a draft.",
             ...r.alternatives.map(
-              (a) => `备选方向：${a.title}\n${a.description}`,
+              (a) => `Alternative direction: ${a.title}\n${a.description}`,
             ),
             ...r.sourceFacts.map(
-              (f) => `采用的原文事实：${f.statement}\n${refs(f.evidence)}`,
+              (f) => `Source fact used: ${f.statement}\n${refs(f.evidence)}`,
             ),
-            ...r.assumptions.map((a) => `创作假设：${a}`),
+            ...r.assumptions.map((a) => `Creative assumption: ${a}`),
           ];
   return [
-    `多材料 ${r.operation} · Gemini · 结果需人工审阅`,
-    `要求：${r.instruction || "无"}`,
+    `Multi-material ${r.operation} · Gemini · result requires human review`,
+    `Instruction: ${r.instruction || "None"}`,
     ...r.snapshots.map(
       (s, i) =>
-        `材料 ${i + 1}：${s.title} · ID ${s.materialId} · 版本 ${s.materialVersion} · 范围 [${s.start}, ${s.end})\n${sourceDescription(s)}`,
+        `Material ${i + 1}: ${s.title} · ID ${s.materialId} · Version ${s.materialVersion} · Range [${s.start}, ${s.end})\n${sourceDescription(s)}`,
     ),
     ...body,
-    ...r.missingInformation.map((m) => `待补充：${m}`),
-    `模型：${r.metadata.modelId} · ${r.createdAt}`,
+    ...r.missingInformation.map((m) => `To add: ${m}`),
+    `Model: ${r.metadata.modelId} · ${r.createdAt}`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -137,25 +137,25 @@ export function BatchResult({
       await navigator.clipboard.writeText(
         draftOnly && r.operation === "create" ? r.draft : copyText(r),
       );
-      if (ticket === copyTicket.current && finish("success")) setCopy("已复制");
+      if (ticket === copyTicket.current && finish("success")) setCopy("Copied");
     } catch {
       if (ticket === copyTicket.current && finish("error"))
-        setCopy("复制失败，请重试。");
+        setCopy("Copy failed. Please try again.");
     }
   }
   const label = r.operation[0].toUpperCase() + r.operation.slice(1);
   return (
     <div className="batch-result">
-      <div className="eyebrow">GEMINI · {r.snapshots.length} 份独立材料</div>
-      <h2>多材料 {label} 结果</h2>
+      <div className="eyebrow">GEMINI · {r.snapshots.length} independent materials</div>
+      <h2>Multi-material {label} result</h2>
       <p className="notice">
-        依据本次冻结文字综合生成；引用匹配只证明文字存在于指定材料，不保证概括或草稿正确。结果不修改原文。
+        Generated from the confirmed frozen text. Citation matches only show that text exists in the specified material; they do not guarantee that the summary or draft is correct. Results do not modify the source.
       </p>
-      {r.instruction && <p>补充要求：{r.instruction}</p>}
+      {r.instruction && <p>Additional instruction: {r.instruction}</p>}
       {r.operation === "understand" && (
         <>
-          <h3>综合摘要</h3>
-          <p>{r.summary || "材料不足，尚未生成摘要。"}</p>
+          <h3>Combined summary</h3>
+          <p>{r.summary || "Not enough material to generate a summary."}</p>
           <Evidence items={r.summaryEvidence} snapshots={r.snapshots} />
           {r.keyPoints.map((p, i) => (
             <section className="scope" key={i}>
@@ -171,15 +171,15 @@ export function BatchResult({
           {!r.findings.length && (
             <p>
               {r.outcome === "needs_information"
-                ? "需要补充信息"
-                : "未发现明显问题（不代表材料正确）"}
+                ? "More information needed"
+                : "No obvious issues found (this does not mean the material is correct)"}
             </p>
           )}
           {r.findings.map((f, i) => (
             <section className="scope" key={i}>
               <h3>{f.title}</h3>
               <p>{f.explanation}</p>
-              <p>建议：{f.suggestion}</p>
+              <p>Suggestion: {f.suggestion}</p>
               <Evidence items={f.evidence} snapshots={r.snapshots} />
             </section>
           ))}
@@ -187,26 +187,26 @@ export function BatchResult({
       )}
       {r.operation === "create" && (
         <>
-          <h3>AI 草稿（待人工确认）</h3>
+          <h3>AI draft (requires human review)</h3>
           <pre className="batch-draft">
-            {r.draft || "材料不足，尚未生成草稿。"}
+            {r.draft || "Not enough material to generate a draft."}
           </pre>
           {r.alternatives.map((a, i) => (
             <section className="scope" key={i}>
-              <h3>备选：{a.title}</h3>
+              <h3>Alternative: {a.title}</h3>
               <p>{a.description}</p>
             </section>
           ))}
           {r.sourceFacts.map((f, i) => (
             <section className="scope" key={i}>
-              <h3>采用的原文事实</h3>
+              <h3>Source facts used</h3>
               <p>{f.statement}</p>
               <Evidence items={f.evidence} snapshots={r.snapshots} />
             </section>
           ))}
           {!!r.assumptions.length && (
             <section>
-              <h3>创作假设</h3>
+              <h3>Creative assumptions</h3>
               <ul>
                 {r.assumptions.map((a, i) => (
                   <li key={i}>{a}</li>
@@ -218,7 +218,7 @@ export function BatchResult({
       )}
       {!!r.missingInformation.length && (
         <section>
-          <h3>待补充信息</h3>
+          <h3>Information to add</h3>
           <ul>
             {r.missingInformation.map((m, i) => (
               <li key={i}>{m}</li>
@@ -226,30 +226,30 @@ export function BatchResult({
           </ul>
         </section>
       )}
-      <h3>本次材料与版本</h3>
+      <h3>Materials and versions in this run</h3>
       <BatchSources snapshots={r.snapshots} />
       <p className="subtle">
-        模型 {r.metadata.modelId} · {new Date(r.createdAt).toLocaleString()} ·
-        耗时 {r.metadata.durationMs} ms
+        Model: {r.metadata.modelId} · {new Date(r.createdAt).toLocaleString("en-US")} ·
+        Duration: {r.metadata.durationMs} ms
       </p>
       <p role="status">{copy}</p>
       <div className="panel-actions">
-        <button onClick={() => void copyResult()}>复制多材料结果</button>
+        <button onClick={() => void copyResult()}>Copy multi-material result</button>
         {r.operation === "create" && (
           <button disabled={!r.draft} onClick={() => void copyResult(true)}>
-            仅复制草稿
+            Copy draft only
           </button>
         )}
-        {summon && <button onClick={summon}>继续召唤使魔</button>}
+        {summon && <button onClick={summon}>Summon familiar again</button>}
         <button
           disabled={r.snapshots.some(
             (s) => !materials.some((m) => m.id === s.materialId),
           )}
           onClick={again}
         >
-          重新确认当前材料
+          Confirm current materials again
         </button>
-        <button onClick={close}>关闭多材料结果</button>
+        <button onClick={close}>Close multi-material result</button>
       </div>
     </div>
   );

@@ -26,6 +26,20 @@ def wire(value=None, **extra):
 
 
 class GeminiContractTests(unittest.TestCase):
+    def test_generated_prose_is_english_and_evidence_keeps_its_source_language(self):
+        from app.gemini import SYSTEM, UNDERSTAND_SYSTEM, CREATE_SYSTEM, CONNECTION_SYSTEM
+        from app.batch_gemini import BATCH_SYSTEM
+        prompts = {
+            'check': SYSTEM, 'understand': UNDERSTAND_SYSTEM,
+            'create': CREATE_SYSTEM, 'connection': CONNECTION_SYSTEM,
+            **{f'batch-{operation}': prompt + ' ' + BATCH_SYSTEM
+               for operation, prompt in [('check', SYSTEM), ('understand', UNDERSTAND_SYSTEM), ('create', CREATE_SYSTEM)]},
+        }
+        for operation, prompt in prompts.items():
+            with self.subTest(operation=operation):
+                self.assertIn('Write all generated prose in English.', prompt)
+                self.assertIn('Preserve exact evidence quotes in their original language.', prompt)
+
     def client(self, handler=None, configured=True):
         from app.main import create_app
         from app.config import Settings
@@ -54,6 +68,7 @@ class GeminiContractTests(unittest.TestCase):
         self.assertEqual(data['instruction'],req['instruction'])
         self.assertEqual(data['id'],'snap')
         self.assertEqual(data['metadata']['modelId'],'actual-model')
+        self.assertEqual(data['metadata']['promptVersion'],'gemini-check-prompt-3')
         self.assertEqual(data['metadata']['usage'],{'total_tokens':42})
         self.assertEqual(data['outcome'],'no_findings')
         self.assertEqual(c.post('/api/check',json=req).json(),data)

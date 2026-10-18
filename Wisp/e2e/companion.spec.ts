@@ -29,7 +29,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 503, body: "Companion test: API disabled" }),
   );
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
 });
 
 test("wand cursor loads while text and resize resources retain their semantic fallbacks", async ({
@@ -48,11 +48,11 @@ test("wand cursor loads while text and resize resources retain their semantic fa
       return [image.naturalWidth, image.naturalHeight];
     }, resource),
   ).toEqual([24, 24]);
-  await expect(page.getByLabel("书店活动提案正文")).toHaveCSS(
+  await expect(page.getByLabel("Bookstore event proposal text")).toHaveCSS(
     "cursor",
     /wand-text\.svg.*\) 12 12, text$/,
   );
-  await expect(page.getByLabel("缩放书店活动提案")).toHaveCSS(
+  await expect(page.getByLabel("Resize Bookstore event proposal")).toHaveCSS(
     "cursor",
     /wand-resize\.svg.*\) 12 12, nwse-resize$/,
   );
@@ -81,9 +81,9 @@ test("focus and text selection yield to the corner without interrupting editing"
 }) => {
   const companion = page.locator(".companion");
   await page
-    .getByRole("button", { name: "打开书店活动提案", exact: true })
+    .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
-  const editor = page.getByLabel("书店活动提案正文");
+  const editor = page.getByLabel("Bookstore event proposal text");
   await editor.fill(
     "选中这段文字以后，小魔女应当让开。\n仍然可以继续输入文字。",
   );
@@ -125,7 +125,7 @@ test("window dragging yields while held and restores following after release", a
   page,
 }) => {
   const companion = page.locator(".companion");
-  const window = page.getByRole("region", { name: "书店活动提案窗口" });
+  const window = page.getByRole("region", { name: "Bookstore event proposal window" });
   const title = window.locator(".window-titlebar");
   const before = (await window.boundingBox())!;
   const bar = (await title.boundingBox())!;
@@ -173,9 +173,9 @@ test("reduced motion stays fixed and menu and visibility settings remain usable"
   page,
 }) => {
   const companion = page.locator(".companion");
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByLabel("减少动态效果").check();
+  await page.getByLabel("Reduce motion").check();
   await page.keyboard.press("Escape");
   await expect(companion).toHaveClass("companion still");
   await expect(companion).toHaveAttribute("data-state", "still");
@@ -188,7 +188,7 @@ test("reduced motion stays fixed and menu and visibility settings remain usable"
     y: 0,
   });
   await page.keyboard.press("q");
-  await expect(page.getByRole("menu", { name: "基础能力" })).toBeVisible();
+  await expect(page.getByRole("menu", { name: "Core abilities" })).toBeVisible();
   await expect(companion).toHaveCount(1);
   await expect(companion).toHaveAttribute("data-state", "casting");
   await expect(page.locator(".ring-center .wisp-sprite")).toHaveCount(0);
@@ -198,13 +198,13 @@ test("reduced motion stays fixed and menu and visibility settings remain usable"
   });
   await page.keyboard.press("Escape");
   await expect(companion).toHaveAttribute("data-state", "still");
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByLabel("显示小魔女").uncheck();
+  await page.getByLabel("Show the witch").uncheck();
   await expect(companion).toHaveCount(0);
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "打开基础能力" }).click();
-  await expect(page.getByRole("menu", { name: "基础能力" })).toBeVisible();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
+  await expect(page.getByRole("menu", { name: "Core abilities" })).toBeVisible();
   await expect(page.locator(".ring-center .wisp-sprite")).toHaveCount(0);
 });
 

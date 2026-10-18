@@ -113,7 +113,7 @@ it("slices a frozen source with absolute offsets, deep provenance and full-chara
     [2, 2],
     [0.5, 2],
   ])
-    expect(() => sliceBatchSnapshot(source, start, end)).toThrow("选区");
+    expect(() => sliceBatchSnapshot(source, start, end)).toThrow("selection");
 });
 it("requires valid need-information outcomes and enforces aggregate result budgets", () => {
   const result = batchResult("understand");
@@ -169,7 +169,7 @@ it("maps all familiar roles, retains frozen snapshots and rejects mixed or watch
     expect(() =>
       newBatchTask({ ...draft, watchId: "watch" } as never),
     ).toThrow();
-    expect(() => newBatchTask({ ...draft, entry: "check" })).toThrow("委托");
+    expect(() => newBatchTask({ ...draft, entry: "check" })).toThrow("delegation");
   }
   const r = batchResult("understand");
   expect(() =>
@@ -203,7 +203,7 @@ it("binds task replies to complete snapshots, operation, instruction, batch ID a
   ])
     expect(() =>
       transition(task, { type: "complete", result: bad as never }),
-    ).toThrow("绑定");
+    ).toThrow(/binding|bound/);
 });
 it("preserves originals for continuation with fresh batch and source IDs", () => {
   const r = batchResult("understand"),

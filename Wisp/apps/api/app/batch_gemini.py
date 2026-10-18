@@ -25,7 +25,7 @@ async def run_batch(engine, operation, request):
     if operation == 'understand': source['summaryStyle']=request.summaryStyle
     system={'check':SYSTEM, 'understand':UNDERSTAND_SYSTEM, 'create':CREATE_SYSTEM}[operation] + ' ' + BATCH_SYSTEM
     raw,metadata=await generate(engine.settings, engine.transport, source, system, supplier_schema(operation),
-                                'gemini-batch-'+operation+'-prompt-1')
+                                'gemini-batch-'+operation+'-prompt-2')
     try:
         contract={'check':GeneratedBatchCheck, 'understand':GeneratedBatchUnderstand, 'create':GeneratedBatchCreate}[operation]
         generated=contract.model_validate(raw)

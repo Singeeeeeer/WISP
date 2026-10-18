@@ -42,7 +42,7 @@ it("reports an old tab blocking upgrade instead of hanging", async () => {
   });
   try {
     await expect(createRepository(name).initialize()).rejects.toThrow(
-      "其他 Wisp 标签页",
+      "another Wisp tab",
     );
   } finally {
     old.close();

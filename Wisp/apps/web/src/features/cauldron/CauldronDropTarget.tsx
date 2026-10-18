@@ -38,17 +38,17 @@ export function CauldronDropTarget() {
           "[data-cauldron-target], .cauldron",
         )
       )
-        reason = "请拖向顶部“灵感熔炉”入口。";
+        reason = "Drag to “Inspiration Cauldron” at the top.";
       const items = Array.from(data.items).filter(
         (item) => item.kind === "file",
       );
       if (!reason && files && items.length > 1)
-        reason = "每次只能拖入一个文件。";
+        reason = "Only one file can be dropped at a time.";
       if (!reason && files && data.files.length === 1) {
         try {
           fileSource(data.files[0].name);
           if (data.files[0].size > 20_000_000)
-            reason = "单个文件不能超过 20 MB。";
+            reason = "A single file cannot exceed 20 MB.";
         } catch (error) {
           reason = (error as Error).message;
         }
@@ -68,8 +68,8 @@ export function CauldronDropTarget() {
         text:
           result.reason ||
           (result.internal
-            ? "可放入 · 松开后查看全文副本，确认保存后加入熔炉。"
-            : "可放入 · 单个 TXT / DOCX / PPTX / XLSX / PDF；松开后预览，确认保存后加入。"),
+            ? "Drop to add · release to preview the full copy, then confirm and save to add it to the cauldron."
+            : "Drop to add · one TXT / DOCX / PPTX / XLSX / PDF; release to preview, then confirm and save to add."),
       });
     };
     const enter = (event: DragEvent) => {
@@ -97,7 +97,7 @@ export function CauldronDropTarget() {
             (item) => item.webkitGetAsEntry?.()?.isDirectory,
           );
           if (directory || files.length !== 1)
-            throw new Error("每次只支持一个文件，不能拖入文件夹。");
+            throw new Error("Only one file is supported at a time; folders cannot be dropped.");
           queueImport({ file: files[0] });
         }
       } catch (error) {
@@ -137,7 +137,7 @@ export function CauldronDropTarget() {
         <div className="cauldron-import-error" role="alert">
           <span>{error}</span>
           <button onClick={() => useCauldronImport.setState({ error: "" })}>
-            关闭导入提示
+            Close import notice
           </button>
         </div>
       )}
@@ -147,7 +147,7 @@ export function CauldronDropTarget() {
           role="status"
           data-allowed={feedback.allowed}
         >
-          <strong>{feedback.allowed ? "放入灵感熔炉" : "暂不可放入"}</strong>
+          <strong>{feedback.allowed ? "Drop into Inspiration Cauldron" : "Cannot drop here"}</strong>
           <span>{feedback.text}</span>
         </div>
       )}

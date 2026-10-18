@@ -3,7 +3,7 @@ import { test, expect, type Page } from "@playwright/test";
 type FlightWindow = Window & { __summonClick?: { x: number; y: number } };
 
 async function openSummon(page: Page, role = "Page Sprite") {
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Summon", exact: true }).click();
   await page.getByRole("button", { name: role }).click();
 }
@@ -29,7 +29,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 503, body: "Summon flight test: API disabled" }),
   );
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
 });
 
 for (const [role, familiar, sprite] of [
@@ -42,7 +42,7 @@ for (const [role, familiar, sprite] of [
   }) => {
     await pauseFlights(page);
     await openSummon(page, role);
-    const submit = page.getByRole("button", { name: "召唤使魔", exact: true });
+    const submit = page.getByRole("button", { name: "Summon familiar", exact: true });
     await submit.scrollIntoViewIfNeeded();
     await submit.evaluate((element) => {
       element.addEventListener(
@@ -69,10 +69,10 @@ for (const [role, familiar, sprite] of [
     expect(at.x + at.width / 2).toBeCloseTo(origin.x, 1);
     expect(at.y + at.height / 2).toBeCloseTo(origin.y, 1);
     await expect(flight).toHaveCSS("pointer-events", "none");
-    await expect(page.getByRole("dialog", { name: "材料确认" })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Material confirmation" })).toHaveCount(0);
     await expect(
-      page.getByRole("complementary", { name: "使魔任务状态" }),
-    ).toContainText("1 封未读");
+      page.getByRole("complementary", { name: "Familiar task status" }),
+    ).toContainText("1 unread");
     // Holding only the decorative animation cannot hold a local task's real result.
     await expect(flight).toHaveAttribute("data-flight", "flying");
     if (familiar === "scout_bat") {
@@ -80,7 +80,7 @@ for (const [role, familiar, sprite] of [
         element.getAnimations()[0].currentTime = 250;
       });
       await page.screenshot({
-        path: "docs/screenshots/pdf09-scout-flight.png",
+        path: "test-results/english/pdf09-scout-flight.png",
       });
     }
     await flight.evaluate((element) => element.getAnimations()[0].finish());
@@ -105,7 +105,7 @@ test("failed enqueue has no flight; a keyboard retry starts at the button center
       return add.apply(this, args);
     };
   });
-  const submit = page.getByRole("button", { name: "召唤使魔", exact: true });
+  const submit = page.getByRole("button", { name: "Summon familiar", exact: true });
   await submit.click();
   await expect(page.getByRole("alert")).toContainText("模拟委托写入失败");
   const flight = page.locator(".familiar-flight");
@@ -127,13 +127,13 @@ for (const source of ["application", "system"] as const) {
     if (source === "system")
       await page.emulateMedia({ reducedMotion: "reduce" });
     else {
-      await page.getByRole("button", { name: "魔法书", exact: true }).click();
+      await page.getByRole("button", { name: "Grimoire", exact: true }).click();
       await page.getByRole("button", { name: "Settings", exact: true }).click();
-      await page.getByLabel("减少动态效果").check();
+      await page.getByLabel("Reduce motion").check();
       await page.keyboard.press("Escape");
     }
     await openSummon(page);
-    await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+    await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
     const flight = page.locator(".familiar-flight");
     await expect(flight).toHaveAttribute("data-flight", "handoff");
     expect(
@@ -151,8 +151,8 @@ for (const source of ["application", "system"] as const) {
       timeout: 2000,
     });
     await expect(
-      page.getByRole("complementary", { name: "使魔任务状态" }),
-    ).toContainText("1 封未读");
+      page.getByRole("complementary", { name: "Familiar task status" }),
+    ).toContainText("1 unread");
   });
 }
 
@@ -162,10 +162,10 @@ test("new submission replaces a flight; resize, blur and hiding the witch clear 
   await pauseFlights(page);
   const flight = page.locator(".familiar-flight");
   await openSummon(page);
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(flight).toHaveAttribute("data-flight", "flying");
   await openSummon(page, "Scout Bat");
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(flight).toHaveAttribute("data-familiar", "scout_bat");
   expect(
     await flight.evaluate((element) => element.getAnimations().length),
@@ -173,20 +173,20 @@ test("new submission replaces a flight; resize, blur and hiding the witch clear 
   await page.setViewportSize({ width: 1400, height: 950 });
   await expect(flight).toHaveAttribute("data-flight", "none");
   await openSummon(page);
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(flight).toHaveAttribute("data-flight", "flying");
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
   await expect(flight).toHaveAttribute("data-flight", "none");
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByLabel("显示小魔女").uncheck();
+  await page.getByLabel("Show the witch").uncheck();
   await page.keyboard.press("Escape");
   await openSummon(page);
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(flight).toHaveAttribute("data-flight", "none");
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("4 封未读");
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("4 unread");
 });
 
 test.describe("touch input", () => {
@@ -195,9 +195,9 @@ test.describe("touch input", () => {
     page,
   }) => {
     await pauseFlights(page);
-    await page.getByRole("button", { name: "打开基础能力" }).tap();
+    await page.getByRole("button", { name: "Open core abilities" }).tap();
     await page.getByRole("menuitem", { name: "Summon", exact: true }).tap();
-    const submit = page.getByRole("button", { name: "召唤使魔", exact: true });
+    const submit = page.getByRole("button", { name: "Summon familiar", exact: true });
     await submit.scrollIntoViewIfNeeded();
     const origin = (await submit.boundingBox())!;
     await submit.tap();
@@ -207,7 +207,7 @@ test.describe("touch input", () => {
     expect(at.x + at.width / 2).toBeCloseTo(origin.x + origin.width / 2, 0);
     expect(at.y + at.height / 2).toBeCloseTo(origin.y + origin.height / 2, 0);
     const target = (await page
-      .getByRole("button", { name: "魔法书", exact: true })
+      .getByRole("button", { name: "Grimoire", exact: true })
       .boundingBox())!;
     const landing = await flight.evaluate((element) => ({
       x: parseFloat((element as HTMLElement).style.left) + 24,

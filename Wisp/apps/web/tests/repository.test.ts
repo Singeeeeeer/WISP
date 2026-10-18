@@ -16,6 +16,6 @@ it("rejects another tab writing from an old revision", async () => {
   await r.saveMaterial({ ...docs[0], text: "first writer", version: 2 }, 1);
   await expect(
     r.saveMaterial({ ...docs[0], text: "stale writer", version: 2 }, 1),
-  ).rejects.toThrow("冲突");
+  ).rejects.toThrow("conflict");
   expect((await r.initialize())[0].text).toBe("first writer");
 });

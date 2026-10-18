@@ -58,13 +58,13 @@ async function delayedCheck(page: Page) {
 
 async function openGemini(page: Page, entry = "Check") {
   await page
-    .getByRole("button", { name: "打开书店活动提案", exact: true })
+    .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
   await page.mouse.click(1100, 300, { button: "right" });
   await page.getByRole("menuitem", { name: entry, exact: true }).click();
   if (entry === "Summon")
     await page.getByRole("button", { name: /Scout Bat/ }).click();
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
 }
 
 async function success(route: Route) {
@@ -109,14 +109,14 @@ test.beforeEach(async ({ page }) => {
   );
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
 });
 
 test("hover and pressed cursors share the hotspot and one valid click gives a brief fixed effect", async ({
   page,
 }) => {
   const feedback = page.locator(".wand-feedback");
-  const book = page.getByRole("button", { name: "魔法书", exact: true });
+  const book = page.getByRole("button", { name: "Grimoire", exact: true });
   await page.mouse.move(1200, 700);
   await expect(feedback).toHaveAttribute("data-state", "none");
   const ordinary = await cursor(page.locator(".desktop"));
@@ -153,7 +153,7 @@ test("hover and pressed cursors share the hotspot and one valid click gives a br
     })),
   ).toEqual(fixed);
   await expect(
-    page.getByRole("dialog", { name: "魔法书", exact: true }),
+    page.getByRole("dialog", { name: "Grimoire", exact: true }),
   ).toBeVisible();
   await expect(flash).toHaveCSS("opacity", "0");
 });
@@ -162,7 +162,7 @@ test("dragging out or losing focus cancels a press and the next click still work
   page,
 }) => {
   const feedback = page.locator(".wand-feedback");
-  const book = page.getByRole("button", { name: "魔法书", exact: true });
+  const book = page.getByRole("button", { name: "Grimoire", exact: true });
   await book.hover();
   await page.mouse.down();
   await expect(feedback).toHaveAttribute("data-state", "pressed");
@@ -190,7 +190,7 @@ test("dragging out or losing focus cancels a press and the next click still work
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await book.click();
   await expect(
-    page.getByRole("dialog", { name: "魔法书", exact: true }),
+    page.getByRole("dialog", { name: "Grimoire", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".wand-feedback")).toHaveCount(1);
   await expect(page.locator(".wand-click")).toHaveCount(1);
@@ -202,13 +202,13 @@ test("title controls keep hover priority while window drag and resize capture su
   const feedback = page.locator(".wand-feedback");
   const html = page.locator("html");
   await page
-    .getByRole("button", { name: "打开书店活动提案", exact: true })
+    .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
-  const window = page.getByRole("region", { name: "书店活动提案窗口" });
+  const window = page.getByRole("region", { name: "Bookstore event proposal window" });
   const title = window.locator(".window-titlebar");
   const before = (await window.boundingBox())!;
   const minimize = page.getByRole("button", {
-    name: "最小化书店活动提案",
+    name: "Minimize Bookstore event proposal",
     exact: true,
   });
   await minimize.hover();
@@ -229,11 +229,11 @@ test("title controls keep hover priority while window drag and resize capture su
   await expect(html).not.toHaveAttribute("data-wisp-gesture", "drag");
   await expect(window).not.toHaveAttribute("data-wisp-dragging", "true");
   await expect(feedback).not.toHaveAttribute("data-state", "dragging");
-  const editor = page.getByLabel("书店活动提案正文");
+  const editor = page.getByLabel("Bookstore event proposal text");
   await editor.hover();
   await expectCursorResource(editor, "wand-text.svg", [12, 12], "text");
   await expect(feedback).toHaveAttribute("data-state", "none");
-  const handle = page.getByLabel("缩放书店活动提案");
+  const handle = page.getByLabel("Resize Bookstore event proposal");
   await handle.hover();
   await expectCursorResource(
     handle,
@@ -289,9 +289,9 @@ test("text cursor preserves real drag selection, native copy and replacing selec
   page,
 }) => {
   await page
-    .getByRole("button", { name: "打开书店活动提案", exact: true })
+    .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
-  const editor = page.getByLabel("书店活动提案正文");
+  const editor = page.getByLabel("Bookstore event proposal text");
   const original = "Wisp keeps selection and editing usable.";
   await editor.fill(original);
   const textGeometry = await editor.evaluate((element: HTMLTextAreaElement) => {
@@ -418,7 +418,7 @@ test("busy feedback stays within its panel while native controls and document ed
   const feedback = page.locator(".wand-feedback");
   await openGemini(page);
   await page
-    .getByRole("button", { name: "运行 Gemini 检查", exact: true })
+    .getByRole("button", { name: "Run Gemini Check", exact: true })
     .click();
   await expect.poll(() => requests.length).toBe(1);
   const panel = page.locator(".floating-panel");
@@ -427,7 +427,7 @@ test("busy feedback stays within its panel while native controls and document ed
   await title.hover();
   await expect(feedback).toHaveAttribute("data-state", "progress");
   const disabled = page.getByRole("button", {
-    name: "正在处理并保存…",
+    name: "Processing and saving…",
     exact: true,
   });
   // Disabled buttons must also override descendants that carry their own cursor class.
@@ -468,11 +468,11 @@ test("busy feedback stays within its panel while native controls and document ed
   await page.mouse.up();
   await expectNoClickEffect(page);
   expect(requests).toHaveLength(1);
-  const stop = page.getByRole("button", { name: "停止等待", exact: true });
+  const stop = page.getByRole("button", { name: "Stop waiting", exact: true });
   await stop.hover();
   await expect(stop).toBeEnabled();
   await expect(feedback).toHaveAttribute("data-state", "hover");
-  const editor = page.getByLabel("书店活动提案正文");
+  const editor = page.getByLabel("Bookstore event proposal text");
   await editor.hover();
   await expectCursorResource(editor, "wand-text.svg", [12, 12], "text");
   await expect(feedback).toHaveAttribute("data-state", "none");
@@ -483,18 +483,18 @@ test("busy feedback stays within its panel while native controls and document ed
   await title.hover();
   await expect(feedback).toHaveAttribute("data-state", "progress");
   await failure(requests[0]);
-  await expect(page.getByRole("alert")).toContainText("Gemini 服务暂时不可用");
+  await expect(page.getByRole("alert")).toContainText("Gemini is temporarily unavailable");
   await expect(panel).toHaveAttribute("aria-busy", "false");
   await expect(feedback).toHaveAttribute("data-state", "none");
   await page
-    .getByRole("button", { name: "运行 Gemini 检查", exact: true })
+    .getByRole("button", { name: "Run Gemini Check", exact: true })
     .click();
   await expect.poll(() => requests.length).toBe(2);
   await title.hover();
   await expect(feedback).toHaveAttribute("data-state", "progress");
   await success(requests[1]);
   await expect(
-    page.getByRole("heading", { name: "Gemini：需要补充信息", exact: true }),
+    page.getByRole("heading", { name: "Gemini: more information needed", exact: true }),
   ).toBeVisible();
   await expect(feedback).toHaveAttribute("data-state", "none");
   await expect(editor).toHaveValue("等待过程中，原文仍然可以编辑。");
@@ -507,31 +507,31 @@ test("cancelling a local wait clears busy feedback and a background familiar nev
   const feedback = page.locator(".wand-feedback");
   await openGemini(page);
   await page
-    .getByRole("button", { name: "运行 Gemini 检查", exact: true })
+    .getByRole("button", { name: "Run Gemini Check", exact: true })
     .click();
   await expect.poll(() => requests.length).toBe(1);
   await page.locator(".floating-heading > span").hover();
   await expect(feedback).toHaveAttribute("data-state", "progress");
-  await page.getByRole("button", { name: "停止等待", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("已停止等待");
+  await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Waiting stopped");
   await expect(page.locator(".floating-panel")).toHaveAttribute(
     "aria-busy",
     "false",
   );
   await expect(feedback).not.toHaveAttribute("data-state", "progress");
   await success(requests[0]).catch(() => {});
-  await page.getByRole("button", { name: "关闭材料面板", exact: true }).click();
+  await page.getByRole("button", { name: "Close material panel", exact: true }).click();
   await openGemini(page, "Summon");
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect.poll(() => requests.length).toBe(2);
   await expect(page.locator(".floating-panel")).toHaveCount(0);
   await page.mouse.move(1200, 700);
   await expect(feedback).toHaveAttribute("data-state", "none");
-  await page.getByLabel("书店活动提案正文").fill("使魔工作时也能编辑。");
-  await page.getByRole("button", { name: "查看使魔任务", exact: true }).click();
-  await page.getByRole("button", { name: "召回任务", exact: true }).click();
+  await page.getByLabel("Bookstore event proposal text").fill("使魔工作时也能编辑。");
+  await page.getByRole("button", { name: "View familiar tasks", exact: true }).click();
+  await page.getByRole("button", { name: "Recall task", exact: true }).click();
   await success(requests[1]).catch(() => {});
-  await expect(page.getByTestId("task-card")).toContainText("已召回");
+  await expect(page.getByTestId("task-card")).toContainText("Cancelled");
 });
 
 for (const source of ["application", "system"] as const) {
@@ -539,16 +539,16 @@ for (const source of ["application", "system"] as const) {
     page,
   }) => {
     const requests = await delayedCheck(page);
-    await page.getByRole("button", { name: "魔法书", exact: true }).click();
+    await page.getByRole("button", { name: "Grimoire", exact: true }).click();
     await page.getByRole("button", { name: "Settings", exact: true }).click();
-    await page.getByLabel("显示小魔女").uncheck();
-    if (source === "application") await page.getByLabel("减少动态效果").check();
+    await page.getByLabel("Show the witch").uncheck();
+    if (source === "application") await page.getByLabel("Reduce motion").check();
     else await page.emulateMedia({ reducedMotion: "reduce" });
     await page.keyboard.press("Escape");
     const feedback = page.locator(".wand-feedback");
     await expect(page.locator(".companion")).toHaveCount(0);
     await expect(feedback).toHaveAttribute("data-reduced", "true");
-    const book = page.getByRole("button", { name: "魔法书", exact: true });
+    const book = page.getByRole("button", { name: "Grimoire", exact: true });
     await book.hover();
     await expect(feedback).toHaveAttribute("data-state", "hover");
     await page.mouse.down();
@@ -560,7 +560,7 @@ for (const source of ["application", "system"] as const) {
     ).toBe(0);
     await page.mouse.up();
     await expect(
-      page.getByRole("dialog", { name: "魔法书", exact: true }),
+      page.getByRole("dialog", { name: "Grimoire", exact: true }),
     ).toBeVisible();
     expect(
       await page
@@ -575,7 +575,7 @@ for (const source of ["application", "system"] as const) {
     await page.keyboard.press("Escape");
     await openGemini(page);
     await page
-      .getByRole("button", { name: "运行 Gemini 检查", exact: true })
+      .getByRole("button", { name: "Run Gemini Check", exact: true })
       .click();
     await expect.poll(() => requests.length).toBe(1);
     await page.locator(".floating-heading > span").hover();

@@ -18,7 +18,7 @@ export function newWatch(s: MaterialSnapshot): Watch {
     !s.text.trim() ||
     s.text.length > 60000
   )
-    throw new Error("关注范围必须是非空全文，最多 60,000 个 UTF-16 单元。");
+    throw new Error("The watch range must be a non-empty full text of no more than 60,000 UTF-16 code units.");
   return {
     id: crypto.randomUUID(),
     materialId: s.materialId,
@@ -28,11 +28,11 @@ export function newWatch(s: MaterialSnapshot): Watch {
     status: "active",
     confirmedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    notice: "等待已保存的新版本",
+    notice: "Waiting for a newly saved version",
   };
 }
 export function watchTask(w: Watch, material: Material): SingleTask {
-  if (w.materialId !== material.id) throw new Error("关注来源不匹配");
+  if (w.materialId !== material.id) throw new Error("The watched source does not match");
   const s = { ...snapshot(material), id: w.id + ":v" + material.version };
   return {
     ...newTask({
@@ -40,7 +40,7 @@ export function watchTask(w: Watch, material: Material): SingleTask {
       execution: "local",
       familiar: "scout_bat",
       snapshot: s,
-      instruction: "持续关注：检查此文本已保存的新版本",
+      instruction: "Continuous watch: check newly saved versions of this text",
     }),
     watchId: w.id,
   };

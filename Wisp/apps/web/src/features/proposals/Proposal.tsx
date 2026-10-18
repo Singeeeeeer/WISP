@@ -58,27 +58,27 @@ function Invitation({
   return (
     <aside
       className="proposal-card"
-      aria-label="主动提议"
+      aria-label="Helpful proposal"
       style={{
         left: Math.max(12, Math.min(innerWidth - 344, anchor.x)),
         top: Math.max(56, Math.min(innerHeight - 440, anchor.y)),
       }}
     >
-      <div className="eyebrow">WISP · 一个小提议</div>
+      <div className="eyebrow">WISP · A small proposal</div>
       <p role="status">
         {watch
-          ? "这次检查已完成。要让 Scout Bat 在本页打开期间关注这份文本的后续变化吗？"
+          ? "This check is complete. Let Scout Bat watch for later changes while this page stays open?"
           : joint
-            ? "你在两份文本之间来回切换。要按来源分别整理它们的摘录吗？"
-            : "你最近多次使用摘录整理。要把之后的摘录默认设得更简短吗？"}
+            ? "You switched between two texts. Organize their excerpts separately by source?"
+            : "You have organized excerpts several times. Make future excerpts shorter by default?"}
       </p>
       <small>
         {watch
-          ? watched?.title + "。先确认全文范围，尚未开始持续关注。"
+          ? watched?.title + ". Confirm the full-text range first; continuous watch has not started."
           : joint
-            ? sources?.map((s) => s.title).join(" ＋ ") +
-              "。仅根据本页切换提出，尚未处理材料。"
-            : "根据本页开启提议后的 3 次成功整理提出，尚未记住任何偏好。"}
+            ? sources?.map((s) => s.title).join(" + ") +
+              ". Suggested because you switched between these texts; no material has been processed."
+            : "Suggested after three successful excerpt runs since proposals were enabled on this page; no preference has been saved."}
       </small>
       <div className="panel-actions">
         <button
@@ -115,7 +115,7 @@ function Invitation({
               });
           }}
         >
-          {watch ? "查看关注范围" : joint ? "查看两份材料" : "查看设置"}
+          {watch ? "View watch scope" : joint ? "View the two materials" : "View settings"}
         </button>
         <button
           onClick={() =>
@@ -126,7 +126,7 @@ function Invitation({
                 : dismissInvitation()
           }
         >
-          暂时不用
+          Not now
         </button>
       </div>
     </aside>
@@ -154,26 +154,25 @@ export function AboutYou() {
         <p role="alert">
           {error}{" "}
           <button disabled={busy} onClick={() => void loadExcerptPreference()}>
-            重试读取偏好
+            Retry loading preference
           </button>
         </p>
       )}
       {proposal?.status === "accepted" && !preference ? (
         <>
-          <h3>确认摘录偏好</h3>
+          <h3>Confirm excerpt preference</h3>
           <p>
-            只改变之后 Understand 和 Page Sprite
-            的默认摘录行数。保留原文顺序，不生成语义摘要；历史结果不变，每次处理前仍可调整。
+            This changes only the default excerpt length for future local Understand and Page Sprite tasks. Excerpts preserve source order and do not generate a semantic summary. History is unchanged, and you can adjust the length before each run.
           </p>
           <label>
-            默认摘录长度{" "}
+            Default excerpt length{" "}
             <select
               disabled={busy}
               value={value}
               onChange={(e) => setValue(Number(e.target.value) as ExcerptLimit)}
             >
-              <option value={3}>简短摘录 · 最多 3 个非空行</option>
-              <option value={8}>标准摘录 · 最多 8 个非空行</option>
+              <option value={3}>Brief excerpt · up to 3 non-empty lines</option>
+              <option value={8}>Standard excerpt · up to 8 non-empty lines</option>
             </select>
           </label>
           <div className="panel-actions">
@@ -181,46 +180,46 @@ export function AboutYou() {
               disabled={busy}
               onClick={() => void saveExcerptPreference(value)}
             >
-              {busy ? "正在保存…" : "保存偏好"}
+              {busy ? "Saving…" : "Save preference"}
             </button>
             <button disabled={busy} onClick={dismissInvitation}>
-              取消偏好确认
+              Cancel preference confirmation
             </button>
           </div>
         </>
       ) : preference ? (
         <>
-          <h3>你确认过的偏好</h3>
+          <h3>Your confirmed preference</h3>
           <p>
-            已确认：{preference.excerptLimit === 3 ? "简短" : "标准"}摘录（最多{" "}
-            {preference.excerptLimit} 个非空行）
+            Confirmed: {preference.excerptLimit === 3 ? "Brief" : "Standard"} excerpt (up to{" "}
+            {preference.excerptLimit} non-empty lines)
           </p>
           <p>
-            来源：你接受主动提议后明确保存 ·{" "}
-            {new Date(preference.confirmedAt).toLocaleString()}
+            Source: explicitly saved after accepting a helpful proposal ·{" "}
+            {new Date(preference.confirmedAt).toLocaleString("en-US")}
           </p>
           <p>
-            仅保存在当前浏览器。忘记后，新请求恢复标准摘录，历史结果和已确认任务不变。
+            Saved only in this browser. Forgetting it restores standard excerpts for new requests; history and confirmed tasks are unchanged.
           </p>
           <button
             disabled={busy}
             onClick={() => void forgetExcerptPreference()}
           >
-            忘记摘录偏好
+            Forget excerpt preference
           </button>
         </>
       ) : (
         <>
-          <h3>还没有记录偏好</h3>
+          <h3>No preference recorded</h3>
           <p>
-            只有经过你确认的偏好才会出现在这里。多次使用某项能力不代表你已经同意保存偏好。
+            Only preferences you confirm appear here. Using a capability repeatedly does not mean you agreed to save a preference.
           </p>
           {error && (
             <button
               disabled={busy}
               onClick={() => void forgetExcerptPreference()}
             >
-              忘记摘录偏好
+              Forget excerpt preference
             </button>
           )}
         </>

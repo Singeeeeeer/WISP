@@ -94,13 +94,13 @@ export function seeds(): Material[] {
   return [
     {
       id: "proposal",
-      title: "书店活动提案",
-      text: "周末，留一点光给自己\n\n01 / 活动意图\n给忙碌的人一点留在书店的时间。活动计划于 11 月 8 日开放，预算为 8,000 元。\n\n02 / 不赶时间的体验\n拿一张空白书签，写下一件想放下的事。选一本书，在窗边坐一会儿。\n\n03 / 待确认事项\n海报计划于 11 月 10 日定稿，随后开放报名。场地、印刷与物料报价合计 6,500 元。\n\n这是可编辑的示例材料，不是真实研究数据。",
+      title: "Bookstore event proposal",
+      text: "A little light for yourself this weekend\n\n01 / Event intent\nGive busy people time to stay in the bookstore. The event is scheduled to open on November 8, with a budget of CNY 8,000.\n\n02 / An unhurried experience\nTake a blank bookmark and write down one thing to let go of. Choose a book and sit by the window for a while.\n\n03 / Items to confirm\nThe poster is scheduled to be finalized on November 10, followed by registration opening. Venue, printing, and materials are quoted at CNY 6,500 in total.\n\nThis editable sample uses fictional information.",
     },
     {
       id: "venue",
-      title: "场地说明",
-      text: "夜莺书店 · 场地说明\n\n开放时间\n11 月 8 日，14:00–20:00。\n\n空间与容量\n建议最多 40 人，保留窗边阅读座位。室内禁止明火。\n\n准备事项\n活动前一天确认人员分工与动线。请将海报、报名安排与执行时间再次核对。\n\n这是可编辑的示例材料。",
+      title: "Venue notes",
+      text: "Nightingale Books · Venue notes\n\nOpening hours\nNovember 8, 14:00–20:00.\n\nSpace and capacity\nUp to 40 people are recommended, with window seats reserved for reading. No open flames indoors.\n\nPreparation\nConfirm roles and flow the day before the event. Check the poster, registration plan, and schedule again.\n\nThis is editable sample material.",
     },
   ].map((m) => ({
     ...m,
@@ -132,7 +132,7 @@ export function selectText(
     !boundary(m.text, start) ||
     !boundary(m.text, end)
   )
-    throw new Error("无效选区：请选择完整字符");
+    throw new Error("Invalid selection: choose a range of complete characters");
   return {
     materialId: m.id,
     materialVersion: m.version,
@@ -151,7 +151,7 @@ export function snapshot(
       selection.materialVersion !== m.version ||
       m.text.slice(selection.start, selection.end) !== selection.selectedText)
   )
-    throw new Error("选区已失效，请重新选择");
+    throw new Error("The selection is no longer valid. Select it again");
   if (selection) selectText(m, selection.start, selection.end);
   return Object.freeze({
     id: crypto.randomUUID(),

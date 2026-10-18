@@ -177,9 +177,9 @@ export function validateGeminiText(value: unknown): value is GeminiTextRecord {
 }
 export const geminiTextHeading = (r: GeminiTextRecord) =>
   r.outcome === "needs_information"
-    ? "Gemini：需要补充信息"
+    ? "Gemini: more information needed"
     : r.operation === "understand"
-      ? "Gemini：材料摘要"
-      : "Gemini：创作草稿";
+      ? "Gemini: material summary"
+      : "Gemini: creative draft";
 export const GEMINI_TEXT_LIMIT =
-  "仅依据本次材料生成，引用只证明文字来自原文，不保证概括或草稿正确。请核对依据、假设和待补充信息；不自动修改原文。";
+  "This output is based only on the provided material. Citations show only that wording came from the source; they do not guarantee that the summary or draft is correct. Check the evidence, assumptions, and missing information. The original text is never changed automatically.";

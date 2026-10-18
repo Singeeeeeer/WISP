@@ -197,7 +197,7 @@ it("limits additive selection to two and only explicit analysis sends frozen sel
   open();
   selectCanvasNote(notes[2].id, true);
   expect(useCanvas.getState().selected).toEqual([notes[0].id, notes[1].id]);
-  expect(useCanvas.getState().error).toContain("两张");
+  expect(useCanvas.getState().error).toContain("two");
   expect(requestConnection).not.toHaveBeenCalled();
   await beginConnection();
   expect(requestConnection).toHaveBeenCalledTimes(1);
@@ -268,7 +268,7 @@ it("keeps candidates when only position changes, but invalidates them after text
   );
   expect(useCanvas.getState().result).toBeUndefined();
   expect(useCanvas.getState().phase).toBe("idle");
-  expect(useCanvas.getState().error).toContain("变化");
+  expect(useCanvas.getState().error).toContain("changed");
 });
 it("invalidates a running request when another tab changes its source", async () => {
   const pending = deferred<ConnectionResult>();
@@ -357,7 +357,7 @@ it("reloads on focus and rejects stale edits without overwriting another tab's v
     version: 2,
     revision: 2,
   };
-  await expect(putCanvasNote(draft, 1)).rejects.toThrow("冲突");
+  await expect(putCanvasNote(draft, 1)).rejects.toThrow("conflict");
   expect(draft.text).toBe("仍在编辑的草稿");
   expect(
     useCanvas.getState().notes.find((entry) => entry.id === notes[0].id)?.text,

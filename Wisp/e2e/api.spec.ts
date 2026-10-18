@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 for (const [status, label] of [
-  ["unconfigured", "API 在线 · AI 未接通 ↻"],
-  ["configured", "API 在线 · Gemini 已配置，尚未验证 ↻"],
-  ["verified", "API 在线 · Gemini 本次服务运行期间曾调用成功 ↻"],
+  ["unconfigured", "API online · AI is not connected ↻"],
+  ["configured", "API online · Gemini is configured but not yet verified ↻"],
+  ["verified", "API online · Gemini has completed a call during this service run ↻"],
 ] as const) {
   test(
     "health display reflects " + status + " without invoking a model",
@@ -25,7 +25,7 @@ for (const [status, label] of [
         }),
       );
       await page.goto("/");
-      await page.getByRole("button", { name: "API 状态未检查 ↻" }).click();
+      await page.getByRole("button", { name: "API status not checked ↻" }).click();
       await expect(
         page.getByRole("button", { name: label, exact: true }),
       ).toBeVisible();
@@ -35,7 +35,7 @@ for (const [status, label] of [
 }
 test("persistent jobs remain explicitly unimplemented", async ({ request }) => {
   const response = await request.post("/api/jobs", {
-    data: { text: "仅测试未实现接口" },
+    data: { text: "Only test the unimplemented endpoint" },
   });
   expect(response.status()).toBe(501);
   expect((await response.json()).error.code).toBe("NOT_IMPLEMENTED");

@@ -36,15 +36,15 @@ class ExtractionTests(unittest.TestCase):
 
     def test_pptx_slide_order_tables_and_groups(self):
         text = extract_text(office('pptx'), 'pptx')['text']
-        self.assertEqual(text, '[幻灯片 1]\n星光读书会😀\n周六\t书店\n[幻灯片 2]\n结束后整理书架。')
+        self.assertEqual(text, '[Slide 1]\n星光读书会😀\n周六\t书店\n[Slide 2]\n结束后整理书架。')
 
     def test_xlsx_positions_formulas_hidden_sheet(self):
         value = extract_text(office('xlsx'), 'xlsx')
-        self.assertIn('行号\tA\tB\tC', value['text'])
+        self.assertIn('Row number\tA\tB\tC', value['text'])
         self.assertIn('2\t星光读书会😀\t\t12', value['text'])
-        self.assertIn('[公式，未计算] =SUM(C2:C2)', value['text'])
-        self.assertIn('[工作表：备用（隐藏）]', value['text'])
-        self.assertIn('隐藏', '\n'.join(value['warnings']))
+        self.assertIn('[Formula, not calculated] =SUM(C2:C2)', value['text'])
+        self.assertIn('[Worksheet: 备用 (hidden)]', value['text'])
+        self.assertIn('hidden', '\n'.join(value['warnings']))
 
     def test_xlsx_stale_dimensions_do_not_truncate_cells(self):
         import re
@@ -67,18 +67,18 @@ class ExtractionTests(unittest.TestCase):
         sheet.append(['one', None, 'three'])
         content = io.BytesIO(); workbook.save(content)
         text = extract_text(content.getvalue(), 'xlsx')['text']
-        self.assertIn('行号\tA\tB\tC', text)
+        self.assertIn('Row number\tA\tB\tC', text)
         self.assertIn('2\tone\t\tthree', text)
 
     def test_pdf_pages_and_mixed_empty_pages(self):
         from pypdf import PdfReader, PdfWriter
         value = extract_text(pdf(pages=2), 'pdf')
-        self.assertIn('[第 2 页]\nStarlight book club', value['text'])
+        self.assertIn('[Page 2]\nStarlight book club', value['text'])
         writer = PdfWriter(); writer.append(PdfReader(io.BytesIO(pdf())))
         writer.add_blank_page(width=400, height=500)
         b = io.BytesIO(); writer.write(b)
         mixed = extract_text(b.getvalue(), 'pdf')
-        self.assertIn('第 2 页未提取到文字', '\n'.join(mixed['warnings']))
+        self.assertIn('Pages 2 had no extracted text', '\n'.join(mixed['warnings']))
 
     def test_pdf_empty_encrypted_and_page_limit(self):
         self.failure('IMPORT_NO_TEXT', pdf(blank=True), 'pdf')

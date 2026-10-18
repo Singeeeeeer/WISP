@@ -13,7 +13,7 @@ it("starts only from confirmed saved full version and deduplicates one material"
   expect(await r.listWatches()).toHaveLength(1);
   const other = newWatch(snapshot(docs[1]));
   await r.saveMaterial({ ...docs[1], version: 2, text: "已改动" }, 1);
-  await expect(r.startWatch(other)).rejects.toThrow("变化");
+  await expect(r.startWatch(other)).rejects.toThrow("changed");
 });
 it("atomically enqueues only a new persisted version and stop wins over late replies", async () => {
   const r = createRepository("watch-tasks-" + crypto.randomUUID());

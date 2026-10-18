@@ -45,9 +45,9 @@ function reply(route: Route, operation = "understand") {
 }
 
 async function open(page: Page, entry = "Understand") {
-  await page.getByRole("button", { name: "打开基础能力", exact: true }).click();
+  await page.getByRole("button", { name: "Open core abilities", exact: true }).click();
   await page.getByRole("menuitem", { name: entry, exact: true }).click();
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
 }
 async function held(page: Page, operation = "understand") {
   const requests: Route[] = [];
@@ -58,7 +58,7 @@ async function held(page: Page, operation = "understand") {
 }
 async function run(page: Page, label = "理解") {
   await page
-    .getByRole("button", { name: `运行 Gemini ${label}`, exact: true })
+    .getByRole("button", { name: `Run Gemini ${label}`, exact: true })
     .click();
 }
 test.beforeEach(async ({ page }) => {
@@ -66,7 +66,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 503, body: "Offline character test" }),
   );
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
 });
 
 test("reading follows real processing, avoids the panel, lights only on saved success and clears on close", async ({
@@ -96,15 +96,15 @@ test("reading follows real processing, avoids the panel, lights only on saved su
   });
   expect(outside).toBe(true);
   await page.screenshot({
-    path: "docs/screenshots/pdf0710-reading-working.png",
+    path: "test-results/english/pdf0710-reading-working.png",
   });
   await expect.poll(() => requests.length).toBe(1);
   await requests[0].fulfill({ json: reply(requests[0]) });
   await expect(
-    page.getByRole("heading", { name: "Gemini：材料摘要" }),
+    page.getByRole("heading", { name: "Gemini: material summary" }),
   ).toBeVisible();
   await expect(companion).toHaveAttribute("data-phase", "success");
-  await page.getByRole("button", { name: "关闭处理结果", exact: true }).click();
+  await page.getByRole("button", { name: "Close result", exact: true }).click();
   await expect(companion).not.toHaveAttribute("data-state", "reading");
   await expect(companion).toHaveAttribute("data-phase", "");
 });
@@ -116,7 +116,7 @@ test("cancel, late response, failure and retry cannot resurrect an old reading a
   await open(page);
   await run(page);
   await expect.poll(() => requests.length).toBe(1);
-  await page.getByRole("button", { name: "停止等待", exact: true }).click();
+  await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
   await expect(page.locator(".companion")).not.toHaveAttribute(
     "data-state",
     "reading",
@@ -141,10 +141,10 @@ test("cancel, late response, failure and retry cannot resurrect an old reading a
   await expect.poll(() => requests.length).toBe(3);
   await requests[2].fulfill({ json: reply(requests[2]) });
   await expect(
-    page.getByRole("heading", { name: "Gemini：材料摘要" }),
+    page.getByRole("heading", { name: "Gemini: material summary" }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "重新处理当前全文", exact: true })
+    .getByRole("button", { name: "Process current full text again", exact: true })
     .click();
   await expect(page.locator(".companion")).toHaveAttribute("data-phase", "");
 });
@@ -172,9 +172,9 @@ test("save failure ends reading and retry saves without a second model request",
     "data-state",
     "reading",
   );
-  await page.getByRole("button", { name: "重试保存结果", exact: true }).click();
+  await page.getByRole("button", { name: "Retry saving result", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Gemini：材料摘要" }),
+    page.getByRole("heading", { name: "Gemini: material summary" }),
   ).toBeVisible();
   expect(requests).toHaveLength(1);
 });
@@ -193,17 +193,17 @@ test("Check and Create show distinct actions; native editing takes priority", as
       "data-state",
       state,
     );
-    await page.screenshot({ path: `docs/screenshots/pdf0710-${state}.png` });
-    const editor = page.getByLabel("书店活动提案正文");
+    await page.screenshot({ path: `test-results/english/pdf0710-${state}.png` });
+    const editor = page.getByLabel("Bookstore event proposal text");
     await editor.focus();
     await page.keyboard.insertText("编辑仍有效");
     await expect(page.locator(".companion")).toHaveAttribute(
       "data-state",
       "yielding",
     );
-    await page.getByRole("button", { name: "停止等待", exact: true }).click();
+    await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
     await expect(page.getByRole("alert")).toBeVisible();
-    await page.getByLabel("关闭材料面板", { exact: true }).click();
+    await page.getByLabel("Close material panel", { exact: true }).click();
     await requests[0].fulfill({ json: reply(requests[0], op) }).catch(() => {});
   }
 });
@@ -213,14 +213,14 @@ test("system and application reduced motion keep active reading static; hidden c
 }) => {
   for (const mode of ["system", "setting", "hidden"]) {
     await page.reload();
-    await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+    await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
     if (mode === "system") await page.emulateMedia({ reducedMotion: "reduce" });
     else {
       await page.emulateMedia({ reducedMotion: "no-preference" });
-      await page.getByRole("button", { name: "魔法书", exact: true }).click();
+      await page.getByRole("button", { name: "Grimoire", exact: true }).click();
       await page.getByRole("button", { name: "Settings", exact: true }).click();
-      if (mode === "setting") await page.getByLabel("减少动态效果").check();
-      else await page.getByLabel("显示小魔女").uncheck();
+      if (mode === "setting") await page.getByLabel("Reduce motion").check();
+      else await page.getByLabel("Show the witch").uncheck();
       await page.keyboard.press("Escape");
     }
     const requests = await held(page);
@@ -254,10 +254,10 @@ test("system and application reduced motion keep active reading static; hidden c
     await expect.poll(() => requests.length).toBe(1);
     await requests[0].fulfill({ json: reply(requests[0]) });
     await expect(
-      page.getByRole("heading", { name: "Gemini：材料摘要" }),
+      page.getByRole("heading", { name: "Gemini: material summary" }),
     ).toBeVisible();
     await page
-      .getByRole("button", { name: "关闭处理结果", exact: true })
+      .getByRole("button", { name: "Close result", exact: true })
       .click();
   }
 });
@@ -284,7 +284,7 @@ test("narrow viewport suppresses decoration when no space is available and keeps
     );
   });
   expect(safe).toBe(true);
-  await page.getByRole("button", { name: "停止等待", exact: true }).click();
+  await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
   await expect(page.getByRole("alert")).toBeVisible();
 });
 
@@ -298,16 +298,16 @@ test("idle thresholds remain distinct from hover and settings persist; movement 
   await expect(companion).toHaveAttribute("data-idle-action", "hat");
   await page.mouse.move(1050, 700);
   await expect(companion).toHaveAttribute("data-idle-action", "");
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByLabel("待机节奏").selectOption("lively");
+  await page.getByLabel("Idle rhythm").selectOption("lively");
   await expect(
-    page.getByRole("dialog", { name: "魔法书" }).getByRole("status"),
-  ).toContainText("设置已保存");
+    page.getByRole("dialog", { name: "Grimoire" }).getByRole("status"),
+  ).toContainText("Settings saved");
   await page.reload();
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await expect(page.getByLabel("待机节奏")).toHaveValue("lively");
+  await expect(page.getByLabel("Idle rhythm")).toHaveValue("lively");
   await page.keyboard.press("Escape");
   await page.mouse.move(1050, 700);
   await expect(companion).toHaveAttribute("data-idle-action", "hat", {
@@ -316,11 +316,11 @@ test("idle thresholds remain distinct from hover and settings persist; movement 
 });
 
 async function summon(page: Page, role = "Page Sprite") {
-  await page.getByRole("button", { name: "打开基础能力", exact: true }).click();
+  await page.getByRole("button", { name: "Open core abilities", exact: true }).click();
   await page.getByRole("menuitem", { name: "Summon", exact: true }).click();
   await page.getByRole("button", { name: role }).click();
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(page.locator(".floating-panel")).toHaveCount(0);
 }
 
@@ -337,14 +337,14 @@ test("background uses the latest running task and foreground work has priority",
   await summon(page, "Alchemy Imp");
   await expect(character).toHaveAttribute("data-state", "brewing");
   await page.screenshot({
-    path: "docs/screenshots/pdf0710-background-brewing.png",
+    path: "test-results/english/pdf0710-background-brewing.png",
   });
   await open(page, "Check");
   await run(page, "检查");
   await expect(character).toHaveAttribute("data-state", "checking");
   await expect(character).toHaveAttribute("data-activity-source", "foreground");
-  await page.getByRole("button", { name: "停止等待", exact: true }).click();
-  await page.getByLabel("关闭材料面板", { exact: true }).click();
+  await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
+  await page.getByLabel("Close material panel", { exact: true }).click();
   await expect(character).toHaveAttribute("data-state", "brewing");
   await expect.poll(() => creates.length).toBe(1);
   await creates[0].fulfill({ json: reply(creates[0], "create") });
@@ -354,13 +354,13 @@ test("background uses the latest running task and foreground work has priority",
   await expect(character).toHaveAttribute("data-phase", "success");
   await expect(character).toHaveAttribute("data-phase", "");
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("2 封未读");
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("2 unread");
   await checks[0].fulfill({ json: reply(checks[0], "check") }).catch(() => {});
   await page.reload();
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("2 封未读");
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("2 unread");
   await expect(character).toHaveAttribute("data-phase", "");
 });
 
@@ -380,12 +380,12 @@ test("failed and recalled background work restores following without a false com
   await expect(character).toHaveAttribute("data-phase", "");
   await summon(page, "Scout Bat");
   await expect(character).toHaveAttribute("data-state", "checking");
-  await page.getByRole("button", { name: "查看使魔任务", exact: true }).click();
-  await page.getByRole("button", { name: "召回任务", exact: true }).click();
+  await page.getByRole("button", { name: "View familiar tasks", exact: true }).click();
+  await page.getByRole("button", { name: "Recall task", exact: true }).click();
   await expect(
-    page.getByTestId("task-card").filter({ hasText: "已召回" }),
+    page.getByTestId("task-card").filter({ hasText: "Cancelled" }),
   ).toHaveCount(1);
-  await page.getByLabel("关闭魔法书", { exact: true }).click();
+  await page.getByLabel("Close Grimoire", { exact: true }).click();
   await expect(character).not.toHaveAttribute("data-state", "checking");
   await checks[1].fulfill({ json: reply(checks[1], "check") }).catch(() => {});
   await expect(character).toHaveAttribute("data-phase", "");
@@ -395,27 +395,27 @@ test("cauldron starts brewing only during the confirmed processing call", async 
   page,
 }) => {
   const requests = await held(page);
-  await page.getByRole("button", { name: "灵感熔炉", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "灵感熔炉" });
+  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Inspiration Cauldron" });
   await dialog
-    .getByRole("button", { name: "全部本地材料", exact: true })
+    .getByRole("button", { name: "All local materials", exact: true })
     .click();
   await dialog
-    .getByRole("button", { name: "选择材料 书店活动提案", exact: true })
+    .getByRole("button", { name: "Select material Bookstore event proposal", exact: true })
     .click();
   await dialog.getByRole("button", { name: "Understand", exact: true }).click();
   await expect(page.locator(".companion")).not.toHaveAttribute(
     "data-state",
     "brewing",
   );
-  await page.getByLabel("执行方式", { exact: true }).selectOption("gemini");
+  await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
   await run(page);
   await expect(page.locator(".companion")).toHaveAttribute(
     "data-state",
     "brewing",
   );
   await page.screenshot({
-    path: "docs/screenshots/pdf0710-foreground-brewing.png",
+    path: "test-results/english/pdf0710-foreground-brewing.png",
   });
   await expect.poll(() => requests.length).toBe(1);
   expect(requests[0].request().postDataJSON()).not.toHaveProperty(
@@ -423,7 +423,7 @@ test("cauldron starts brewing only during the confirmed processing call", async 
   );
   await requests[0].fulfill({ json: reply(requests[0]) });
   await expect(
-    page.getByRole("heading", { name: "Gemini：材料摘要" }),
+    page.getByRole("heading", { name: "Gemini: material summary" }),
   ).toBeVisible();
   await expect(page.locator(".companion")).toHaveAttribute(
     "data-phase",
@@ -443,7 +443,7 @@ test("idle cycles through the three gestures and a keyboard operation interrupts
       action,
     );
   }
-  await page.screenshot({ path: "docs/screenshots/pdf0710-idle-nap.png" });
+  await page.screenshot({ path: "test-results/english/pdf0710-idle-nap.png" });
   await page.keyboard.press("q");
   await expect(character).toHaveAttribute("data-state", "casting");
   await expect(character).toHaveAttribute("data-idle-action", "");
@@ -462,7 +462,7 @@ test("a real task completion cannot end yielding while a window drag is still he
   );
   await expect.poll(() => requests.length).toBe(1);
   const bar = (await page
-    .getByRole("region", { name: "书店活动提案窗口" })
+    .getByRole("region", { name: "Bookstore event proposal window" })
     .locator(".window-titlebar")
     .boundingBox())!;
   await page.mouse.move(bar.x + 130, bar.y + 20);
@@ -474,8 +474,8 @@ test("a real task completion cannot end yielding while a window drag is still he
   );
   await requests[0].fulfill({ json: reply(requests[0]) });
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("1 封未读");
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("1 unread");
   await expect(page.locator("html")).toHaveAttribute(
     "data-wisp-gesture",
     "drag",

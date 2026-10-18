@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const dialog = (page: Page) =>
-  page.getByRole("dialog", { name: "灵感熔炉", exact: true });
+  page.getByRole("dialog", { name: "Inspiration Cauldron", exact: true });
 const venue = (page: Page) =>
-  page.getByRole("region", { name: "场地说明窗口", exact: true });
+  page.getByRole("region", { name: "Venue notes window", exact: true });
 const fixture = (format: string) =>
   readFileSync(path.resolve("e2e/fixtures/pdf02", `book-club.${format}`));
 const importError = (page: Page) =>
@@ -85,7 +85,7 @@ async function records(page: Page, store = "materials") {
 async function confirmCopy(page: Page) {
   const d = dialog(page);
   await expect(d.getByTestId("copy-preview")).toBeVisible();
-  await d.getByRole("button", { name: "确认加入", exact: true }).click();
+  await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
   await expect(d.getByTestId("copy-preview")).toHaveCount(0);
   return (await records(page)).filter((material) =>
     material.source.endsWith("_copy"),
@@ -111,7 +111,7 @@ test.beforeEach(async ({ page }) => {
     },
   );
   await page.goto("/");
-  await expect(page.getByTestId("save-venue")).toHaveText("已保存");
+  await expect(page.getByTestId("save-venue")).toHaveText("saved");
 });
 
 test("TXT dropped on the page stays editable and saves only after confirmation", async ({
@@ -128,14 +128,14 @@ test("TXT dropped on the page stays editable and saves only after confirmation",
     "success",
   );
   await d.getByTestId("import-preview").fill("确认前修订😀");
-  await d.getByLabel("新材料标题").fill("拖放修订稿");
-  await d.getByRole("button", { name: "确认加入", exact: true }).click();
+  await d.getByLabel("New material title").fill("拖放修订稿");
+  await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
   await expect(d.getByTestId("material-detail")).toContainText("拖放材料.TXT");
   await expect(d).toContainText("1 / 12");
   await page.reload();
-  await page.getByRole("button", { name: "灵感熔炉", exact: true }).click();
+  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
   await dialog(page)
-    .getByRole("button", { name: "选择材料 拖放修订稿", exact: true })
+    .getByRole("button", { name: "Select material 拖放修订稿", exact: true })
     .click();
   await expect(dialog(page).getByTestId("material-detail")).toContainText(
     "确认前修订😀",
@@ -151,7 +151,7 @@ for (const [format, marker] of [
   test(`${format} dropped into cauldron uses the real local parser`, async ({
     page,
   }) => {
-    await page.getByRole("button", { name: "灵感熔炉", exact: true }).click();
+    await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
     await dropFiles(
       page,
       [{ name: `book-club.${format}`, bytes: [...fixture(format)] }],
@@ -162,7 +162,7 @@ for (const [format, marker] of [
       new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
     );
     await d.getByTestId("import-preview").fill(`${format} 可编辑的解析副本`);
-    await d.getByRole("button", { name: "确认加入", exact: true }).click();
+    await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
     await expect(d.getByTestId("material-detail")).toContainText(
       `book-club.${format}`,
     );
@@ -187,9 +187,9 @@ test("the independent handle really drags a full copy while the old titlebar sti
   expect(moved!.x - before!.x).toBeCloseTo(60, 0);
   expect(moved!.y - before!.y).toBeCloseTo(50, 0);
   await expect(dialog(page)).toHaveCount(0);
-  const text = await page.getByLabel("场地说明正文").inputValue();
+  const text = await page.getByLabel("Venue notes text").inputValue();
   const handle = page.getByRole("button", {
-    name: "拖入熔炉 场地说明",
+    name: "Drag into cauldron Venue notes",
     exact: true,
   });
   await handle.dragTo(page.locator("[data-cauldron-target]"));
@@ -202,7 +202,7 @@ test("the independent handle really drags a full copy while the old titlebar sti
   expect(copies[0].origin.copy).toMatchObject({
     materialId: "venue",
     materialVersion: 1,
-    title: "场地说明",
+    title: "Venue notes",
     start: 0,
     end: text.length,
     source: "virtual_document",
@@ -213,32 +213,32 @@ test("the independent handle really drags a full copy while the old titlebar sti
 test("full and selection copies freeze original title, version and UTF-16 range across source edits and refresh", async ({
   page,
 }) => {
-  const editor = page.getByLabel("场地说明正文");
+  const editor = page.getByLabel("Venue notes text");
   const text = "开场😀\n需要保留的选区。\n收尾";
   await editor.fill(text);
-  await expect(page.getByTestId("save-venue")).toHaveText("已保存");
+  await expect(page.getByTestId("save-venue")).toHaveText("saved");
   const original = (await records(page)).find((m) => m.id === "venue");
   await venue(page)
-    .getByRole("button", { name: "全文副本入炉", exact: true })
+    .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
-  await expect(dialog(page).getByLabel("新材料标题")).toBeDisabled();
+  await expect(dialog(page).getByLabel("New material title")).toBeDisabled();
   await expect(dialog(page).getByTestId("copy-preview")).toHaveText(text);
   await expect(dialog(page)).toContainText(`v${original.version}`);
   await confirmCopy(page);
   await dialog(page)
-    .getByRole("button", { name: "关闭熔炉", exact: true })
+    .getByRole("button", { name: "Close Inspiration Cauldron", exact: true })
     .click();
   const start = text.indexOf("需要"),
     end = text.indexOf("\n收尾");
   await chooseRange(editor, start, end);
   await venue(page)
-    .getByRole("button", { name: "选区副本入炉", exact: true })
+    .getByRole("button", { name: "Add selection copy to cauldron", exact: true })
     .click();
   await expect(dialog(page).getByTestId("copy-preview")).toHaveText(
     text.slice(start, end),
   );
   await expect(dialog(page).locator(".source-info")).toContainText(
-    `冻结自原文范围 [${start}, ${end})`,
+    `Frozen from source range [${start}, ${end})`,
   );
   await page.screenshot({
     path: test.info().outputPath("selection-copy-preview.png"),
@@ -249,28 +249,28 @@ test("full and selection copies freeze original title, version and UTF-16 range 
     {
       materialId: "venue",
       materialVersion: original.version,
-      title: "场地说明",
+      title: "Venue notes",
       start,
       end,
       source: "virtual_document",
     },
   );
   await dialog(page)
-    .getByRole("button", { name: "关闭熔炉", exact: true })
+    .getByRole("button", { name: "Close Inspiration Cauldron", exact: true })
     .click();
   await editor.fill("原文已改成完全不同的内容");
   await page
-    .getByLabel("文档标题 venue", { exact: true })
+    .getByLabel("Document title venue", { exact: true })
     .fill("修改后的原文标题");
-  await expect(page.getByTestId("save-venue")).toHaveText("已保存");
+  await expect(page.getByTestId("save-venue")).toHaveText("saved");
   await page.reload();
   const frozen = (await records(page)).filter((m) =>
     m.source.endsWith("_copy"),
   );
   expect(frozen).toEqual(copies);
-  await page.getByRole("button", { name: "灵感熔炉", exact: true }).click();
+  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
   await dialog(page)
-    .getByRole("button", { name: "选择材料 场地说明 · 选区副本", exact: true })
+    .getByRole("button", { name: "Select material Venue notes · selection copy", exact: true })
     .click();
   await expect(dialog(page).getByTestId("material-detail")).toContainText(
     text.slice(start, end),
@@ -293,20 +293,20 @@ test("incoming files cannot replace a preview or enter while another modal is op
   await expect(dialog(page).getByTestId("import-preview")).toHaveValue(
     "预览中的未保存修订",
   );
-  await expect(importError(page)).toContainText("未完成");
+  await expect(importError(page)).toContainText("still open");
   await dialog(page)
-    .getByRole("button", { name: "取消新增", exact: true })
+    .getByRole("button", { name: "Cancel new material", exact: true })
     .click();
   await dialog(page)
-    .getByRole("button", { name: "关闭熔炉", exact: true })
+    .getByRole("button", { name: "Close Inspiration Cauldron", exact: true })
     .click();
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await dropFiles(page, [{ name: "blocked.txt", text: "另一面板未关闭" }]);
   await expect(
-    page.getByRole("dialog", { name: "魔法书", exact: true }),
+    page.getByRole("dialog", { name: "Grimoire", exact: true }),
   ).toBeVisible();
   await expect(dialog(page)).toHaveCount(0);
-  await expect(importError(page)).toContainText("当前面板");
+  await expect(importError(page)).toContainText("current panel");
   await page.screenshot({
     path: test.info().outputPath("blocked-modal-drop.png"),
   });
@@ -338,13 +338,13 @@ test("a second drop cannot replace a parser in progress and cancellation ignores
   await dropFiles(page, [{ name: "slow.docx", bytes: [...fixture("docx")] }]);
   await expect.poll(() => requests).toBe(1);
   await expect(
-    dialog(page).getByText("正在读取文件…", { exact: true }),
+    dialog(page).getByText("Reading file…", { exact: true }),
   ).toBeVisible();
   await dropFiles(page, [{ name: "blocked.txt", text: "不得替换" }]);
   await expect(dialog(page).getByTestId("import-preview")).toHaveCount(0);
-  await expect(importError(page)).toContainText("未完成");
+  await expect(importError(page)).toContainText("still open");
   await dialog(page)
-    .getByRole("button", { name: "取消新增", exact: true })
+    .getByRole("button", { name: "Cancel new material", exact: true })
     .click();
   await dropFiles(
     page,
@@ -372,10 +372,10 @@ test("multiple files, directories, unsupported formats and oversized files are r
         { name: "b.txt", text: "B" },
       ],
       false,
-      /单个|一个/,
+      /single|one/,
     ],
-    [[{ name: "folder.txt", text: "目录不是文件" }], true, /目录|文件夹/],
-    [[{ name: "unsupported.png", text: "not text" }], false, /TXT|支持/],
+    [[{ name: "folder.txt", text: "目录不是文件" }], true, /directories|folders/],
+    [[{ name: "unsupported.png", text: "not text" }], false, /TXT|supported/],
     [[{ name: "large.pdf", size: 20_000_001 }], false, /20 MB/],
   ] as [DropFile[], boolean, RegExp][]) {
     await dropFiles(page, files, "body", directory);
@@ -389,7 +389,7 @@ test("failed copy persistence preserves its frozen candidate and retry adds exac
   page,
 }) => {
   await venue(page)
-    .getByRole("button", { name: "全文副本入炉", exact: true })
+    .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
   const text = await dialog(page).getByTestId("copy-preview").textContent();
   await page.evaluate(() => {
@@ -405,7 +405,7 @@ test("failed copy persistence preserves its frozen candidate and retry adds exac
     };
   });
   await dialog(page)
-    .getByRole("button", { name: "确认加入", exact: true })
+    .getByRole("button", { name: "Confirm addition", exact: true })
     .click();
   await expect(dialog(page).getByRole("alert")).toContainText(
     "模拟副本入炉失败",
@@ -448,27 +448,27 @@ test("pending and failed original-document saves cannot be labelled as a saved-v
       return put.apply(this, args);
     };
   });
-  await page.getByLabel("场地说明正文").fill("尚未持久保存的原文");
-  await expect(page.getByTestId("save-venue")).toHaveText("待保存");
+  await page.getByLabel("Venue notes text").fill("尚未持久保存的原文");
+  await expect(page.getByTestId("save-venue")).toHaveText("pending");
   await venue(page)
-    .getByRole("button", { name: "全文副本入炉", exact: true })
+    .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
-  await expect(importError(page)).toContainText("先保存");
+  await expect(importError(page)).toContainText("Save the original");
   await expect(dialog(page)).toHaveCount(0);
-  await expect(page.getByTestId("save-venue")).toHaveText("保存失败");
+  await expect(page.getByTestId("save-venue")).toHaveText("failed");
   await page
-    .getByRole("button", { name: "拖入熔炉 场地说明", exact: true })
+    .getByRole("button", { name: "Drag into cauldron Venue notes", exact: true })
     .click();
   await expect(dialog(page)).toHaveCount(0);
   expect(
     (await records(page)).filter((m) => m.source.endsWith("_copy")),
   ).toHaveLength(0);
   await venue(page)
-    .getByRole("button", { name: "重试保存", exact: true })
+    .getByRole("button", { name: "Retry save", exact: true })
     .click();
-  await expect(page.getByTestId("save-venue")).toHaveText("已保存");
+  await expect(page.getByTestId("save-venue")).toHaveText("saved");
   await page
-    .getByRole("button", { name: "拖入熔炉 场地说明", exact: true })
+    .getByRole("button", { name: "Drag into cauldron Venue notes", exact: true })
     .click();
   await expect(dialog(page).getByTestId("copy-preview")).toHaveText(
     "尚未持久保存的原文",
@@ -479,12 +479,12 @@ test("capacity counts independent copies and a rejected thirteenth drop does not
   page,
 }) => {
   await venue(page)
-    .getByRole("button", { name: "全文副本入炉", exact: true })
+    .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
   for (let index = 0; index < 12; index++) {
     if (index)
       await dialog(page)
-        .getByRole("button", { name: "当前文档全文副本", exact: true })
+        .getByRole("button", { name: "Full copy of current document", exact: true })
         .click();
     await confirmCopy(page);
   }
@@ -499,7 +499,7 @@ test("capacity counts independent copies and a rejected thirteenth drop does not
   expect(await records(page)).toHaveLength(14);
   expect(await records(page, "cauldronEntries")).toHaveLength(12);
   await dialog(page)
-    .getByRole("button", { name: "移出熔炉", exact: true })
+    .getByRole("button", { name: "Remove from cauldron", exact: true })
     .click();
   await expect(dialog(page)).toContainText("11 / 12");
   await dropFiles(
@@ -511,7 +511,7 @@ test("capacity counts independent copies and a rejected thirteenth drop does not
     "腾出位置之后",
   );
   await dialog(page)
-    .getByRole("button", { name: "确认加入", exact: true })
+    .getByRole("button", { name: "Confirm addition", exact: true })
     .click();
   await expect(dialog(page)).toContainText("12 / 12");
 });
@@ -521,7 +521,7 @@ test("document drag highlights only the cauldron target and dropping elsewhere d
 }) => {
   const transfer = await page.evaluateHandle(() => new DataTransfer());
   const handle = page.getByRole("button", {
-    name: "拖入熔炉 场地说明",
+    name: "Drag into cauldron Venue notes",
     exact: true,
   });
   await handle.dispatchEvent("dragstart", { dataTransfer: transfer });
@@ -533,7 +533,7 @@ test("document drag highlights only the cauldron target and dropping elsewhere d
     "blocked",
   );
   await expect(page.locator(".cauldron-drop-feedback")).toContainText(
-    "请拖向顶部",
+    "Drag to the top",
   );
   await page
     .locator("[data-cauldron-target]")
@@ -543,14 +543,14 @@ test("document drag highlights only the cauldron target and dropping elsewhere d
     "allowed",
   );
   await expect(page.locator(".cauldron-drop-feedback")).toContainText(
-    "确认保存后加入",
+    "confirm and save",
   );
   await page.screenshot({
     path: test.info().outputPath("document-drop-highlight.png"),
   });
   await page.locator("body").dispatchEvent("drop", { dataTransfer: transfer });
   await expect(dialog(page)).toHaveCount(0);
-  await expect(importError(page)).toContainText("请拖向顶部");
+  await expect(importError(page)).toContainText("Drag to the top");
   await expect(page.locator("html")).not.toHaveAttribute("data-cauldron-drop");
   await expect(page.locator(".cauldron-drop-feedback")).toHaveCount(0);
   expect(await records(page)).toHaveLength(2);
@@ -561,9 +561,9 @@ test("another tab changing the original before confirmation rejects the stale co
   page,
   context,
 }) => {
-  const text = await page.getByLabel("场地说明正文").inputValue();
+  const text = await page.getByLabel("Venue notes text").inputValue();
   await venue(page)
-    .getByRole("button", { name: "全文副本入炉", exact: true })
+    .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
   await expect(dialog(page).getByTestId("copy-preview")).toHaveText(text);
   const other = await context.newPage();
@@ -576,14 +576,14 @@ test("another tab changing the original before confirmation rejects the stale co
     },
   );
   await other.goto("/");
-  await other.getByLabel("场地说明正文").fill("另一标签保存的新原文");
-  await expect(other.getByTestId("save-venue")).toHaveText("已保存");
+  await other.getByLabel("Venue notes text").fill("另一标签保存的新原文");
+  await expect(other.getByTestId("save-venue")).toHaveText("saved");
   await page.bringToFront();
   await dialog(page)
-    .getByRole("button", { name: "确认加入", exact: true })
+    .getByRole("button", { name: "Confirm addition", exact: true })
     .click();
   await expect(dialog(page).getByRole("alert")).toContainText(
-    "原文已变化或移除",
+    "source text changed or was removed",
   );
   await expect(dialog(page).getByTestId("copy-preview")).toHaveText(text);
   expect(

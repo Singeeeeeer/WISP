@@ -100,7 +100,7 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(evidence_in(result, operation), [
                 {'sourceIndex':1, 'quote':'aba', 'start':4, 'end':7},
                 {'sourceIndex':2, 'quote':'aba', 'start':8, 'end':11}])
-            self.assertEqual(result['metadata']['promptVersion'], 'gemini-batch-'+operation+'-prompt-1')
+            self.assertEqual(result['metadata']['promptVersion'], 'gemini-batch-'+operation+'-prompt-2')
             self.assertEqual(result['metadata']['validatorVersion'], 'quote-occurrence-utf16-1')
             self.assertEqual(result['metadata']['usage'], {'total_tokens':21})
             self.assertEqual(self.post(client, operation, request(operation)).json(), result)

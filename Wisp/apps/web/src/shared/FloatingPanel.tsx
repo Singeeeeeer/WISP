@@ -72,7 +72,7 @@ export function FloatingPanel({
     >
       <header className="floating-heading">
         <span>{title}</span>
-        <button aria-label="关闭浮层" disabled={busy} onClick={close}>
+        <button aria-label="Close panel" disabled={busy} onClick={close}>
           ×
         </button>
       </header>

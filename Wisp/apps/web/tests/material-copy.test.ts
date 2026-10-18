@@ -103,7 +103,7 @@ it("copies full text with an independent identity and frozen original title, ver
   expect(copy.text).toContain("时间待定");
   expect(copy.origin!.copy!.title).toBe("原始标题");
   expect(copy.origin!.note).toBe("仅提取文字。");
-  expect(sourceDescription(copy)).toContain("全文副本 · 原始标题 · v7");
+  expect(sourceDescription(copy)).toContain("Full-text copy · 原始标题 · v7");
   expect(sourceDescription(copy)).toContain("原始材料.pdf");
 });
 
@@ -148,10 +148,10 @@ it("applies nonblank, NUL and UTF-16 limits without truncating text or splitting
   const copy = createMaterialCopy(material);
   expect(copy.text.length).toBe(60000);
   expect(copy.title.length).toBeLessThanOrEqual(120);
-  expect(copy.title.endsWith(" · 全文副本")).toBe(true);
+  expect(copy.title.endsWith(" · full-text copy")).toBe(true);
   expect(copy.title).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   expect(() => createMaterialCopy(material, undefined, material.id)).toThrow(
-    "独立",
+    "own identifier",
   );
 });
 
@@ -215,7 +215,7 @@ it.each(["document_copy", "selection_copy"] as const)(
       );
       await expect(
         requestGemini(s, result.instruction, options),
-      ).rejects.toThrow("绑定");
+      ).rejects.toThrow(/binding|bound/);
     }
   },
 );

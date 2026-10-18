@@ -99,7 +99,7 @@ export function sliceBatchSnapshot(
     !boundary(end) ||
     !source.text.slice(start, end).trim()
   )
-    throw new Error("无效选区：请选择非空的完整字符范围。");
+    throw new Error("Invalid selection: choose a non-empty range of complete characters.");
   return {
     ...structuredClone(source),
     id: crypto.randomUUID(),
@@ -335,7 +335,7 @@ export function validateBatch(value: unknown): value is BatchRecord {
   }
 }
 export function batchContinuationDraft(r: BatchRecord): BatchDraft {
-  if (!validateBatch(r)) throw new Error("多材料结果无效，不能继续委托。");
+  if (!validateBatch(r)) throw new Error("The multi-material result is invalid and cannot be delegated.");
   return {
     id: crypto.randomUUID(),
     entry: "summon",

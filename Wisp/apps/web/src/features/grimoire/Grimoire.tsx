@@ -7,10 +7,10 @@ import { Sprite } from "../companion/Sprite";
 import "./grimoire.css";
 
 const chapters = [
-  { name: "Getting started", label: "入门说明", title: "认识你的随行伙伴" },
-  { name: "Familiars", label: "使魔与回信", title: "留给使魔的这一页" },
-  { name: "About you", label: "关于你的偏好", title: "一点点，了解你" },
-  { name: "Settings", label: "随行设置", title: "让魔法合你心意" },
+  { name: "Getting started", label: "Getting started", title: "Meet your companion" },
+  { name: "Familiars", label: "Familiars and replies", title: "A page for familiars" },
+  { name: "About you", label: "About your preferences", title: "A little about you" },
+  { name: "Settings", label: "Companion settings", title: "Make the magic yours" },
 ];
 
 export function Grimoire() {
@@ -22,7 +22,7 @@ export function Grimoire() {
   const chapter = chapters.find((item) => item.name === tab) ?? chapters[0];
   return (
     <Dialog
-      title="魔法书"
+      title="Grimoire"
       close={() => useInteraction.setState({ book: false })}
       className="grimoire-dialog"
     >
@@ -42,7 +42,7 @@ export function Grimoire() {
       )}
       <button
         className="grimoire-close"
-        aria-label="关闭魔法书"
+        aria-label="Close Grimoire"
         onClick={() => useInteraction.setState({ book: false })}
       >
         <span aria-hidden="true">×</span>
@@ -51,11 +51,11 @@ export function Grimoire() {
       <div className="grimoire-spread">
         <div className="grimoire-leaf grimoire-index">
           <header className="grimoire-title">
-            <p className="grimoire-caption">The little grimoire</p>
-            <h2>一点工作的魔法</h2>
-            <p>给思绪一个停靠的地方。</p>
+            <p className="grimoire-caption">Grimoire</p>
+            <h2>A little work magic</h2>
+            <p>A place for your thoughts to land.</p>
           </header>
-          <nav className="grimoire-chapters" aria-label="魔法书章节">
+          <nav className="grimoire-chapters" aria-label="Grimoire chapters">
             {chapters.map((item, index) => (
               <button
                 key={item.name}
@@ -77,9 +77,9 @@ export function Grimoire() {
           <div className="grimoire-note">
             <Sprite name="witch" />
             <p>
-              你的文字，你来决定。
+              Your text, your choice.
               <br />
-              每一点魔法，都从确认开始。
+              Every bit of magic starts with confirmation.
             </p>
           </div>
         </div>
@@ -97,28 +97,26 @@ export function Grimoire() {
           >
             {tab === "Getting started" && (
               <div className="book-page">
-                <h3>让思绪有一个停靠的地方。</h3>
+                <h3>Give your thoughts a place to land.</h3>
                 <p>
-                  在文档中编辑、选择文字，再用底部按钮打开随行魔法环。没有选区时使用当前文档全文。
+                  Edit and select text in a document, then click Core abilities at the bottom to open the magic ring. Without a selection, the current document’s full text is used.
                 </p>
                 <p>
-                  Understand 理解，Check 核对，Create 构思，Summon
-                  委托。三能力默认本地，可显式选择 Gemini。
-                  本地支持原文摘录、有限规则核对与活动介绍模板；Gemini
-                  支持带依据的摘要、核对与待人工确认的创作草稿。
-                  结果保存在“处理记录”。三种使魔均支持一次性 Gemini
-                  委托和回信；持续关注保持本地。
+                  Use Understand to explore your text, Check to review it, Create to draft something new, and Summon to delegate a task.
+                  The three abilities use local processing by default; you can select Gemini explicitly.
+                  Local mode provides source excerpts, limited rule checks, and an event-introduction template.
+                  Gemini provides cited summaries, checks, and creative drafts for human review.
+                  Results are saved in “Run history”. All three familiars support one-time Gemini tasks and replies; continuous watching uses local rules.
                 </p>
                 <p>
-                  <kbd>Q</kbd> 非输入状态打开法阵　<kbd>Alt / Option + M</kbd>{" "}
-                  魔法书　<kbd>Esc</kbd> 收起
+                  <kbd>Q</kbd> Open Core abilities when not typing · <kbd>Alt / Option + M</kbd>{" "}
+                  Open Grimoire · <kbd>Esc</kbd> Close
                 </p>
                 <p>
-                  拖动窗口标题栏；右下角调整大小；底部文档按钮恢复窗口。正文和设置仅保存在当前浏览器。
+                  Drag the window title bar; resize from the bottom-right; use the document button at the bottom to restore it. Text and settings are saved only in this browser.
                 </p>
                 <p>
-                  小魔女和四种法器使用你提供的像素素材。右键桌面空白处或按 Q
-                  唤起魔法环；展开时停在原位，收起后继续跟随。正文内保留浏览器右键菜单。
+                  Right-click an empty desktop area or press Q to open Core abilities. The witch stays in place while the magic ring is open and follows the pointer again when it closes. In document text, use Shift + right-click to open the browser menu.
                 </p>
               </div>
             )}
@@ -134,7 +132,7 @@ export function Grimoire() {
                       update({ characterVisible: e.target.checked })
                     }
                   />{" "}
-                  显示小魔女
+                  Show the witch
                 </label>
                 <label>
                   <input
@@ -144,10 +142,10 @@ export function Grimoire() {
                       update({ reducedMotion: e.target.checked })
                     }
                   />{" "}
-                  减少动态效果
+                  Reduce motion
                 </label>
                 <label>
-                  角色大小
+                  Character size
                   <input
                     type="range"
                     min="32"
@@ -159,7 +157,7 @@ export function Grimoire() {
                   />
                 </label>
                 <label>
-                  待机节奏
+                  Idle rhythm
                   <select
                     value={settings.idleRhythm}
                     aria-describedby="idle-rhythm-help"
@@ -170,13 +168,12 @@ export function Grimoire() {
                       })
                     }
                   >
-                    <option value="default">默认</option>
-                    <option value="lively">活泼</option>
+                    <option value="default">Default</option>
+                    <option value="lively">Lively</option>
                   </select>
                 </label>
                 <p id="idle-rhythm-help" className="subtle">
-                  停留半秒后仍开始轻浮；小动作在默认约 1.2 秒、活泼约 0.65
-                  秒后开始。 移动时停止小动作，减少动态时静态展示。
+                  After the pointer pauses for half a second, the witch begins to float. Small gestures start after about 1.2 seconds with the default rhythm or 0.65 seconds with Lively. Gestures stop while moving and stay still when reduced motion is on.
                 </p>
                 <label>
                   <input
@@ -186,14 +183,14 @@ export function Grimoire() {
                       update({ helpfulProposals: e.target.checked })
                     }
                   />{" "}
-                  Helpful proposals（本地主动提议）
+                  Helpful proposals (local suggestions)
                 </label>
                 <p role="status">{status}</p>
               </div>
             )}
           </div>
           <footer className="grimoire-page-footer">
-            <span>Wisp · 小魔女</span>
+            <span>Wisp · the witch</span>
             <span>
               {String(chapters.indexOf(chapter) + 1).padStart(2, "0")} / 04
             </span>

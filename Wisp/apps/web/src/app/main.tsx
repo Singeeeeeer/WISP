@@ -43,7 +43,7 @@ function App() {
   const message = useInteraction((s) => s.message);
 
   const [history, setHistory] = useState(false);
-  const [api, setApi] = useState("API 状态未检查");
+  const [api, setApi] = useState("API status not checked");
   const [, resize] = useState(0);
   useEffect(() => {
     if (ready) {
@@ -105,7 +105,7 @@ function App() {
     const leaving = (e: BeforeUnloadEvent) => {
       if (
         Object.values(useDocuments.getState().status).some(
-          (s) => s !== "已保存",
+          (s) => s !== "saved",
         )
       ) {
         e.preventDefault();
@@ -126,26 +126,26 @@ function App() {
   if (fatal)
     return (
       <main className="startup" role="alert">
-        <h1>本机存储暂时不可用</h1>
+        <h1>Local storage is temporarily unavailable</h1>
         <p>{fatal}</p>
-        <button onClick={() => location.reload()}>重新载入</button>
+        <button onClick={() => location.reload()}>Reload</button>
       </main>
     );
-  if (!ready) return <main className="startup">正在打开你的工作空间…</main>;
+  if (!ready) return <main className="startup">Opening your workspace…</main>;
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
           ✦ <strong>Wisp</strong>
-          <span>一点工作的魔法</span>
+          <span>A little working magic</span>
         </div>
         <div className="top-status">
           <span className="status-dot" />
-          本地工作空间 <span className="module-tag">MODULE 02 · LOCAL</span>
+          Local workspace <span className="module-tag">MODULE 02 · LOCAL</span>
           <button
             data-cauldron-target
             disabled={!!draft}
-            title={draft ? "先关闭当前浮层，再打开其他面板" : undefined}
+            title={draft ? "Close the current panel before opening another" : undefined}
             onClick={() =>
               useInteraction.setState({
                 cauldron: true,
@@ -154,30 +154,30 @@ function App() {
               })
             }
           >
-            灵感熔炉
+            Inspiration Cauldron
           </button>
           <button
             disabled={!!draft}
-            title={draft ? "先关闭当前浮层，再打开其他面板" : undefined}
+            title={draft ? "Close the current panel before opening another" : undefined}
             onClick={() => {
               useInteraction.setState({ menu: false, book: false });
               setHistory(true);
             }}
           >
-            处理记录
+            Run history
           </button>
           <button
             disabled={!!draft}
-            title={draft ? "先关闭当前浮层，再打开其他面板" : undefined}
+            title={draft ? "Close the current panel before opening another" : undefined}
             onClick={() => useInteraction.setState({ book: true, menu: false })}
           >
-            魔法书
+            Grimoire
           </button>
         </div>
       </header>
       <main
         className="desktop"
-        aria-label="虚拟桌面"
+        aria-label="Virtual desktop"
         onContextMenu={(e) => {
           if (
             !e.shiftKey &&
@@ -194,8 +194,8 @@ function App() {
       >
         <div className="desktop-intro">
           <div className="eyebrow">A QUIET PLACE FOR YOUR IDEAS</div>
-          <h1>让思绪，慢慢成形。</h1>
-          <p>一点空间，收好手边的文字。</p>
+          <h1>Give your thoughts room to take shape.</h1>
+          <p>A little space for the words at hand.</p>
         </div>
         {windows.map((w) => {
           const m = docs.find((m) => m.id === w.materialId);
@@ -205,9 +205,9 @@ function App() {
         })}
         <TaskMarker />
         <div className="desktop-note">
-          你的文字留在这个浏览器中。
+          Your words stay in this browser.
           <br />
-          仅处理 Wisp 内的材料；Gemini 需选择并确认。
+          Wisp processes only the materials you choose; Gemini always requires confirmation.
         </div>
       </main>
       <Companion />
@@ -232,24 +232,24 @@ function App() {
           {message || layoutError}
           <button
             disabled={!!draft}
-            title={draft ? "先关闭当前浮层，再打开其他面板" : undefined}
+            title={draft ? "Close the current panel before opening another" : undefined}
             onClick={() => {
               useInteraction.setState({ message: "" });
               useWorkspace.setState({ error: "" });
             }}
           >
-            知道了
+            Got it
           </button>
         </div>
       )}
-      <nav className="dock" aria-label="工作区工具">
+      <nav className="dock" aria-label="Workspace tools">
         <div className="dock-documents">
           {docs
             .filter((m) => windows.some((w) => w.materialId === m.id))
             .map((m) => (
               <button
                 key={m.id}
-                aria-label={"打开" + m.title}
+                aria-label={"Open " + m.title}
                 onClick={() => {
                   openMaterial(m.id);
                   useInteraction.setState({ selection: undefined });
@@ -262,7 +262,7 @@ function App() {
         </div>
         <div className="dock-divider" />
         <button
-          aria-label="打开 Canvas 白板"
+          aria-label="Open Canvas board"
           disabled={
             !!(draft || book || cauldron || history || jointDraft || watchDraft)
           }
@@ -273,29 +273,29 @@ function App() {
         </button>
         <button
           disabled={!!draft}
-          title={draft ? "先关闭当前浮层，再选择其他能力" : undefined}
+          title={draft ? "Close the current panel before choosing another ability" : undefined}
           className="spell-button"
-          aria-label="打开基础能力"
+          aria-label="Open core abilities"
           onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => {
             if (e.detail > 0) rememberPointer(e);
             useInteraction.setState({ menu: !menu });
           }}
         >
-          <span>✦</span>基础能力 <kbd>Q</kbd>
+          <span>✦</span>Core abilities <kbd>Q</kbd>
         </button>
       </nav>
       <footer className="statusbar">
-        <span>示例材料可编辑 · 自动保存到本机</span>
+        <span>Editable sample materials · saved automatically on this device</span>
         <button
           onClick={() => {
-            setApi("正在检查 API…");
+            setApi("Checking API…");
             void checkHealth().then(setApi);
           }}
         >
           {api} ↻
         </button>
-        <span>本地优先 · Gemini 由你确认后调用</span>
+        <span>Local first · Gemini runs only after you confirm</span>
       </footer>
       {cauldron &&
         !history &&

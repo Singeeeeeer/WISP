@@ -29,7 +29,7 @@ it("enforces import byte and UTF-16 limits", () => {
 });
 it("creates source metadata and permits an empty new material", () => {
   const empty = createTextMaterial({ title: "", text: "", source: "new_text" });
-  expect(empty.title).toBe("未命名材料");
+  expect(empty.title).toBe("Untitled material");
   expect(empty.version).toBe(1);
   expect(empty.origin?.addedAt).toBe(empty.createdAt);
   expect(() =>
@@ -72,11 +72,11 @@ it("freezes an independent origin in snapshots without inventing old provenance"
     note: "原始",
   });
   const s = snapshot(m);
-  m.origin!.note = "变化";
+  m.origin!.note = "changed";
   expect(s.origin?.note).toBe("原始");
   expect(Object.isFrozen(s.origin)).toBe(true);
   expect(s.source).toBe("pasted_text");
   expect(snapshot(seeds()[0]).origin).toBeUndefined();
-  expect(sourceDescription({})).toBe("历史记录未保存详细来源");
-  expect(sourceDescription({ source: "virtual_document" })).toBe("本地文档");
+  expect(sourceDescription({})).toBe("History does not include detailed source information");
+  expect(sourceDescription({ source: "virtual_document" })).toBe("Local document");
 });

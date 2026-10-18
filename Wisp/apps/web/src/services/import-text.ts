@@ -4,19 +4,19 @@ type FileFormat = "txt" | "docx" | "pptx" | "xlsx" | "pdf";
 export type ImportedText = { text: string; warnings: string[] };
 
 const errors: Record<string, string> = {
-  IMPORT_FORMAT_UNSUPPORTED: "仅支持 TXT、DOCX、PPTX、XLSX 和 PDF 文件。",
-  IMPORT_FILE_TOO_LARGE: "单个文件不能超过 20 MB，请拆分文件后重试。",
+  IMPORT_FORMAT_UNSUPPORTED: "Only TXT, DOCX, PPTX, XLSX, and PDF files are supported.",
+  IMPORT_FILE_TOO_LARGE: "A single file must not exceed 20 MB. Split the file and try again.",
   IMPORT_TEXT_TOO_LARGE:
-    "提取文字超过 60,000 个 UTF-16 单元，请拆分文件后重试。",
-  IMPORT_FILE_INVALID: "文件损坏或格式不匹配，请检查文件后重试。",
-  IMPORT_ENCRYPTED: "暂不支持加密文件，请先解密并另存副本后重试。",
-  IMPORT_NO_TEXT: "未找到可导入的文字；PDF 仅提取文字层，不含 OCR。",
-  IMPORT_LIMIT_EXCEEDED: "文件内容超过读取上限，请拆分文件后重试。",
-  IMPORT_TIMEOUT: "文件读取超时，请拆分文件后重试。",
-  IMPORT_BUSY: "本机解析服务正忙，请稍后重试。",
-  IMPORT_FAILED: "文件文字读取失败，请检查文件后重试。",
+    "Extracted text exceeds 60,000 UTF-16 units. Split the file and try again.",
+  IMPORT_FILE_INVALID: "The file is corrupted or its format does not match the extension. Export it again and try again.",
+  IMPORT_ENCRYPTED: "Encrypted files are not supported yet. Use a decrypted copy.",
+  IMPORT_NO_TEXT: "No extractable text found. Scanned or image-only files require OCR first.",
+  IMPORT_LIMIT_EXCEEDED: "File contents or page count exceed the parsing limit. Split the file and try again.",
+  IMPORT_TIMEOUT: "Reading timed out and was stopped. Split the file and try again.",
+  IMPORT_BUSY: "A file is already being read. Try again later.",
+  IMPORT_FAILED: "Failed to read the file. Export it again and try again.",
 };
-const invalidResponse = "本机解析服务返回无效响应，未加入材料。";
+const invalidResponse = "The local parser returned an invalid response; the material was not added.";
 
 function validateResult(value: unknown, format: FileFormat): ImportedText {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -73,8 +73,8 @@ export async function readFileText(
     signal.throwIfAborted();
   } catch {
     if (signal.aborted)
-      throw new DOMException("已停止读取文件。", "AbortError");
-    throw new Error("本机文件读取中断或超时，请重新选择文件后重试。");
+      throw new DOMException("File reading was stopped.", "AbortError");
+    throw new Error("Local file reading was interrupted or timed out. Choose the file again and try again.");
   }
   let data: unknown;
   try {

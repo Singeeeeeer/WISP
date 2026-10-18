@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 async function settings(page: Page) {
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
 }
 async function enable(page: Page) {
@@ -8,33 +8,33 @@ async function enable(page: Page) {
   const toggle = page.getByRole("checkbox", { name: /Helpful proposals/ });
   if (!(await toggle.isChecked())) {
     await toggle.check();
-    await expect(page.getByText("设置已保存", { exact: true })).toBeVisible();
+    await expect(page.getByText("Settings saved", { exact: true })).toBeVisible();
   }
-  await page.getByRole("button", { name: "关闭魔法书" }).click();
+  await page.getByRole("button", { name: "Close Grimoire" }).click();
 }
 async function openUnderstand(page: Page) {
   await page
-    .getByRole("button", { name: "打开书店活动提案", exact: true })
+    .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Understand", exact: true }).click();
 }
 async function extract(page: Page) {
   await openUnderstand(page);
-  await page.getByRole("button", { name: "整理原文摘录", exact: true }).click();
+  await page.getByRole("button", { name: "Organize source excerpts", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "原文摘录整理", exact: true }),
+    page.getByRole("heading", { name: "Source excerpt", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("complementary", { name: "主动提议" }),
+    page.getByRole("complementary", { name: "Helpful proposal" }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "关闭处理结果" }).click();
+  await page.getByRole("button", { name: "Close result" }).click();
 }
 async function offer(page: Page) {
   await enable(page);
   for (let i = 0; i < 3; i++) await extract(page);
   await expect(
-    page.getByRole("complementary", { name: "主动提议" }),
+    page.getByRole("complementary", { name: "Helpful proposal" }),
   ).toBeVisible();
 }
 test("proposal saves only after confirmation and applies to new direct and familiar excerpts", async ({
@@ -42,48 +42,48 @@ test("proposal saves only after confirmation and applies to new direct and famil
 }) => {
   await page.goto("/");
   await page
-    .getByLabel("书店活动提案正文")
+    .getByLabel("Bookstore event proposal text")
     .fill("一\n二\n三\n四\n五\n六\n七\n八\n九");
-  await expect(page.getByTestId("save-proposal")).toHaveText("已保存");
+  await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await offer(page);
-  await page.screenshot({ path: "docs/screenshots/proposal-invitation.png" });
-  await page.getByRole("button", { name: "查看设置", exact: true }).click();
+  await page.screenshot({ path: "test-results/english/proposal-invitation.png" });
+  await page.getByRole("button", { name: "View settings", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "保存偏好", exact: true }),
+    page.getByRole("button", { name: "Save preference", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "保存偏好", exact: true }).click();
+  await page.getByRole("button", { name: "Save preference", exact: true }).click();
   await expect(
-    page.getByText("已确认：简短摘录（最多 3 个非空行）", { exact: true }),
+    page.getByText("Confirmed: brief excerpt (up to 3 non-empty lines)", { exact: true }),
   ).toBeVisible();
   await page.reload();
   await openUnderstand(page);
-  await expect(page.getByLabel("本次摘录长度")).toHaveValue("3");
-  await page.getByRole("button", { name: "整理原文摘录", exact: true }).click();
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("3");
+  await page.getByRole("button", { name: "Organize source excerpts", exact: true }).click();
   await expect(
-    page.getByText("未展示的非空行：6。", { exact: false }),
+    page.getByText("Non-empty lines not shown: 6.", { exact: false }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "关闭处理结果" }).click();
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Close result" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Summon", exact: true }).click();
-  await expect(page.getByLabel("本次摘录长度")).toHaveValue("3");
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
-  await expect(page.getByRole("button", { name: "查看回信" })).toBeVisible();
-  await page.getByRole("button", { name: "查看回信" }).click();
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("3");
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
+  await expect(page.getByRole("button", { name: "View reply" })).toBeVisible();
+  await page.getByRole("button", { name: "View reply" }).click();
   await expect(
-    page.getByText("未展示的非空行：6。", { exact: false }),
+    page.getByText("Non-empty lines not shown: 6.", { exact: false }),
   ).toBeVisible();
   await page.getByRole("button", { name: "About you", exact: true }).click();
-  await page.getByRole("button", { name: "忘记摘录偏好", exact: true }).click();
-  await expect(page.getByText("还没有记录偏好", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "关闭魔法书" }).click();
+  await page.getByRole("button", { name: "Forget excerpt preference", exact: true }).click();
+  await expect(page.getByText("No preference recorded", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close Grimoire" }).click();
   await openUnderstand(page);
-  await expect(page.getByLabel("本次摘录长度")).toHaveValue("8");
-  await page.getByRole("button", { name: "关闭材料面板" }).click();
-  await page.getByRole("button", { name: "处理记录", exact: true }).click();
-  await page.getByRole("button", { name: "查看Understand结果" }).last().click();
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("8");
+  await page.getByRole("button", { name: "Close material panel" }).click();
+  await page.getByRole("button", { name: "Run history", exact: true }).click();
+  await page.getByRole("button", { name: "View Understand result" }).last().click();
   await expect(
-    page.getByText("未展示的非空行：1。", { exact: false }),
+    page.getByText("Non-empty lines not shown: 1.", { exact: false }),
   ).toBeVisible();
 });
 test("disabled, dismissed and restored history never produce unsolicited preference saves", async ({
@@ -92,28 +92,28 @@ test("disabled, dismissed and restored history never produce unsolicited prefere
   await page.goto("/");
   for (let i = 0; i < 3; i++) await extract(page);
   await expect(
-    page.getByRole("complementary", { name: "主动提议" }),
+    page.getByRole("complementary", { name: "Helpful proposal" }),
   ).toHaveCount(0);
   await offer(page);
-  await page.getByRole("button", { name: "暂时不用", exact: true }).click();
+  await page.getByRole("button", { name: "Not now", exact: true }).click();
   await extract(page);
   await expect(
-    page.getByRole("complementary", { name: "主动提议" }),
+    page.getByRole("complementary", { name: "Helpful proposal" }),
   ).toHaveCount(0);
   await page.reload();
-  await page.getByRole("button", { name: "处理记录", exact: true }).click();
+  await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page
-    .getByRole("button", { name: "查看Understand结果" })
+    .getByRole("button", { name: "View Understand result" })
     .first()
     .click();
-  await page.getByRole("button", { name: "关闭处理结果" }).click();
-  await page.getByRole("button", { name: "关闭处理记录" }).click();
+  await page.getByRole("button", { name: "Close result" }).click();
+  await page.getByRole("button", { name: "Close run history" }).click();
   await expect(
-    page.getByRole("complementary", { name: "主动提议" }),
+    page.getByRole("complementary", { name: "Helpful proposal" }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "About you", exact: true }).click();
-  await expect(page.getByText("还没有记录偏好", { exact: true })).toBeVisible();
+  await expect(page.getByText("No preference recorded", { exact: true })).toBeVisible();
 });
 
 test("cancel, save failure and cross-tab preference updates preserve explicit consent", async ({
@@ -122,17 +122,17 @@ test("cancel, save failure and cross-tab preference updates preserve explicit co
 }) => {
   await page.goto("/");
   await offer(page);
-  await page.getByRole("button", { name: "查看设置", exact: true }).click();
-  await page.getByRole("button", { name: "取消偏好确认" }).click();
-  await expect(page.getByText("还没有记录偏好", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "关闭魔法书" }).click();
+  await page.getByRole("button", { name: "View settings", exact: true }).click();
+  await page.getByRole("button", { name: "Cancel preference confirmation" }).click();
+  await expect(page.getByText("No preference recorded", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close Grimoire" }).click();
   await extract(page);
   await expect(
-    page.getByRole("complementary", { name: "主动提议" }),
+    page.getByRole("complementary", { name: "Helpful proposal" }),
   ).toHaveCount(0);
   await page.reload();
   await offer(page);
-  await page.getByRole("button", { name: "查看设置", exact: true }).click();
+  await page.getByRole("button", { name: "View settings", exact: true }).click();
   await page.evaluate(() => {
     const original = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = function (
@@ -148,24 +148,24 @@ test("cancel, save failure and cross-tab preference updates preserve explicit co
       return original.apply(this, args);
     };
   });
-  await page.getByRole("button", { name: "保存偏好", exact: true }).click();
+  await page.getByRole("button", { name: "Save preference", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("模拟偏好保存失败");
   await expect(
-    page.getByRole("button", { name: "保存偏好", exact: true }),
+    page.getByRole("button", { name: "Save preference", exact: true }),
   ).toBeEnabled();
   const other = await context.newPage();
   await other.goto("/");
-  await other.getByRole("button", { name: "魔法书", exact: true }).click();
+  await other.getByRole("button", { name: "Grimoire", exact: true }).click();
   await other.getByRole("button", { name: "About you", exact: true }).click();
   await expect(
-    other.getByText("还没有记录偏好", { exact: true }),
+    other.getByText("No preference recorded", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "保存偏好", exact: true }).dblclick();
+  await page.getByRole("button", { name: "Save preference", exact: true }).dblclick();
   await expect(
-    other.getByText("已确认：简短摘录（最多 3 个非空行）", { exact: true }),
+    other.getByText("Confirmed: brief excerpt (up to 3 non-empty lines)", { exact: true }),
   ).toBeVisible();
-  await other.getByRole("button", { name: "忘记摘录偏好" }).click();
-  await expect(page.getByText("还没有记录偏好", { exact: true })).toBeVisible();
+  await other.getByRole("button", { name: "Forget excerpt preference" }).click();
+  await expect(page.getByText("No preference recorded", { exact: true })).toBeVisible();
 });
 
 test("Page Sprite counts once, disabling clears invitation, and confirmation can override length", async ({
@@ -174,31 +174,31 @@ test("Page Sprite counts once, disabling clears invitation, and confirmation can
   await page.goto("/");
   await enable(page);
   for (let i = 0; i < 2; i++) await extract(page);
-  await page.getByRole("button", { name: "打开基础能力" }).click();
+  await page.getByRole("button", { name: "Open core abilities" }).click();
   await page.getByRole("menuitem", { name: "Summon", exact: true }).click();
-  await page.getByLabel("本次摘录长度").selectOption("3");
-  await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+  await page.getByLabel("Excerpt length for this run").selectOption("3");
+  await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(
-    page.getByRole("complementary", { name: "主动提议" }),
+    page.getByRole("complementary", { name: "Helpful proposal" }),
   ).toBeVisible();
   await settings(page);
   await page.getByRole("checkbox", { name: /Helpful proposals/ }).uncheck();
-  await expect(page.getByText("设置已保存", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "关闭魔法书" }).click();
+  await expect(page.getByText("Settings saved", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close Grimoire" }).click();
   await expect(
-    page.getByRole("complementary", { name: "主动提议" }),
+    page.getByRole("complementary", { name: "Helpful proposal" }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
-  await page.getByRole("button", { name: "查看回信" }).click();
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
+  await page.getByRole("button", { name: "View reply" }).click();
   await expect(
-    page.getByRole("dialog", { name: "魔法书" }).locator("blockquote"),
+    page.getByRole("dialog", { name: "Grimoire" }).locator("blockquote"),
   ).toHaveCount(3);
   await page.getByRole("button", { name: "About you", exact: true }).click();
-  await expect(page.getByText("还没有记录偏好", { exact: true })).toBeVisible();
+  await expect(page.getByText("No preference recorded", { exact: true })).toBeVisible();
   await page.reload();
   await openUnderstand(page);
-  await expect(page.getByLabel("本次摘录长度")).toHaveValue("8");
-  await page.getByLabel("本次摘录长度").selectOption("3");
-  await page.getByRole("button", { name: "整理原文摘录", exact: true }).click();
+  await expect(page.getByLabel("Excerpt length for this run")).toHaveValue("8");
+  await page.getByLabel("Excerpt length for this run").selectOption("3");
+  await page.getByRole("button", { name: "Organize source excerpts", exact: true }).click();
   await expect(page.getByRole("dialog").locator("blockquote")).toHaveCount(3);
 });

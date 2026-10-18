@@ -10,16 +10,16 @@ export function ExcerptChoice({
 }) {
   return (
     <label className="field-label">
-      本次摘录长度
+      Excerpt length for this run
       <select
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value) as ExcerptLimit)}
       >
-        <option value={8}>标准摘录 · 最多 8 个非空行</option>
-        <option value={3}>简短摘录 · 最多 3 个非空行</option>
+        <option value={8}>Standard excerpt · up to 8 non-empty lines</option>
+        <option value={3}>Brief excerpt · up to 3 non-empty lines</option>
       </select>
-      <small>只影响本次处理，不改写已确认偏好。</small>
+      <small>Applies only to this run and does not change your saved preference.</small>
     </label>
   );
 }

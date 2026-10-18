@@ -68,7 +68,7 @@ it("uses the Web Lock to reject duplicate dispatch and makes recall win over an 
   vi.stubGlobal("fetch", fetcher);
   await runtime.submitBatchTask(draft);
   await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
-  await expect(runtime.submitBatchTask(draft)).rejects.toThrow("执行中");
+  await expect(runtime.submitBatchTask(draft)).rejects.toThrow("already being submitted or processed");
   await runtime.updateTask("task-" + draft.id, { type: "cancel" });
   expect(fetcher.mock.calls[0][1].signal.aborted).toBe(true);
   respond(new Response(JSON.stringify(result)));
@@ -133,7 +133,7 @@ it("holds the lock on save failure and retries only saving the same reply, inclu
   await runtime.recoverTasks();
   expect((await repo.listTasks())[0].status).toBe("running");
   await expect(runtime.retryBatchTaskSave(id)).rejects.toThrow("disk failure");
-  expect(runtime.useTasks.getState().pendingSaves[id]).toContain("仅重试保存");
+  expect(runtime.useTasks.getState().pendingSaves[id]).toContain("retry saving only");
   await runtime.retryBatchTaskSave(id);
   await vi.waitFor(() => expect(held.has("wisp-task:" + id)).toBe(false));
   expect((await repo.listTasks())[0]).toMatchObject({
@@ -180,7 +180,7 @@ it("recalling a pending-save task drops its cached reply and releases the lock w
     unread: false,
   });
   expect((await repo.listTasks())[0].result).toBeUndefined();
-  await expect(runtime.retryBatchTaskSave(id)).rejects.toThrow("没有待保存");
+  await expect(runtime.retryBatchTaskSave(id)).rejects.toThrow("No unsaved multi-material reply");
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(
     changeTask.mock.calls.filter(([, action]) => action.type === "complete"),

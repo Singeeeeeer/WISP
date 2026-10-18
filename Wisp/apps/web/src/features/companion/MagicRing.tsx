@@ -8,12 +8,12 @@ const entries = [
   {
     id: "understand",
     label: "Understand",
-    subtitle: "解释与摘要",
+    subtitle: "Explanation and summary",
     sprite: "book",
   },
-  { id: "check", label: "Check", subtitle: "疑点与依据", sprite: "check" },
-  { id: "create", label: "Create", subtitle: "草稿与方向", sprite: "create" },
-  { id: "summon", label: "Summon", subtitle: "一次性委托", sprite: "summon" },
+  { id: "check", label: "Check", subtitle: "Findings and evidence", sprite: "check" },
+  { id: "create", label: "Create", subtitle: "Drafts and directions", sprite: "create" },
+  { id: "summon", label: "Summon", subtitle: "One-time delegation", sprite: "summon" },
 ] as const;
 
 export function MagicRing({
@@ -89,7 +89,7 @@ export function MagicRing({
         ref={ref}
         className={"magic-ring" + (reduced ? " magic-ring-reduced" : "")}
         role="menu"
-        aria-label="基础能力"
+        aria-label="Core abilities"
         style={{
           left: center.x - size / 2,
           top: center.y - size / 2,

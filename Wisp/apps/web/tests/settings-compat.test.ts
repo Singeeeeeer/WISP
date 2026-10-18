@@ -65,5 +65,5 @@ it("persists a rhythm change through the existing settings save queue", async ()
       idleRhythm: "lively",
     }),
   );
-  expect(useInteraction.getState().settingsStatus).toBe("设置已保存");
+  expect(useInteraction.getState().settingsStatus).toBe("Settings saved");
 });

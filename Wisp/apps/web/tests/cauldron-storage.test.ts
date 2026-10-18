@@ -28,7 +28,7 @@ it("keeps seeds out and atomically limits concurrent additions to twelve", async
   expect(results.filter((x) => x.status === "fulfilled")).toHaveLength(12);
   expect(await r.listCauldronEntries()).toHaveLength(12);
   expect(await r.listMaterials()).toHaveLength(14);
-  await expect(r.addCauldronEntry("proposal")).rejects.toThrow("灵感熔炉");
+  await expect(r.addCauldronEntry("proposal")).rejects.toThrow("Inspiration Cauldron");
   const m = (await r.listMaterials()).find((x) => x.id === "0")!;
   await expect(r.createCauldronMaterial(m)).resolves.toEqual(m);
   await expect(

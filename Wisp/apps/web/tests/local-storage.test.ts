@@ -50,6 +50,6 @@ it("does not return a different operation for a reused submission ID", async () 
   const s = snapshot(seeds()[0]);
   await r.saveRecord(runText("understand", s, ""));
   await expect(r.saveRecord(runText("create", s, ""))).rejects.toThrow(
-    "提交标识",
+    "submission ID",
   );
 });

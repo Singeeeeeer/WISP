@@ -81,16 +81,16 @@ function reply(body: BatchRequest, operation: Operation) {
 }
 
 async function openCauldron(page: Page) {
-  await page.getByRole("button", { name: "灵感熔炉", exact: true }).click();
-  return page.getByRole("dialog", { name: "灵感熔炉", exact: true });
+  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
+  return page.getByRole("dialog", { name: "Inspiration Cauldron", exact: true });
 }
 
 async function paste(dialog: Locator, title: string, text: string) {
-  await dialog.getByRole("button", { name: "粘贴文本", exact: true }).click();
-  await dialog.getByLabel("新材料标题").fill(title);
-  await dialog.getByLabel("粘贴正文").fill(text);
-  await dialog.getByRole("button", { name: "确认加入", exact: true }).click();
-  await expect(dialog.getByLabel("材料标题", { exact: true })).toHaveValue(
+  await dialog.getByRole("button", { name: "Paste text", exact: true }).click();
+  await dialog.getByLabel("New material title").fill(title);
+  await dialog.getByLabel("Pasted text").fill(text);
+  await dialog.getByRole("button", { name: "Confirm addition", exact: true }).click();
+  await expect(dialog.getByLabel("Material title", { exact: true })).toHaveValue(
     title,
   );
 }
@@ -98,16 +98,16 @@ async function paste(dialog: Locator, title: string, text: string) {
 async function addPair(page: Page, contents = texts) {
   const dialog = await openCauldron(page);
   await paste(dialog, titles[0], contents[0]);
-  await dialog.getByRole("button", { name: "导入文件", exact: true }).click();
-  await dialog.getByLabel("选择文件").setInputFiles({
+  await dialog.getByRole("button", { name: "Import file", exact: true }).click();
+  await dialog.getByLabel("Choose file").setInputFiles({
     name: "虚构来源乙.txt",
     mimeType: "text/plain",
     buffer: Buffer.from(contents[1]),
   });
   await expect(dialog.getByTestId("import-preview")).toHaveValue(contents[1]);
-  await dialog.getByLabel("新材料标题").fill(titles[1]);
-  await dialog.getByRole("button", { name: "确认加入", exact: true }).click();
-  await expect(dialog.getByLabel("材料标题", { exact: true })).toHaveValue(
+  await dialog.getByLabel("New material title").fill(titles[1]);
+  await dialog.getByRole("button", { name: "Confirm addition", exact: true }).click();
+  await expect(dialog.getByLabel("Material title", { exact: true })).toHaveValue(
     titles[1],
   );
   return dialog;
@@ -119,16 +119,16 @@ async function prepare(
   entry = "Understand",
   names = titles,
 ) {
-  await dialog.getByRole("button", { name: "勾选多材料", exact: true }).click();
+  await dialog.getByRole("button", { name: "Select multiple materials", exact: true }).click();
   for (const name of names)
     await dialog
-      .getByRole("checkbox", { name: "处理材料 " + name, exact: true })
+      .getByRole("checkbox", { name: "Process material " + name, exact: true })
       .check();
   await dialog
-    .getByRole("button", { name: entry + " 多材料", exact: true })
+    .getByRole("button", { name: entry + " multiple materials", exact: true })
     .click();
   const confirmation = page.getByRole("dialog", {
-    name: "多材料确认",
+    name: "Multi-material confirmation",
     exact: true,
   });
   await expect(confirmation).toBeVisible();
@@ -142,10 +142,10 @@ async function selectSegment(
   text: string,
 ) {
   await confirmation
-    .getByText(`调整材料 ${index} 的处理范围`, { exact: true })
+    .getByText(`Adjust the text range for material ${index}`, { exact: true })
     .click();
   const preview = confirmation.getByRole("textbox", {
-    name: `材料 ${index} 范围预览`,
+    name: `Material ${index} range preview`,
     exact: true,
   });
   await preview.scrollIntoViewIfNeeded();
@@ -189,7 +189,7 @@ async function selectSegment(
     )
     .toBe(text);
   await confirmation
-    .getByRole("button", { name: `使用材料 ${index} 选中片段`, exact: true })
+    .getByRole("button", { name: `Use the selected excerpt from material ${index}`, exact: true })
     .click();
   await expect(confirmation.getByTestId(`batch-snapshot-${index}`)).toHaveText(
     text,
@@ -256,14 +256,14 @@ for (const operation of ["understand", "check", "create"] as const) {
     await page.goto("/");
     const dialog = await addPair(page);
     const confirmation = await prepare(page, dialog, labels[operation]);
-    await expect(confirmation).toContainText("粘贴文本");
+    await expect(confirmation).toContainText("Paste text");
     await expect(confirmation).toContainText("虚构来源乙.txt");
     for (let i = 0; i < 2; i++)
       await selectSegment(confirmation, i + 1, prefixes[i], selections[i]);
     if (operation === "understand")
-      await confirmation.getByLabel("本次摘要长度").selectOption("brief");
+      await confirmation.getByLabel("Summary length for this run").selectOption("brief");
     await confirmation
-      .getByLabel("多材料补充要求")
+      .getByLabel("Additional instruction for this multi-material run")
       .fill("综合两份虚构材料，保留出处");
     expect(sent).toHaveLength(0);
     if (operation === "understand")
@@ -271,11 +271,11 @@ for (const operation of ["understand", "check", "create"] as const) {
         path: "test-results/batch/screenshots/confirmation.png",
       });
     await confirmation
-      .getByRole("button", { name: "开始多材料处理", exact: true })
+      .getByRole("button", { name: "Start multi-material processing", exact: true })
       .click();
     await expect(
       page.getByRole("heading", {
-        name: `多材料 ${labels[operation]} 结果`,
+        name: `Multi-material ${labels[operation]} result`,
         exact: true,
       }),
     ).toBeVisible();
@@ -312,13 +312,13 @@ for (const operation of ["understand", "check", "create"] as const) {
     expect(await readStore(page, "tasks")).toHaveLength(0);
     await clipboard(page);
     await page
-      .getByRole("button", { name: "复制多材料结果", exact: true })
+      .getByRole("button", { name: "Copy multi-material result", exact: true })
       .click();
     const copied = await page.evaluate(() => (window as any).__batchCopied);
     for (const title of titles) expect(copied).toContain(title);
     for (const text of privateText) expect(copied).not.toContain(text);
-    expect(copied).toContain("材料 1");
-    expect(copied).toContain("材料 2");
+    expect(copied).toContain("Material 1");
+    expect(copied).toContain("Material 2");
     if (operation === "create") {
       await expect(page.getByText(draftText, { exact: true })).toBeVisible();
       await expect(
@@ -326,11 +326,11 @@ for (const operation of ["understand", "check", "create"] as const) {
       ).toHaveCount(0);
     }
     await page.reload();
-    await page.getByRole("button", { name: "处理记录", exact: true }).click();
-    await page.getByRole("button", { name: /查看多材料.*结果/ }).click();
+    await page.getByRole("button", { name: "Run history", exact: true }).click();
+    await page.getByRole("button", { name: /View multi-material.*result/ }).click();
     await expect(
       page.getByRole("heading", {
-        name: `多材料 ${labels[operation]} 结果`,
+        name: `Multi-material ${labels[operation]} result`,
         exact: true,
       }),
     ).toBeVisible();
@@ -352,10 +352,10 @@ test("read-only preview permits Unicode-safe keyboard range selection without ch
     await addPair(page, [original, texts[1]]),
   );
   await confirmation
-    .getByText("调整材料 1 的处理范围", { exact: true })
+    .getByText("Adjust the text range for material 1", { exact: true })
     .click();
   const preview = confirmation.getByRole("textbox", {
-    name: "材料 1 范围预览",
+    name: "Material 1 range preview",
     exact: true,
   });
   await preview.click();
@@ -374,7 +374,7 @@ test("read-only preview permits Unicode-safe keyboard range selection without ch
   await preview.press("Shift+ArrowRight");
   await preview.press("Shift+ArrowLeft");
   await confirmation
-    .getByRole("button", { name: "使用材料 1 选中片段", exact: true })
+    .getByRole("button", { name: "Use the selected excerpt from material 1", exact: true })
     .click();
   await expect(confirmation.getByTestId("batch-snapshot-1")).toHaveText("😀");
   await expect(preview).toHaveValue(original);
@@ -384,7 +384,7 @@ test("read-only preview permits Unicode-safe keyboard range selection without ch
   await preview.press("Shift+ArrowLeft");
   await preview.press("Shift+ArrowLeft");
   await confirmation
-    .getByRole("button", { name: "使用材料 1 选中片段", exact: true })
+    .getByRole("button", { name: "Use the selected excerpt from material 1", exact: true })
     .click();
   await expect(confirmation.getByTestId("batch-snapshot-1")).toHaveText(
     "😀乙丙",
@@ -407,30 +407,30 @@ test("selection requires two current cauldron members and opening or dismissing 
   });
   await page.goto("/");
   const dialog = await addPair(page);
-  await dialog.getByRole("button", { name: "勾选多材料", exact: true }).click();
+  await dialog.getByRole("button", { name: "Select multiple materials", exact: true }).click();
   const start = dialog.getByRole("button", {
-    name: "Understand 多材料",
+    name: "Understand multiple materials",
     exact: true,
   });
   await expect(start).toBeDisabled();
   await dialog
-    .getByRole("checkbox", { name: "处理材料 " + titles[0], exact: true })
+    .getByRole("checkbox", { name: "Process material " + titles[0], exact: true })
     .check();
   await expect(start).toBeDisabled();
   await dialog
-    .getByRole("button", { name: "全部本地材料", exact: true })
+    .getByRole("button", { name: "All local materials", exact: true })
     .click();
   await expect(
-    dialog.getByRole("checkbox", { name: "处理材料 场地说明", exact: true }),
+    dialog.getByRole("checkbox", { name: "Process material Venue notes", exact: true }),
   ).toBeDisabled();
   await dialog
-    .getByRole("checkbox", { name: "处理材料 " + titles[1], exact: true })
+    .getByRole("checkbox", { name: "Process material " + titles[1], exact: true })
     .check();
   await expect(start).toBeEnabled();
   await start.click();
   await expect(page.getByTestId("batch-snapshot-1")).toHaveText(texts[0]);
   await page
-    .getByRole("button", { name: "关闭多材料确认", exact: true })
+    .getByRole("button", { name: "Close multi-material confirmation", exact: true })
     .click();
   expect(calls).toBe(0);
   expect(await readStore(page, "checks")).toHaveLength(0);
@@ -451,7 +451,7 @@ test("60001 UTF-16 units are never truncated or sent; reducing scope to exactly 
   const dialog = await addPair(page, contents);
   const confirmation = await prepare(page, dialog, "Check");
   const start = confirmation.getByRole("button", {
-    name: "开始多材料处理",
+    name: "Start multi-material processing",
     exact: true,
   });
   await expect(start).toBeDisabled();
@@ -461,10 +461,10 @@ test("60001 UTF-16 units are never truncated or sent; reducing scope to exactly 
   );
   expect(sent).toHaveLength(0);
   await confirmation
-    .getByText("调整材料 1 的处理范围", { exact: true })
+    .getByText("Adjust the text range for material 1", { exact: true })
     .click();
   const preview = confirmation.getByRole("textbox", {
-    name: "材料 1 范围预览",
+    name: "Material 1 range preview",
     exact: true,
   });
   // The large boundary fixture uses the native selection API; the primary
@@ -475,14 +475,14 @@ test("60001 UTF-16 units are never truncated or sent; reducing scope to exactly 
   });
   await preview.press("Shift");
   await confirmation
-    .getByRole("button", { name: "使用材料 1 选中片段", exact: true })
+    .getByRole("button", { name: "Use the selected excerpt from material 1", exact: true })
     .click();
   await expect(confirmation.getByTestId("batch-snapshot-1")).toHaveText(
     "甲".repeat(30000),
   );
   await expect(start).toBeEnabled();
   await confirmation
-    .getByRole("button", { name: "恢复材料 1 全文", exact: true })
+    .getByRole("button", { name: "Restore the full text for material 1", exact: true })
     .click();
   await expect(start).toBeDisabled();
   await preview.evaluate((element: HTMLTextAreaElement) => {
@@ -491,11 +491,11 @@ test("60001 UTF-16 units are never truncated or sent; reducing scope to exactly 
   });
   await preview.press("Shift");
   await confirmation
-    .getByRole("button", { name: "使用材料 1 选中片段", exact: true })
+    .getByRole("button", { name: "Use the selected excerpt from material 1", exact: true })
     .click();
   await start.click();
   await expect(
-    page.getByRole("heading", { name: "多材料 Check 结果", exact: true }),
+    page.getByRole("heading", { name: "Multi-material Check result", exact: true }),
   ).toBeVisible();
   expect(sent).toHaveLength(1);
   expect(sent[0].snapshots.map((snapshot) => snapshot.text.length)).toEqual([
@@ -528,18 +528,18 @@ test("saving failure retains frozen result and retry only saves once", async ({
     };
   });
   await confirmation
-    .getByRole("button", { name: "开始多材料处理", exact: true })
+    .getByRole("button", { name: "Start multi-material processing", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText("模拟批量落盘失败");
   expect(calls).toBe(1);
   expect(await readStore(page, "checks")).toHaveLength(0);
-  await expect(confirmation.getByLabel("多材料补充要求")).toBeDisabled();
-  await expect(confirmation.getByLabel("本次摘要长度")).toBeDisabled();
+  await expect(confirmation.getByLabel("Additional instruction for this multi-material run")).toBeDisabled();
+  await expect(confirmation.getByLabel("Summary length for this run")).toBeDisabled();
   await page
-    .getByRole("button", { name: "重试保存多材料结果", exact: true })
+    .getByRole("button", { name: "Retry saving multi-material result", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "多材料 Understand 结果", exact: true }),
+    page.getByRole("heading", { name: "Multi-material Understand result", exact: true }),
   ).toBeVisible();
   expect(calls).toBe(1);
   expect(await readStore(page, "checks")).toHaveLength(1);
@@ -566,15 +566,15 @@ test("foreground cancellation discards late output without saving a result", asy
   await page.goto("/");
   const confirmation = await prepare(page, await addPair(page), "Create");
   await confirmation
-    .getByRole("button", { name: "开始多材料处理", exact: true })
+    .getByRole("button", { name: "Start multi-material processing", exact: true })
     .click();
   await expect.poll(() => calls).toBe(1);
-  await page.getByRole("button", { name: "停止等待", exact: true }).click();
+  await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
   release();
   await expect.poll(() => completed.length).toBe(1);
   await Promise.all(completed);
   await expect(
-    page.getByRole("heading", { name: "多材料 Create 结果", exact: true }),
+    page.getByRole("heading", { name: "Multi-material Create result", exact: true }),
   ).toHaveCount(0);
   expect(await readStore(page, "checks")).toHaveLength(0);
 });
@@ -596,11 +596,11 @@ for (const failure of ["provider", "evidence"] as const) {
     await page.goto("/");
     const confirmation = await prepare(page, await addPair(page), "Check");
     await confirmation
-      .getByRole("button", { name: "开始多材料处理", exact: true })
+      .getByRole("button", { name: "Start multi-material processing", exact: true })
       .click();
     await expect(page.getByRole("alert")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "多材料 Check 结果", exact: true }),
+      page.getByRole("heading", { name: "Multi-material Check result", exact: true }),
     ).toHaveCount(0);
     expect(await readStore(page, "checks")).toHaveLength(0);
     await expect(confirmation.getByTestId("batch-snapshot-1")).toHaveText(
@@ -629,11 +629,11 @@ for (const [role, operation] of [
     await selectSegment(confirmation, 1, prefixes[0], selections[0]);
     expect(sent).toHaveLength(0);
     await confirmation
-      .getByRole("button", { name: "召唤多材料使魔", exact: true })
+      .getByRole("button", { name: "Summon multi-material familiar", exact: true })
       .click();
     await expect(
-      page.getByRole("complementary", { name: "使魔任务状态" }),
-    ).toContainText("1 封未读");
+      page.getByRole("complementary", { name: "Familiar task status" }),
+    ).toContainText("1 unread");
     expect(sent).toHaveLength(1);
     expect(sent[0].snapshots.map((snapshot) => snapshot.text)).toEqual([
       selections[0],
@@ -642,22 +642,22 @@ for (const [role, operation] of [
     expect(await readStore(page, "checks")).toHaveLength(0);
     expect(await readStore(page, "tasks")).toHaveLength(1);
     await page.reload();
-    await page.getByRole("button", { name: "查看使魔任务" }).click();
+    await page.getByRole("button", { name: "View familiar tasks" }).click();
     await expect(page.getByTestId("task-card")).toHaveCount(1);
     for (const title of titles)
       await expect(page.getByTestId("task-card")).toContainText(title);
-    await page.getByRole("button", { name: "查看回信", exact: true }).click();
+    await page.getByRole("button", { name: "View reply", exact: true }).click();
     await expect(
       page.getByRole("heading", {
-        name: `多材料 ${labels[operation]} 结果`,
+        name: `Multi-material ${labels[operation]} result`,
         exact: true,
       }),
     ).toBeVisible();
     await page
-      .getByRole("button", { name: "关闭多材料结果", exact: true })
+      .getByRole("button", { name: "Close multi-material result", exact: true })
       .click();
-    await page.getByRole("button", { name: "收好记录", exact: true }).click();
-    await expect(page.getByTestId("task-card")).toContainText("已收好");
+    await page.getByRole("button", { name: "Archive record", exact: true }).click();
+    await expect(page.getByTestId("task-card")).toContainText("Archived");
     expect(sent).toHaveLength(1);
   });
 }
@@ -688,38 +688,38 @@ test("a pending batch reply retains its live task lock across tabs and retry sav
     };
   });
   await confirmation
-    .getByRole("button", { name: "召唤多材料使魔", exact: true })
+    .getByRole("button", { name: "Summon multi-material familiar", exact: true })
     .click();
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
   await expect(page.getByTestId("task-card")).toContainText(
-    "模型处理已结束，回信尚未保存",
+    "Model processing finished, but the reply is not saved",
   );
   await expect(
-    page.getByRole("button", { name: "查看回信", exact: true }),
+    page.getByRole("button", { name: "View reply", exact: true }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("0 封未读");
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("0 unread");
   expect(calls).toBe(1);
   const other = await context.newPage();
   await other.goto("/");
-  await other.getByRole("button", { name: "查看使魔任务" }).click();
-  await expect(other.getByTestId("task-card")).toContainText("处理中");
-  await expect(other.getByTestId("task-card")).not.toContainText("已中断");
-  await page.getByRole("button", { name: "重试保存回信", exact: true }).click();
-  await expect(page.getByTestId("task-card")).toContainText("已完成");
-  await expect(other.getByTestId("task-card")).toContainText("已完成");
+  await other.getByRole("button", { name: "View familiar tasks" }).click();
+  await expect(other.getByTestId("task-card")).toContainText("Running");
+  await expect(other.getByTestId("task-card")).not.toContainText("Interrupted");
+  await page.getByRole("button", { name: "Retry saving reply", exact: true }).click();
+  await expect(page.getByTestId("task-card")).toContainText("Completed");
+  await expect(other.getByTestId("task-card")).toContainText("Completed");
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("1 封未读");
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("1 unread");
   expect(calls).toBe(1);
   const tasks = await readStore(page, "tasks");
   expect(tasks).toHaveLength(1);
   expect(tasks[0].result.scope).toBe("batch");
   expect(await readStore(page, "checks")).toHaveLength(0);
   await page.reload();
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
-  await expect(page.getByTestId("task-card")).toContainText("已完成");
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
+  await expect(page.getByTestId("task-card")).toContainText("Completed");
   expect(calls).toBe(1);
 });
 
@@ -738,38 +738,38 @@ test("batch recall wins over a late response and reload interrupts unfinished wo
   await page.goto("/");
   const confirmation = await prepare(page, await addPair(page), "Summon");
   await confirmation
-    .getByRole("button", { name: "召唤多材料使魔", exact: true })
+    .getByRole("button", { name: "Summon multi-material familiar", exact: true })
     .click();
   await expect.poll(() => calls).toBe(1);
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
-  await page.getByRole("button", { name: "召回任务", exact: true }).click();
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
+  await page.getByRole("button", { name: "Recall task", exact: true }).click();
   releases[0]();
-  await expect(page.getByTestId("task-card")).toContainText("已召回");
+  await expect(page.getByTestId("task-card")).toContainText("Cancelled");
   await expect(
-    page.getByRole("button", { name: "查看回信", exact: true }),
+    page.getByRole("button", { name: "View reply", exact: true }),
   ).toHaveCount(0);
   await page
-    .getByRole("button", { name: "重新确认当前材料", exact: true })
+    .getByRole("button", { name: "Confirm current materials again", exact: true })
     .click();
   await expect(
-    page.getByRole("dialog", { name: "多材料确认", exact: true }),
+    page.getByRole("dialog", { name: "Multi-material confirmation", exact: true }),
   ).toBeVisible();
   expect(calls).toBe(1);
   await page
-    .getByRole("button", { name: "召唤多材料使魔", exact: true })
+    .getByRole("button", { name: "Summon multi-material familiar", exact: true })
     .click();
   await expect.poll(() => calls).toBe(2);
   await page.reload();
   releases[1]();
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
   await expect(
-    page.getByTestId("task-card").filter({ hasText: "已中断" }),
+    page.getByTestId("task-card").filter({ hasText: "Interrupted" }),
   ).toHaveCount(1);
   await expect(
-    page.getByTestId("task-card").filter({ hasText: "已召回" }),
+    page.getByTestId("task-card").filter({ hasText: "Cancelled" }),
   ).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "查看回信", exact: true }),
+    page.getByRole("button", { name: "View reply", exact: true }),
   ).toHaveCount(0);
   expect(calls).toBe(2);
 });
@@ -787,24 +787,24 @@ test("continuation keeps confirmed snapshots after source changes; fresh confirm
   await page.goto("/");
   const confirmation = await prepare(page, await addPair(page));
   await selectSegment(confirmation, 1, prefixes[0], selections[0]);
-  await confirmation.getByLabel("本次摘要长度").selectOption("brief");
+  await confirmation.getByLabel("Summary length for this run").selectOption("brief");
   await confirmation
-    .getByRole("button", { name: "开始多材料处理", exact: true })
+    .getByRole("button", { name: "Start multi-material processing", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "多材料 Understand 结果", exact: true }),
+    page.getByRole("heading", { name: "Multi-material Understand result", exact: true }),
   ).toBeVisible();
   const other = await context.newPage();
   await other.goto("/");
   const otherCauldron = await openCauldron(other);
   await otherCauldron
-    .getByRole("button", { name: "选择材料 " + titles[0], exact: true })
+    .getByRole("button", { name: "Select material " + titles[0], exact: true })
     .click();
   await otherCauldron
-    .getByRole("button", { name: "打开编辑", exact: true })
+    .getByRole("button", { name: "Open editor", exact: true })
     .click();
   const updated = "新版项目甲：改为周日阅读。";
-  await other.getByLabel(titles[0] + "正文", { exact: true }).fill(updated);
+  await other.getByLabel(titles[0] + "text", { exact: true }).fill(updated);
   await expect
     .poll(
       async () =>
@@ -813,28 +813,28 @@ test("continuation keeps confirmed snapshots after source changes; fresh confirm
         )?.text,
     )
     .toBe(updated);
-  await expect(page.getByText(/旧版本/).first()).toBeVisible();
-  await page.getByRole("button", { name: "继续召唤使魔", exact: true }).click();
+  await expect(page.getByText(/old version/).first()).toBeVisible();
+  await page.getByRole("button", { name: "Summon familiar again", exact: true }).click();
   await expect(page.getByTestId("batch-snapshot-1")).toHaveText(selections[0]);
-  await expect(page.getByLabel("本次摘要长度")).toHaveValue("brief");
+  await expect(page.getByLabel("Summary length for this run")).toHaveValue("brief");
   expect(sent).toHaveLength(1);
   await page
-    .getByRole("button", { name: "召唤多材料使魔", exact: true })
+    .getByRole("button", { name: "Summon multi-material familiar", exact: true })
     .click();
   await expect(
-    page.getByRole("complementary", { name: "使魔任务状态" }),
-  ).toContainText("1 封未读");
+    page.getByRole("complementary", { name: "Familiar task status" }),
+  ).toContainText("1 unread");
   expect(sent).toHaveLength(2);
   expect(sent[1].snapshots.map((snapshot) => snapshot.text)).toEqual([
     selections[0],
     texts[1],
   ]);
   expect(sent[1].snapshots[0].materialVersion).toBe(1);
-  await page.getByRole("button", { name: "查看使魔任务" }).click();
-  await page.getByRole("button", { name: "查看回信", exact: true }).click();
-  await expect(page.getByText(/旧版本/).first()).toBeVisible();
+  await page.getByRole("button", { name: "View familiar tasks" }).click();
+  await page.getByRole("button", { name: "View reply", exact: true }).click();
+  await expect(page.getByText(/old version/).first()).toBeVisible();
   await page
-    .getByRole("button", { name: "重新确认当前材料", exact: true })
+    .getByRole("button", { name: "Confirm current materials again", exact: true })
     .click();
   await expect(page.getByTestId("batch-snapshot-1")).toHaveText(updated);
   await expect(page.getByTestId("batch-snapshot-2")).toHaveText(texts[1]);

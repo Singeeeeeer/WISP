@@ -53,9 +53,9 @@ export function JointResult({
   async function copyResult() {
     const finish = captureOutcome();
     const text = [
-      "两份文本的联合整理 · 本地摘录 · 未接入 AI",
+      "Joint organization of two texts · Local excerpts · no AI",
       jointLimit,
-      `每份最多 ${record.excerptLimit} 个非空行`,
+      `Up to ${record.excerptLimit} non-empty lines per material`,
       ...record.sources.flatMap((part) => {
         const s = part.snapshot;
         const current = materials.find((m) => m.id === s.materialId);
@@ -65,28 +65,28 @@ export function JointResult({
           current.title !== s.title ||
           current.text !== s.text;
         return [
-          `来源：${s.title} · ID ${s.materialId} · 版本 ${s.materialVersion}`,
-          `全文 UTF-16 范围 [${s.start}, ${s.end})`,
+          `Source: ${s.title} · ID ${s.materialId} · Version ${s.materialVersion}`,
+          `Full text UTF-16 range [${s.start}, ${s.end})`,
           sourceDescription(s),
-          stale ? "旧版本结果，不代表当前材料" : "",
+          stale ? "Old-version result; not the current material" : "",
           ...part.excerpts.map(
             (e) =>
-              `${e.quote}\n原文依据：${s.title} · ID ${s.materialId} · 版本 ${s.materialVersion} · UTF-16 [${s.start + e.start}, ${s.start + e.end})`,
+              `${e.quote}\nSource evidence: ${s.title} · ID ${s.materialId} · Version ${s.materialVersion} · UTF-16 [${s.start + e.start}, ${s.start + e.end})`,
           ),
-          `未展示的非空行：${part.omittedLines}`,
+          `Non-empty lines not shown: ${part.omittedLines}`,
         ];
       }),
     ].join("\n");
     try {
       await navigator.clipboard.writeText(text);
-      if (finish("success")) setCopy("已复制联合整理结果");
+      if (finish("success")) setCopy("Copied joint result");
     } catch {
-      if (finish("error")) setCopy("复制失败，请手动选择结果文字复制。");
+      if (finish("error")) setCopy("Copy failed. Select and copy the result text manually.");
     }
   }
   return (
     <>
-      <h2>两份文本的联合整理</h2>
+      <h2>Joint organization of two texts</h2>
       <p className="notice">{jointLimit}</p>
       {record.sources.map((part, i) => (
         <section
@@ -95,10 +95,10 @@ export function JointResult({
           data-testid="joint-result-source"
         >
           <h3>
-            材料 {i + 1}：{part.snapshot.title}
+            Material {i + 1}: {part.snapshot.title}
           </h3>
           <p>
-            来源 ID：{part.snapshot.materialId} · 全文 UTF-16 范围 [
+            Source ID: {part.snapshot.materialId} · Full text UTF-16 range [
             {part.snapshot.start}, {part.snapshot.end})
           </p>
           <LocalResult record={part} embedded close={close} again={again} />
@@ -106,11 +106,11 @@ export function JointResult({
       ))}
       <p role="status">{copy}</p>
       <div className="panel-actions">
-        <button onClick={() => void copyResult()}>复制联合整理结果</button>
+        <button onClick={() => void copyResult()}>Copy joint result</button>
         <button disabled={!available} onClick={again}>
-          重新确认两份全文
+          Confirm both full texts again
         </button>
-        <button onClick={close}>关闭联合整理结果</button>
+        <button onClick={close}>Close joint result</button>
       </div>
     </>
   );
@@ -163,14 +163,14 @@ export function JointPanel({ draft }: { draft: JointDraft }) {
       finishJointInvitation("completed");
     } catch (e) {
       finish("error");
-      setError(e instanceof Error ? e.message : "联合整理保存失败，请重试。");
+      setError(e instanceof Error ? e.message : "Could not save joint result. Please retry.");
     } finally {
       lock.current = false;
       setBusy(false);
     }
   }
   return (
-    <Dialog title={record ? "联合整理结果" : "联合整理材料确认"} close={close}>
+    <Dialog title={record ? "Joint result" : "Joint material confirmation"} close={close}>
       {record ? (
         <JointResult
           record={record}
@@ -179,18 +179,18 @@ export function JointPanel({ draft }: { draft: JointDraft }) {
         />
       ) : (
         <>
-          <div className="eyebrow">JOINT · 两份本地文本 · 未接入 AI</div>
-          <h2>确认两份全文材料</h2>
+          <div className="eyebrow">JOINT · Two local texts · No AI used</div>
+          <h2>Confirm both full-text materials</h2>
           <p className="notice">{jointLimit}</p>
           <p>
-            本次使用下面两份全文，不沿用单份文档的选区。只有点击“联合整理两份文本”后才处理和保存，不修改原文。
+            This run uses the two full texts below and does not reuse a single-document selection. Processing and saving begin only after you click “Organize two texts”; sources are not modified.
           </p>
           <ExcerptChoice
             value={excerptLimit}
             onChange={setExcerptLimit}
             disabled={busy}
           />
-          <p>此行数上限分别用于每份材料。</p>
+          <p>This line limit applies to each material.</p>
           {draft.snapshots.map((s, i) => (
             <section
               className="scope"
@@ -198,11 +198,11 @@ export function JointPanel({ draft }: { draft: JointDraft }) {
               data-testid="joint-source"
             >
               <h3>
-                材料 {i + 1}：{s.title}
+                Material {i + 1}: {s.title}
               </h3>
               <p>
-                来源 ID：{s.materialId} · 版本 {s.materialVersion} · 全文 UTF-16
-                范围 [{s.start}, {s.end})
+                Source ID: {s.materialId} · Version {s.materialVersion} · Full text UTF-16
+                range [{s.start}, {s.end})
               </p>
               <SourceInfo value={s} />
               <pre>{s.text}</pre>
@@ -210,12 +210,12 @@ export function JointPanel({ draft }: { draft: JointDraft }) {
           ))}
           {stale && (
             <p className="notice">
-              原文已经变化或不可用，当前仍是确认面板中的副本。
+              The source changed or is unavailable; the copy in this confirmation panel is still used.
               <button
                 disabled={busy || current.some((m) => !m)}
                 onClick={refresh}
               >
-                更新两份当前全文
+                Update both current full texts
               </button>
             </p>
           )}
@@ -226,10 +226,10 @@ export function JointPanel({ draft }: { draft: JointDraft }) {
               className="primary"
               onClick={() => void submit()}
             >
-              {busy ? "正在处理并保存…" : "联合整理两份文本"}
+              {busy ? "Processing and saving…" : "Organize two texts"}
             </button>
             <button disabled={busy} onClick={close}>
-              取消联合整理
+              Cancel joint organization
             </button>
           </div>
         </>

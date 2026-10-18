@@ -46,7 +46,7 @@ test.beforeEach(async ({ page }) => {
     await route.abort("blockedbyclient");
   });
   await page.goto("/");
-  await expect(page.getByLabel("书店活动提案正文")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
 });
 
 test.afterEach(async ({ page }) => {
@@ -55,8 +55,8 @@ test.afterEach(async ({ page }) => {
 });
 
 async function openBook(page: Page) {
-  await page.getByRole("button", { name: "魔法书", exact: true }).click();
-  const book = page.getByRole("dialog", { name: "魔法书", exact: true });
+  await page.getByRole("button", { name: "Grimoire", exact: true }).click();
+  const book = page.getByRole("dialog", { name: "Grimoire", exact: true });
   await expect(book).toBeVisible();
   return book;
 }
@@ -121,13 +121,13 @@ for (const viewport of [
         book.getByRole("region", { name: chapter, exact: true }),
       ).toBeVisible();
     }
-    await expect(book.getByLabel("减少动态效果")).toBeVisible();
+    await expect(book.getByLabel("Reduce motion")).toBeVisible();
     await book.getByRole("button", { name: "About you", exact: true }).click();
     await expect(
-      book.getByRole("heading", { name: "还没有记录偏好" }),
+      book.getByRole("heading", { name: "No preference recorded" }),
     ).toBeVisible();
     await book.getByRole("button", { name: "Familiars", exact: true }).click();
-    await expect(book.getByText("还没有委托，也没有模拟任务。")).toBeVisible();
+    await expect(book.getByText("No delegated tasks yet.")).toBeVisible();
   });
 }
 
@@ -141,7 +141,7 @@ for (const viewport of [
   }, testInfo) => {
     await page.setViewportSize(viewport);
     await page.keyboard.press("Alt+KeyM");
-    const book = page.getByRole("dialog", { name: "魔法书", exact: true });
+    const book = page.getByRole("dialog", { name: "Grimoire", exact: true });
     await expect(book).toBeVisible();
     const index = (await book.locator(".grimoire-index").boundingBox())!;
     const content = (await book
@@ -159,13 +159,13 @@ for (const viewport of [
       );
     }
     const proposals = book.getByRole("checkbox", {
-      name: "Helpful proposals（本地主动提议）",
+      name: "Helpful proposals (local suggestions)",
       exact: true,
     });
     await proposals.scrollIntoViewIfNeeded();
     await fitsViewport(proposals, page);
     await page.screenshot({ path: testInfo.outputPath("narrow-settings.png") });
-    await book.getByLabel("关闭魔法书", { exact: true }).click();
+    await book.getByLabel("Close Grimoire", { exact: true }).click();
     await expect(book).not.toBeVisible();
   });
 }
@@ -173,13 +173,13 @@ for (const viewport of [
 test("keyboard focus stays in the book and Escape returns to the opening control", async ({
   page,
 }) => {
-  const opener = page.getByRole("button", { name: "魔法书", exact: true });
+  const opener = page.getByRole("button", { name: "Grimoire", exact: true });
   await opener.focus();
   await page.keyboard.press("Enter");
-  const book = page.getByRole("dialog", { name: "魔法书", exact: true });
+  const book = page.getByRole("dialog", { name: "Grimoire", exact: true });
   await expect(book).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(book.getByLabel("关闭魔法书", { exact: true })).toBeFocused();
+  await expect(book.getByLabel("Close Grimoire", { exact: true })).toBeFocused();
   for (let i = 0; i < 12; i++) {
     await page.keyboard.press("Tab");
     expect(
@@ -190,13 +190,13 @@ test("keyboard focus stays in the book and Escape returns to the opening control
   }
   await book.getByRole("button", { name: "Settings", exact: true }).focus();
   await page.keyboard.press("Enter");
-  await book.getByLabel("关闭魔法书", { exact: true }).focus();
+  await book.getByLabel("Close Grimoire", { exact: true }).focus();
   await page.keyboard.press("Shift+Tab");
   expect(
     await book.evaluate((element) => element.contains(document.activeElement)),
   ).toBe(true);
   await expect(
-    book.getByLabel("关闭魔法书", { exact: true }),
+    book.getByLabel("Close Grimoire", { exact: true }),
   ).not.toBeFocused();
   await page.keyboard.press("Escape");
   await expect(book).not.toBeVisible();
@@ -208,21 +208,21 @@ test("settings on the paper page still save and survive a reload", async ({
 }) => {
   let book = await openBook(page);
   await book.getByRole("button", { name: "Settings", exact: true }).click();
-  await book.getByLabel("显示小魔女", { exact: true }).uncheck();
-  await book.getByLabel("减少动态效果", { exact: true }).check();
+  await book.getByLabel("Show the witch", { exact: true }).uncheck();
+  await book.getByLabel("Reduce motion", { exact: true }).check();
   await book
-    .getByRole("combobox", { name: "待机节奏", exact: true })
+    .getByRole("combobox", { name: "Idle rhythm", exact: true })
     .selectOption("lively");
-  await expect(book.getByRole("status")).toHaveText("设置已保存");
+  await expect(book.getByRole("status")).toHaveText("Settings saved");
   await page.reload();
   book = await openBook(page);
   await book.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(
-    book.getByLabel("显示小魔女", { exact: true }),
+    book.getByLabel("Show the witch", { exact: true }),
   ).not.toBeChecked();
-  await expect(book.getByLabel("减少动态效果", { exact: true })).toBeChecked();
+  await expect(book.getByLabel("Reduce motion", { exact: true })).toBeChecked();
   await expect(
-    book.getByRole("combobox", { name: "待机节奏", exact: true }),
+    book.getByRole("combobox", { name: "Idle rhythm", exact: true }),
   ).toHaveValue("lively");
 });
 
@@ -239,29 +239,29 @@ for (const viewport of [
         `材料第 ${i + 1} 行：${"可核对的原文内容与需要保留的上下文。".repeat(12)}${"long-source-token-".repeat(8)}`,
     ).join("\n");
     await page
-      .getByRole("button", { name: "打开书店活动提案", exact: true })
+      .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
       .click();
-    await page.getByLabel("书店活动提案正文").fill(text);
-    await expect(page.getByTestId("save-proposal")).toHaveText("已保存");
+    await page.getByLabel("Bookstore event proposal text").fill(text);
+    await expect(page.getByTestId("save-proposal")).toHaveText("saved");
     await page
-      .getByRole("button", { name: "打开基础能力", exact: true })
+      .getByRole("button", { name: "Open core abilities", exact: true })
       .click();
     await page.getByRole("menuitem", { name: "Summon", exact: true }).click();
     await page
       .getByRole("button", { name: "Page Sprite", exact: false })
       .click();
-    await expect(page.getByLabel("执行方式", { exact: true })).toHaveValue(
+    await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
       "local",
     );
-    await page.getByRole("button", { name: "召唤使魔", exact: true }).click();
+    await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
     await expect(
-      page.getByRole("complementary", { name: "使魔任务状态" }),
-    ).toContainText("1 封未读");
+      page.getByRole("complementary", { name: "Familiar task status" }),
+    ).toContainText("1 unread");
     const book = await openBook(page);
     await book.getByRole("button", { name: "Familiars", exact: true }).click();
-    await book.getByRole("button", { name: "查看回信", exact: true }).click();
+    await book.getByRole("button", { name: "View reply", exact: true }).click();
     await expect(
-      book.getByRole("heading", { name: "原文摘录整理", exact: true }),
+      book.getByRole("heading", { name: "Source excerpt", exact: true }),
     ).toBeVisible();
     await page.setViewportSize(viewport);
     const content = book.getByRole("region", {
@@ -280,7 +280,7 @@ for (const viewport of [
       .poll(() => content.evaluate((element) => element.scrollTop))
       .toBeGreaterThan(0);
     const closeResult = book.getByRole("button", {
-      name: "关闭处理结果",
+      name: "Close result",
       exact: true,
     });
     await closeResult.scrollIntoViewIfNeeded();
@@ -295,7 +295,7 @@ for (const viewport of [
     });
     await closeResult.click();
     await expect(book.getByTestId("task-card")).toHaveCount(1);
-    await book.getByRole("button", { name: "收好记录", exact: true }).click();
-    await expect(book.getByTestId("task-card")).toContainText("已收好");
+    await book.getByRole("button", { name: "Archive record", exact: true }).click();
+    await expect(book.getByTestId("task-card")).toContainText("Archived");
   });
 }

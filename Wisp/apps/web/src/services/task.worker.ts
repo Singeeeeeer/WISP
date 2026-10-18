@@ -8,7 +8,7 @@ self.onmessage = (event: MessageEvent<SingleTask>) => {
     });
   } catch (e) {
     self.postMessage({
-      error: e instanceof Error ? e.message : "本地处理失败",
+      error: e instanceof Error ? e.message : "Local processing failed.",
     });
   }
 };

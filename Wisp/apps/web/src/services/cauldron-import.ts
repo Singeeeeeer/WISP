@@ -28,7 +28,7 @@ export function releaseImport(owner: string | undefined) {
 }
 export function reportImportError(error: unknown) {
   useCauldronImport.setState({
-    error: error instanceof Error ? error.message : "无法放入材料，请重试。",
+    error: error instanceof Error ? error.message : "Could not add the material. Please try again.",
   });
 }
 
@@ -43,25 +43,25 @@ export function importBlockReason(): string {
     state.book ||
     document.querySelector('[role="dialog"]:not(:has(.cauldron))')
   )
-    return "请先完成或关闭当前面板，再放入材料。";
+    return "Finish or close the current panel before adding a material.";
   if (useCauldronImport.getState().occupied)
-    return "已有未完成的材料预览或正在处理，请先确认加入或取消新增。";
+    return "A material preview is still open or processing is in progress. Confirm adding the material or cancel it first.";
   if (!useDocuments.getState().ready || !useCauldron.getState().ready)
-    return "材料列表尚未就绪，请稍后重试。";
+    return "The material list is not ready yet. Please try again shortly.";
   if (useCauldron.getState().entries.length >= 12)
-    return "熔炉最多容纳 12 份材料，请先移出一份再加入。";
+    return "The cauldron can hold up to 12 materials. Remove one before adding another.";
   return "";
 }
 
 export function copyFromDocument(id: string, selectionOnly = false): Material {
   const docs = useDocuments.getState();
   const material = docs.materials.find((m) => m.id === id);
-  if (!material) throw new Error("当前文档不可用，请重新打开。");
-  if (docs.status[id] !== "已保存" || docs.errors[id])
-    throw new Error("请先保存原文档并解决保存冲突，再加入副本。");
+  if (!material) throw new Error("The current document is unavailable. Reopen it.");
+  if (docs.status[id] !== "saved" || docs.errors[id])
+    throw new Error("Save the original document and resolve any save conflicts before adding a copy.");
   const selection = useInteraction.getState().selection;
   if (selectionOnly && (!selection || selection.materialId !== id))
-    throw new Error("请先在当前文档选择有效文字，不会自动改为全文。");
+    throw new Error("Select valid text in the current document first. The selection will not be replaced with the full text automatically.");
   return createMaterialCopy(material, selectionOnly ? selection : undefined);
 }
 
@@ -78,7 +78,7 @@ export function queueImport(request: ImportRequest) {
   if ("file" in request) {
     fileSource(request.file.name);
     if (request.file.size > 20_000_000)
-      throw new Error("单个文件不能超过 20 MB。");
+      throw new Error("A single file must not exceed 20 MB.");
   }
   // Claim the slot synchronously: a second drop cannot replace this draft.
   claimImport(request);
@@ -90,7 +90,7 @@ export function requestDocumentCopy(
   selectionOnly = false,
 ) {
   try {
-    if (!id) throw new Error("请先打开并选择一份文档。");
+    if (!id) throw new Error("Open and select a document first.");
     const reason = importBlockReason();
     if (reason) throw new Error(reason);
     queueImport({ copy: copyFromDocument(id, selectionOnly) });
@@ -113,6 +113,6 @@ export function endDocumentDrag() {
 }
 export function draggedDocument(transfer: DataTransfer): Material {
   if (!dragging || transfer.getData(DOCUMENT_DRAG_TYPE) !== dragging.token)
-    throw new Error("拖入文档已失效，请重新拖动独立的入炉把手。");
+    throw new Error("The dragged document is no longer available. Drag the separate Add to Cauldron handle again.");
   return dragging.copy;
 }
