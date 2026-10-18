@@ -86,14 +86,14 @@ function visibleBounds(source: Element, input: boolean) {
   return bounds;
 }
 
-function caretRect(range: Range, node: Node, offset: number) {
+function caretRects(range: Range, node: Node, offset: number): DOMRect[] {
   const collapsed = document.createRange();
   collapsed.setStart(node, offset);
   collapsed.collapse(true);
-  const rect = Array.from(collapsed.getClientRects()).find(
+  const rects = Array.from(collapsed.getClientRects()).filter(
     (box) => box.height > 0,
   );
-  if (rect) return rect;
+  if (rects.length) return rects;
   // Empty editable blocks and line endings may expose no collapsed range box.
   if (node.nodeType === Node.TEXT_NODE && node.textContent?.length) {
     const previous = offset > 0;
@@ -102,12 +102,14 @@ function caretRect(range: Range, node: Node, offset: number) {
     const boxes = Array.from(collapsed.getClientRects());
     const neighbor = previous ? boxes.at(-1) : boxes[0];
     if (neighbor?.height)
-      return new DOMRect(
-        previous ? neighbor.right : neighbor.left,
-        neighbor.top,
-        0,
-        neighbor.height,
-      );
+      return [
+        new DOMRect(
+          previous ? neighbor.right : neighbor.left,
+          neighbor.top,
+          0,
+          neighbor.height,
+        ),
+      ];
   }
   if (node instanceof Element) {
     const next = node.childNodes[offset];
@@ -115,20 +117,22 @@ function caretRect(range: Range, node: Node, offset: number) {
     while (leaf?.childNodes.length)
       leaf = (next ? leaf.firstChild : leaf.lastChild)!;
     if (leaf?.nodeType === Node.TEXT_NODE)
-      return caretRect(range, leaf, next ? 0 : leaf.textContent!.length);
+      return caretRects(range, leaf, next ? 0 : leaf.textContent!.length);
     if (leaf instanceof Element) {
       const box = leaf.getBoundingClientRect();
       if (box.height)
-        return new DOMRect(
-          next || leaf.tagName === "BR" ? box.left : box.right,
-          box.top,
-          0,
-          box.height,
-        );
+        return [
+          new DOMRect(
+            next || leaf.tagName === "BR" ? box.left : box.right,
+            box.top,
+            0,
+            box.height,
+          ),
+        ];
     }
   }
   const box = range.getBoundingClientRect();
-  return box.height ? box : undefined;
+  return box.height ? [box] : [];
 }
 
 /** Keep native focus and selection untouched; only the offscreen mirror is owned here. */
@@ -137,6 +141,9 @@ export function createTextTracker() {
   let dirty = true,
     target = false;
   let cached: TextAnchor | undefined;
+  let intent:
+    | { source: Element; key?: string; pointer?: Point; before?: Point }
+    | undefined;
   let previous:
     | {
         source: Element;
@@ -147,6 +154,36 @@ export function createTextTracker() {
         key: string;
       }
     | undefined;
+
+  function chooseCaret(rects: DOMRect[], source: Element) {
+    if (rects.length < 2) return rects[0];
+    const current =
+      intent &&
+      (intent.source.contains(source) || source.contains(intent.source))
+        ? intent
+        : undefined;
+    if (current?.pointer) {
+      const point = current.pointer;
+      return rects.reduce((best, rect) =>
+        Math.hypot(rect.left - point.x, rect.top + rect.height / 2 - point.y) <
+        Math.hypot(best.left - point.x, best.top + best.height / 2 - point.y)
+          ? rect
+          : best,
+      );
+    }
+    if (current?.key === "Home" || current?.key === "ArrowLeft")
+      return rects.at(-1);
+    if (
+      (current?.key === "ArrowUp" || current?.key === "ArrowDown") &&
+      current.before
+    ) {
+      const x = current.before.x;
+      return rects.reduce((best, rect) =>
+        Math.abs(rect.left - x) < Math.abs(best.left - x) ? rect : best,
+      );
+    }
+    return rects[0];
+  }
 
   function read(): TextAnchor | undefined {
     const active = document.activeElement;
@@ -273,7 +310,6 @@ export function createTextTracker() {
       range.setStart(text, start);
       range.setEnd(text, end);
       const offset = input.selectionDirection === "backward" ? start : end;
-      const rawCaret = caretRect(range, text, offset);
       const origin = mirror.getBoundingClientRect();
       const scaleX = input.offsetWidth ? box.width / input.offsetWidth : 1;
       const scaleY = input.offsetHeight ? box.height / input.offsetHeight : 1;
@@ -284,14 +320,20 @@ export function createTextTracker() {
           rect.width * scaleX,
           rect.height * scaleY,
         );
-      caret = rawCaret && translate(rawCaret);
+      caret = chooseCaret(
+        caretRects(range, text, offset).map(translate),
+        source,
+      );
       // Protect all visible text, including the word immediately before a caret.
       const fullText = document.createRange();
       fullText.selectNodeContents(mirror);
       rects = Array.from(fullText.getClientRects(), translate);
     } else if (selection?.rangeCount && focus) {
       const range = selection.getRangeAt(0);
-      caret = caretRect(range, focus, selection.focusOffset);
+      caret = chooseCaret(
+        caretRects(range, focus, selection.focusOffset),
+        source,
+      );
       rects = Array.from(range.getClientRects());
       const textNodes = document.createTreeWalker(source, NodeFilter.SHOW_TEXT);
       let node: Node | null;
@@ -337,7 +379,19 @@ export function createTextTracker() {
   return {
     read,
     hasTarget: () => target,
-    invalidate: () => {
+    invalidate: (event?: Event) => {
+      const element =
+        event?.target instanceof Element ? event.target : undefined;
+      if (event instanceof KeyboardEvent && element) {
+        const before = read()?.point;
+        intent = { source: element, key: event.key, before };
+      } else if (event instanceof PointerEvent && element) {
+        const source =
+          element.closest("input, textarea, [contenteditable]") ??
+          (previous?.source.contains(element) ? previous.source : undefined);
+        if (source)
+          intent = { source, pointer: { x: event.clientX, y: event.clientY } };
+      }
       dirty = true;
     },
     dispose: () => {
@@ -346,6 +400,7 @@ export function createTextTracker() {
       cached = undefined;
       previous = undefined;
       target = false;
+      intent = undefined;
     },
   };
 }
@@ -367,6 +422,12 @@ export function getTextLayout(
   const lineBottom = line.length
     ? Math.max(...line.map((rect) => rect.bottom))
     : anchor.point.y;
+  const lineLeft = line.length
+    ? Math.min(...line.map((rect) => rect.left))
+    : anchor.point.x;
+  const lineRight = line.length
+    ? Math.max(...line.map((rect) => rect.right))
+    : anchor.point.x;
   const below = lineBottom - anchor.point.y + 45 * scale + 5;
   const above = lineTop - anchor.point.y - (height - 45 * scale) - 5;
   const textBottom = Math.max(
@@ -378,28 +439,44 @@ export function getTextLayout(
   const outsideAbove = textTop - anchor.point.y - (height - 45 * scale) - 5;
   for (const dy of [0, -12, 12, below, above, outsideBelow, outsideAbove]) {
     if (Math.abs(dy) > height + lineBottom - lineTop) continue;
-    for (const facing of [1, -1] as const) {
-      const tip = { x: anchor.point.x - facing * 12, y: anchor.point.y + dy };
-      const x = tip.x - (facing === 1 ? 254.5 : 15.5) * scale;
-      const y = tip.y - 45 * scale;
-      if (
-        x < 8 ||
-        y < 8 ||
-        x + characterWidth > viewport.width - 8 ||
-        y + height > viewport.height - 8
-      )
-        continue;
-      if (
-        anchor.rects.some(
-          (rect) =>
-            x < rect.right + 4 &&
-            x + characterWidth > rect.left - 4 &&
-            y < rect.bottom + 4 &&
-            y + height > rect.top - 4,
+    for (const besideLine of [false, true]) {
+      for (const facing of [1, -1] as const) {
+        const tip = {
+          x:
+            (besideLine
+              ? facing === 1
+                ? lineLeft
+                : lineRight
+              : anchor.point.x) -
+            facing * 12,
+          y: anchor.point.y + dy,
+        };
+        if (
+          Math.hypot(tip.x - anchor.point.x, dy) >
+          height + lineBottom - lineTop
         )
-      )
-        continue;
-      return { x, y, facing, tip };
+          continue;
+        const x = tip.x - (facing === 1 ? 254.5 : 15.5) * scale;
+        const y = tip.y - 45 * scale;
+        if (
+          x < 8 ||
+          y < 8 ||
+          x + characterWidth > viewport.width - 8 ||
+          y + height > viewport.height - 8
+        )
+          continue;
+        if (
+          anchor.rects.some(
+            (rect) =>
+              x < rect.right + 4 &&
+              x + characterWidth > rect.left - 4 &&
+              y < rect.bottom + 4 &&
+              y + height > rect.top - 4,
+          )
+        )
+          continue;
+        return { x, y, facing, tip };
+      }
     }
   }
   return undefined;

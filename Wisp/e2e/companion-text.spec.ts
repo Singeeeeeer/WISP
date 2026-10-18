@@ -173,7 +173,7 @@ test("title caret follows real typing and keyboard movement independently of the
 
 test("keyboard forward and reverse selections point at the active end", async ({
   page,
-}) => {
+}, testInfo) => {
   const editor = await titleEditor(page);
   await page.keyboard.press("Home");
   await page.keyboard.press("Shift+End");
@@ -189,6 +189,10 @@ test("keyboard forward and reverse selections point at the active end", async ({
   ).toBe("backward");
   await pointsAt(page, await editorPoint(editor));
   expect((await wandTip(page)).x).toBeLessThan(forward.x - 100);
+  await page.screenshot({
+    path: testInfo.outputPath("title-reverse-selection.png"),
+    animations: "disabled",
+  });
   await page.keyboard.insertText("Replacement");
   await expect(editor).toHaveValue("Replacement");
   await pointsAt(page, await editorPoint(editor));
@@ -208,6 +212,9 @@ test("mouse selections retain the active end after release in either direction",
       "backward",
     ],
   ] as const) {
+    // Collapse the previous range so the next press starts a new selection,
+    // rather than the browser's native drag of already selected text.
+    await editor.press("ArrowLeft");
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
     await page.mouse.move(to.x, to.y, { steps: 8 });
@@ -349,10 +356,12 @@ test("DOM reading selections follow the focus end and remain indicated after mou
   });
   const start = await readingCharacter(reading, 2);
   const end = await readingCharacter(reading, 25);
+  const reset = await readingCharacter(reading, 46);
   for (const [from, to] of [
     [start, end],
     [await readingCharacter(reading, 23), await readingCharacter(reading, 4)],
   ]) {
+    await page.mouse.click(reset.x, reset.y);
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
     await page.mouse.move(to.x, to.y, { steps: 8 });
@@ -372,6 +381,45 @@ test("DOM reading selections follow the focus end and remain indicated after mou
   await expect(page.locator(".companion")).toHaveAttribute(
     "data-state",
     "following",
+  );
+});
+
+test("moving keyboard focus to a window titlebar does not revive its old reading selection", async ({
+  page,
+}) => {
+  const editor = await editDocument(page);
+  await editor.fill("The quick brown fox keeps each idea beside the text.");
+  await page.getByRole("button", { name: "Done editing", exact: true }).click();
+  const reading = page.getByLabel("Bookstore event proposal reading view", {
+    exact: true,
+  });
+  const start = await readingCharacter(reading, 2);
+  const end = await readingCharacter(reading, 25);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 8 });
+  await page.mouse.up();
+  await pointsAt(page, await readingFocus(page));
+  const selected = await page.evaluate(() =>
+    document.getSelection()!.toString(),
+  );
+  expect(selected.length).toBeGreaterThan(10);
+  await page.getByTestId("drag-proposal").focus();
+  await expect(page.locator(".companion")).not.toHaveAttribute(
+    "data-state",
+    "text-pointing",
+  );
+  await page.mouse.move(1350, 700);
+  await expect(page.locator(".companion")).toHaveAttribute(
+    "data-state",
+    "following",
+  );
+  expect(await page.evaluate(() => document.getSelection()!.toString())).toBe(
+    selected,
+  );
+  await expect(page.locator(".companion")).toHaveAttribute(
+    "data-state",
+    "idle",
   );
 });
 

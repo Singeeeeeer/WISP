@@ -5,7 +5,7 @@ export default defineConfig({
   testDir: "./e2e",
   testIgnore: ["**/.*/**"],
   testMatch:
-    /(?:companion-text|companion|companion-casting|character-activity|wand-feedback|wand-outcome|magic-ring|workspace|window-focus)\.spec\.ts/,
+    /(?:companion-text|companion-casting|character-activity)\.spec\.ts/,
   workers: 2,
   timeout: 30000,
   outputDir: "test-results/text-pointing",

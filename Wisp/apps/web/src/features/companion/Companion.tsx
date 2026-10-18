@@ -141,6 +141,7 @@ export function Companion() {
     const move = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
       rememberPointer(event);
+      if (event.buttons & 1) textTracker.invalidate(event);
       const dx = event.clientX - lastPoint.x;
       const dy = event.clientY - lastPoint.y;
       // Accumulate slow movement but ignore small reversals from hand jitter.
@@ -164,11 +165,11 @@ export function Companion() {
       lastMove = performance.now();
       // A new click ends a reading selection until a real selection changes.
       textSuppressed = !isEditing(event.target);
-      textTracker.invalidate();
+      textTracker.invalidate(event);
     };
-    const end = () => {
+    const end = (event?: Event) => {
       lastMove = performance.now();
-      textTracker.invalidate();
+      textTracker.invalidate(event);
     };
     const selection = () => {
       textSuppressed = false;
@@ -344,6 +345,7 @@ export function Companion() {
     document.documentElement.addEventListener("pointerenter", enter);
     document.addEventListener("selectionchange", selection);
     document.addEventListener("input", end);
+    document.addEventListener("keydown", textTracker.invalidate, true);
     document.addEventListener("select", selection, true);
     document.addEventListener("focusin", focus);
     document.addEventListener("focusout", focus);
@@ -362,6 +364,7 @@ export function Companion() {
       document.documentElement.removeEventListener("pointerenter", enter);
       document.removeEventListener("selectionchange", selection);
       document.removeEventListener("input", end);
+      document.removeEventListener("keydown", textTracker.invalidate, true);
       document.removeEventListener("select", selection, true);
       document.removeEventListener("focusin", focus);
       document.removeEventListener("focusout", focus);

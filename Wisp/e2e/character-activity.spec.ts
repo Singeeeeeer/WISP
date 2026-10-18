@@ -319,7 +319,7 @@ test("idle thresholds remain distinct from hover and settings persist; movement 
 async function summon(page: Page, role = "Page Sprite") {
   await page.getByRole("button", { name: "Open core abilities", exact: true }).click();
   await page.getByRole("menuitem", { name: "Summon", exact: true }).click();
-  await page.getByRole("button", { name: role }).click();
+  await page.locator(".floating-panel").getByRole("button", { name: role }).click();
   await page.getByLabel("Execution mode", { exact: true }).selectOption("gemini");
   await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
   await expect(page.locator(".floating-panel")).toHaveCount(0);
