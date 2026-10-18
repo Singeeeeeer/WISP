@@ -12,6 +12,8 @@ runtime/
 .venv/
 .npm-cache/
 dist/
+build/
+.vite/
 __pycache__/
 .pytest_cache/
 test-results/
@@ -22,6 +24,48 @@ releases/
 /Wisp/PACKAGE-INFO.json
 /Wisp/docs/gemini-live-*.json
 /*.mp4
+
+# Temporary files and local databases
+*.tmp
+*.temp
+*.cache
+*.bak
+*.swp
+*.swo
+*.pid
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+
+# Documentation and exported document files
+*.md
+*.txt
+*.pdf
+*.doc
+*.docx
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+*.csv
+*.tsv
+*.rtf
+*.tex
+*.odt
+*.ods
+*.odp
+
+# Exported media and generated review artifacts
+*.webm
+*.mov
+*.avi
+screenshots/
+artifacts/
+reports/
 
 # Local tooling and OS files
 .codex/
