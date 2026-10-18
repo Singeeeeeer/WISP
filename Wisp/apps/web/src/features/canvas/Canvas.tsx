@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useInteraction } from "../../state/stores";
+import { OsIcon } from "../workspace/OsIcon";
+import {
+  canvasDraftChanged as dirty,
+  setCanvasExportDraft,
+  type CanvasNoteDraft,
+} from "../../services/notebook-export";
 import {
   connectionIsCurrent,
   type CanvasNote,
@@ -22,31 +28,17 @@ import {
 } from "../../services/canvas-runtime";
 import "./canvas.css";
 
-type Editor = {
-  original?: CanvasNote;
-  title: string;
-  text: string;
-  x: number;
-  y: number;
-};
-const dirty = (e: Editor | undefined) =>
-  !!e &&
-  (e.original
-    ? e.title !== e.original.title ||
-      e.text !== e.original.text ||
-      e.x !== e.original.x ||
-      e.y !== e.original.y
-    : !!e.title || !!e.text);
-
 export function Canvas({ blocked }: { blocked: boolean }) {
   const { notes, connections, selected, ready, phase, result, error } =
     useCanvas();
   const enabled = useInteraction((s) => s.settings.helpfulProposals);
-  const [editor, setEditor] = useState<Editor>();
+  const [editor, setEditor] = useState<CanvasNoteDraft>();
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState("");
   const [notice, setNotice] = useState("");
   const [inspect, setInspect] = useState<string>();
+  const [showInspector, setShowInspector] = useState(false);
+  const [maximized, setMaximized] = useState(false);
   const [positionSaving, setPositionSaving] = useState(false);
   const positionLock = useRef(false);
   const [moving, setMoving] = useState<{ id: string; x: number; y: number }>();
@@ -54,6 +46,10 @@ export function Canvas({ blocked }: { blocked: boolean }) {
   const root = useRef<HTMLElement>(null);
   const busy = phase === "loading" || phase === "saving";
 
+  useEffect(() => {
+    setCanvasExportDraft(editor);
+    return () => setCanvasExportDraft(undefined);
+  }, [editor]);
   useEffect(() => {
     const stop = observeCanvas();
     const previous = document.activeElement as HTMLElement | null;
@@ -91,7 +87,10 @@ export function Canvas({ blocked }: { blocked: boolean }) {
 
   function close() {
     if (saving) return;
-    if (dirty(editor) && !window.confirm("Note changes are not saved. Close the canvas anyway?"))
+    if (
+      dirty(editor) &&
+      !window.confirm("Note changes are not saved. Close the canvas anyway?")
+    )
       return;
     useInteraction.setState({ canvas: false });
   }
@@ -144,13 +143,21 @@ export function Canvas({ blocked }: { blocked: boolean }) {
       setEditor(undefined);
       setNotice("Note saved");
     } catch (e) {
-      setLocalError(e instanceof Error ? e.message : "Could not save note. Please try again.");
+      setLocalError(
+        e instanceof Error
+          ? e.message
+          : "Could not save note. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
   }
   async function remove(note: CanvasNote) {
-    if (!window.confirm("Remove this note? Saved connections to it will also be removed."))
+    if (
+      !window.confirm(
+        "Remove this note? Saved connections to it will also be removed.",
+      )
+    )
       return;
     setLocalError("");
     try {
@@ -159,7 +166,9 @@ export function Canvas({ blocked }: { blocked: boolean }) {
       setInspect(undefined);
       setNotice("Note and its connections removed");
     } catch (e) {
-      setLocalError(e instanceof Error ? e.message : "Could not remove. Please try again.");
+      setLocalError(
+        e instanceof Error ? e.message : "Could not remove. Please try again.",
+      );
     }
   }
   async function move(note: CanvasNote, x: number, y: number) {
@@ -174,7 +183,11 @@ export function Canvas({ blocked }: { blocked: boolean }) {
         Math.max(0, Math.min(1010, y)),
       );
     } catch (e) {
-      setLocalError(e instanceof Error ? e.message : "Could not save position. Please try again.");
+      setLocalError(
+        e instanceof Error
+          ? e.message
+          : "Could not save position. Please try again.",
+      );
     } finally {
       positionLock.current = false;
       setPositionSaving(false);
@@ -254,6 +267,15 @@ export function Canvas({ blocked }: { blocked: boolean }) {
     selectedNotes.length === 2 &&
     selectedNotes.every((n) => !!n.text.trim()) &&
     selectedNotes.reduce((sum, n) => sum + n.text.length, 0) <= 60000;
+  const inspectorOpen =
+    showInspector ||
+    (!!editor && !editor.original) ||
+    (!editor && selected.length > 0) ||
+    (!editor && !!detail) ||
+    busy ||
+    !!localError ||
+    !!error ||
+    !ready;
   const line = (record: ConnectionResult, isCandidate: boolean) => {
     const a = positioned.find((n) => n.id === record.notes[0].id);
     const b = positioned.find((n) => n.id === record.notes[1].id);
@@ -281,6 +303,7 @@ export function Canvas({ blocked }: { blocked: boolean }) {
   return (
     <section
       className="canvas-window"
+      data-maximized={maximized}
       role="region"
       aria-label="Canvas board"
       tabIndex={-1}
@@ -301,16 +324,26 @@ export function Canvas({ blocked }: { blocked: boolean }) {
       }}
     >
       <header className="canvas-header">
-        <div>
-          <span className="eyebrow">WISP · CANVAS</span>
-          <h2>Connect your ideas</h2>
+        <div className="canvas-window-controls">
+          <button
+            aria-label="Close canvas"
+            title="Close canvas"
+            onClick={close}
+            disabled={saving}
+          />
+          <button
+            aria-label={maximized ? "Restore canvas" : "Maximize canvas"}
+            title={maximized ? "Restore canvas" : "Maximize canvas"}
+            onClick={() => setMaximized(!maximized)}
+          />
         </div>
+        <h2>
+          <OsIcon name="squares-four" /> Canvas{" "}
+          <span>— Ideas & connections</span>
+        </h2>
         <div className="canvas-header-actions">
           <button onClick={() => edit()} disabled={!ready || saving}>
             New note
-          </button>
-          <button aria-label="Close canvas" onClick={close} disabled={saving}>
-            Close
           </button>
         </div>
       </header>
@@ -323,9 +356,27 @@ export function Canvas({ blocked }: { blocked: boolean }) {
         >
           Clear selection
         </button>
+        <button
+          aria-expanded={inspectorOpen}
+          onClick={() => setShowInspector(!showInspector)}
+        >
+          Connections {connections.length ? `(${connections.length})` : ""}
+        </button>
       </div>
-      <div className="canvas-body">
-        <div className="canvas-scroll" tabIndex={0} aria-label="Canvas workspace">
+      <div className="canvas-body" data-inspector={inspectorOpen}>
+        <div
+          className="canvas-scroll"
+          tabIndex={0}
+          aria-label="Canvas workspace"
+        >
+          <div className="canvas-intro">
+            <span>THOUGHTS, STILL GROWING</span>
+            <h3>A few threads of Mistport</h3>
+            <p>
+              Click a note to write. Shift-click two notes to explore a
+              connection.
+            </p>
+          </div>
           <div className="canvas-board" data-testid="canvas-board">
             <svg
               className="canvas-lines"
@@ -339,29 +390,39 @@ export function Canvas({ blocked }: { blocked: boolean }) {
             {ready && !notes.length && (
               <div className="canvas-empty">
                 <span>Two notes, one new angle.</span>
-                <p>Start with an idea, add text, and invite Wisp to find a connection.</p>
+                <p>
+                  Start with an idea, add text, and invite Wisp to find a
+                  connection.
+                </p>
                 <button onClick={() => edit()}>Add the first note</button>
               </div>
             )}
             {positioned.map((note, index) => (
               <article
                 key={note.id}
-                className={`canvas-note tone-${index % 3}`}
+                className={`canvas-note tone-${index % 4}`}
                 data-testid="canvas-note"
                 data-note-id={note.id}
                 data-selected={selected.includes(note.id)}
+                data-editing={editor?.original?.id === note.id}
                 style={{ left: note.x, top: note.y }}
                 tabIndex={0}
                 aria-label={`Note ${note.title || "Untitled"}`}
                 onPointerDown={(e) => {
                   if (
                     e.shiftKey &&
-                    !(e.target as HTMLElement).closest("button,input,label")
+                    !(e.target as HTMLElement).closest(
+                      "button,input,label,textarea,form",
+                    )
                   )
                     e.preventDefault();
                 }}
                 onClick={(e) => {
-                  if (!(e.target as HTMLElement).closest("button,input,label"))
+                  if (
+                    !(e.target as HTMLElement).closest(
+                      "button,input,label,textarea,form",
+                    )
+                  )
                     choose(note.id, e.shiftKey);
                 }}
                 onKeyDown={(e) => {
@@ -412,13 +473,73 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                     Move
                   </button>
                 </div>
-                <h3>{note.title || "Untitled note"}</h3>
-                <p>{note.text || "No text yet. Click Edit to write an idea."}</p>
+                {editor?.original?.id === note.id ? (
+                  <form
+                    className="canvas-inline-editor"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void saveNote();
+                    }}
+                  >
+                    <input
+                      aria-label="Note title"
+                      maxLength={1000}
+                      value={editor.title}
+                      disabled={saving}
+                      onChange={(e) =>
+                        setEditor({ ...editor, title: e.target.value })
+                      }
+                    />
+                    <textarea
+                      autoFocus
+                      aria-label="Note text"
+                      maxLength={60000}
+                      rows={6}
+                      value={editor.text}
+                      disabled={saving}
+                      onChange={(e) =>
+                        setEditor({ ...editor, text: e.target.value })
+                      }
+                    />
+                    <div className="canvas-actions">
+                      <button
+                        type="submit"
+                        className="canvas-primary"
+                        disabled={saving}
+                      >
+                        {saving ? "Saving…" : "Save note"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => setEditor(undefined)}
+                      >
+                        Cancel editing
+                      </button>
+                    </div>
+                    <small>Changes stay here until you save.</small>
+                  </form>
+                ) : (
+                  <>
+                    <h3>{note.title || "Untitled note"}</h3>
+                    <button
+                      className="canvas-note-text"
+                      aria-label={`Edit text of ${note.title || "Untitled note"}`}
+                      disabled={saving || positionSaving}
+                      onClick={(e) =>
+                        e.shiftKey ? choose(note.id, true) : edit(note)
+                      }
+                    >
+                      {note.text || "Click to write an idea."}
+                    </button>
+                  </>
+                )}
                 <div className="canvas-note-actions">
                   <small>Version {note.version}</small>
                   <button
                     onClick={() => edit(note)}
                     disabled={saving || positionSaving}
+                    hidden={editor?.original?.id === note.id}
                   >
                     Edit
                   </button>
@@ -434,7 +555,11 @@ export function Canvas({ blocked }: { blocked: boolean }) {
             ))}
           </div>
         </div>
-        <aside className="canvas-sidebar" aria-label="Canvas actions">
+        <aside
+          className="canvas-sidebar"
+          aria-label="Canvas actions"
+          hidden={!inspectorOpen}
+        >
           {!ready && <p role="status">Loading canvas…</p>}
           {(localError || error) && (
             <p className="canvas-error" role="alert">
@@ -446,7 +571,7 @@ export function Canvas({ blocked }: { blocked: boolean }) {
               {notice}
             </p>
           )}
-          {editor ? (
+          {editor && !editor.original ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -548,19 +673,21 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                   ))
                 ) : (
                   <p className="canvas-muted">
-                    Select two non-empty notes to see whether they have a connection worth keeping.
+                    Select two non-empty notes to see whether they have a
+                    connection worth keeping.
                   </p>
                 )}
               </div>
               {!enabled && (
                 <p className="canvas-muted">
-                  Helpful proposals are off; you can still find connections yourself.
+                  Helpful proposals are off; you can still find connections
+                  yourself.
                 </p>
               )}
               {selectedNotes.length === 2 && (
                 <p className="canvas-muted">
-                  Only clicking “Find connection” sends both notes in full to Gemini. The combined text is limited to
-                      60,000 characters.
+                  Only clicking “Find connection” sends both notes in full to
+                  Gemini. The combined text is limited to 60,000 characters.
                 </p>
               )}
               {phase === "inviting" && (
@@ -598,19 +725,27 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                   disabled={!canConnect}
                   onClick={() => void beginConnection()}
                 >
-                  {phase === "error" ? "Retry finding connection" : "Find connection"}
+                  {phase === "error"
+                    ? "Retry finding connection"
+                    : "Find connection"}
                 </button>
               )}
               {detail?.connections[0] && (
-                <section className="canvas-explanation" aria-label="Connection explanation">
+                <section
+                  className="canvas-explanation"
+                  aria-label="Connection explanation"
+                >
                   <span className="eyebrow">
-                    {result ? "Candidate connection · awaiting your confirmation" : "Kept connection"}
+                    {result
+                      ? "Candidate connection · awaiting your confirmation"
+                      : "Kept connection"}
                   </span>
                   <h3>{detail.connections[0].title}</h3>
                   <p>{detail.connections[0].explanation}</p>
                   {!connectionIsCurrent(detail, notes) && (
                     <p className="canvas-stale">
-                      Note content changed; review this connection. The evidence below uses the analyzed versions.
+                      Note content changed; review this connection. The evidence
+                      below uses the analyzed versions.
                     </p>
                   )}
                   {detail.connections[0].evidence.map((e, i) => (
@@ -634,7 +769,9 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                         }
                         onClick={() => void keepConnection()}
                       >
-                        {phase === "saving" ? "Saving connection…" : "Keep connection"}
+                        {phase === "saving"
+                          ? "Saving connection…"
+                          : "Keep connection"}
                       </button>
                       <button
                         disabled={phase === "saving"}
@@ -667,7 +804,9 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                       {c.connections[0]?.title}
                     </button>
                     <small>
-                      {c.notes.map((n) => n.title || "Untitled note").join(" ↔ ")}
+                      {c.notes
+                        .map((n) => n.title || "Untitled note")
+                        .join(" ↔ ")}
                     </small>
                     {!connectionIsCurrent(c, notes) && (
                       <span className="canvas-stale">Needs review</span>
@@ -677,7 +816,9 @@ export function Canvas({ blocked }: { blocked: boolean }) {
                       aria-label={`Remove connection ${c.connections[0]?.title}`}
                       onClick={() => {
                         if (
-                          window.confirm("Remove this saved connection? Both notes will be kept.")
+                          window.confirm(
+                            "Remove this saved connection? Both notes will be kept.",
+                          )
                         )
                           void removeCanvasConnection(c.id)
                             .then(() => setInspect(undefined))
@@ -693,6 +834,12 @@ export function Canvas({ blocked }: { blocked: boolean }) {
           )}
         </aside>
       </div>
+      <footer className="canvas-footer">
+        <span>{notes.length} notes · Saved in this browser</span>
+        <span role="status">
+          {notice || "Select two notes to find a connection"}
+        </span>
+      </footer>
     </section>
   );
 }

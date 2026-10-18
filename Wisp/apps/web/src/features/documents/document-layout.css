@@ -1,0 +1,87 @@
+.desktop-window .document-content .document-title {
+  width: 100%;
+  flex: 0 0 auto;
+  min-height: 0;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  white-space: pre-wrap;
+}
+.desktop-window .document-content .document-title:focus-visible {
+  outline: 1px solid #a5bad0;
+  outline-offset: 4px;
+}
+.document-view-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 22px;
+  margin: -10px 0 2px;
+  color: #758597;
+  font-size: 9px;
+}
+.document-view-tools button {
+  padding: 3px 6px;
+  color: #60758a;
+  border: 1px solid #dfe6ed;
+  background: #fafcfd;
+  font-size: 9px;
+}
+.document-reading {
+  flex: 1 0 auto;
+  font:
+    12px/1.9 -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  color: #667385;
+  outline-offset: 4px;
+  overflow-wrap: anywhere;
+}
+.document-reading-section {
+  display: block;
+  margin: 3px -9px;
+  padding: 10px 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+.document-reading-section:hover {
+  border-color: #e5eaf0;
+}
+.document-section-heading {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5b6e;
+}
+.document-reading-lead {
+  font:
+    400 18px/1.4 Georgia,
+    serif;
+  color: #48576a;
+}
+.reference-sheet .document-reading {
+  font-size: 11px;
+  line-height: 1.8;
+}
+.reference-sheet .document-reading-lead {
+  font: inherit;
+  color: #79899b;
+}
+.document-empty {
+  color: #7d8da0;
+  font-style: italic;
+}
+.desktop-window .document-content .document-body {
+  flex: 1 0 260px;
+  padding: 10px;
+  border: 1px solid #c0d1e2;
+  border-radius: 4px;
+  background: #f5f8fc;
+}

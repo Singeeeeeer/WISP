@@ -7,6 +7,8 @@ import { finishWatchInvitation } from "../../services/proposal-runtime";
 import {
   startWatching,
   stopWatching,
+  pauseWatching,
+  resumeWatching,
   recoverWatches,
   useWatches,
 } from "../../services/watch-runtime";
@@ -35,7 +37,9 @@ export function WatchPanel({ source }: { source: MaterialSnapshot }) {
       finishWatchInvitation("completed");
       useInteraction.setState({ watchDraft: undefined });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save watch. Please retry.");
+      setError(
+        e instanceof Error ? e.message : "Could not save watch. Please retry.",
+      );
     } finally {
       lock.current = false;
       setBusy(false);
@@ -45,20 +49,27 @@ export function WatchPanel({ source }: { source: MaterialSnapshot }) {
     <Dialog title="Confirm continuous watch" close={close}>
       <h2>Let Scout Bat watch this text</h2>
       <p className="notice">
-        Watching covers the full text, regardless of the selection used for Check. After confirmation, version{" "}
-        {source.materialVersion}{" "}
-        is the baseline; only later saved versions are checked, without an immediate repeat.
+        Watching covers the full text, regardless of the selection used for
+        Check. After confirmation, version {source.materialVersion} is the
+        baseline; only later saved versions are checked, without an immediate
+        repeat.
       </p>
       <section className="scope">
         <strong>{source.title}</strong>
         <SourceInfo value={source} />
         <p>
-          Source ID: {source.materialId} · Full text UTF-16 range [0, {source.end})
+          Source ID: {source.materialId} · Full text UTF-16 range [0,{" "}
+          {source.end})
         </p>
         <pre>{source.text}</pre>
       </section>
       <p>
-        Watching runs only while the page that started it remains open; other Wisp tabs can view or stop it. Closing or refreshing interrupts it, and it does not resume automatically. Consecutive edits are combined; newer saved versions are processed after each check completes. Open Familiars in the Grimoire to stop watching at any time.
+        Watching runs only while the page that started it remains open; other
+        Wisp tabs can view, pause or stop it. Closing or refreshing interrupts
+        active watching, and it does not resume automatically. Paused watches
+        stay paused across refresh. Consecutive edits are combined; newer saved
+        versions are processed after each check completes. Open Familiars in the
+        Grimoire to control watching at any time.
       </p>
       <p className="notice">{CHECK_LIMIT}</p>
       {current?.version !== source.materialVersion && (
@@ -77,7 +88,10 @@ export function WatchPanel({ source }: { source: MaterialSnapshot }) {
         </p>
       )}
       <p>
-        Turning off Helpful proposals only stops new proposals. Use “Stop watching” to end this watch. Empty versions and versions over the limit are skipped with a reason; failed checks are not retried indefinitely for the same version.
+        Turning off Helpful proposals only stops new proposals. Use “Stop
+        watching” to end this watch. Empty versions and versions over the limit
+        are skipped with a reason; failed checks are not retried indefinitely
+        for the same version.
       </p>
       {error && <p role="alert">{error}</p>}
       <div className="panel-actions">
@@ -102,14 +116,22 @@ export function WatchList() {
   const materials = useDocuments((s) => s.materials);
   const [busy, setBusy] = useState(false),
     [failure, setFailure] = useState("");
-  async function stop(id: string) {
+  async function action(id: string, kind: "stop" | "pause" | "resume") {
     if (busy) return;
     setBusy(true);
     setFailure("");
     try {
-      await stopWatching(id);
+      await (kind === "pause"
+        ? pauseWatching(id)
+        : kind === "resume"
+          ? resumeWatching(id)
+          : stopWatching(id));
     } catch (e) {
-      setFailure(e instanceof Error ? e.message : "Could not stop watching. Please retry.");
+      setFailure(
+        e instanceof Error
+          ? e.message
+          : "Could not update watching. Please retry.",
+      );
     } finally {
       setBusy(false);
     }
@@ -120,7 +142,9 @@ export function WatchList() {
       {(error || failure) && (
         <p role="alert">
           {failure || error}
-          <button onClick={() => void recoverWatches()}>Refresh watch records</button>
+          <button onClick={() => void recoverWatches()}>
+            Refresh watch records
+          </button>
         </p>
       )}
       {!watches.length && <p>Continuous watch has not been authorized.</p>}
@@ -131,29 +155,55 @@ export function WatchList() {
           <p>
             {w.status === "active"
               ? "Watching"
-              : w.status === "stopped"
-                ? "Stopped"
-                : "Interrupted"}{" "}
-            · Full text · baseline version {w.baseline.materialVersion} · latest processed/skipped version{" "}
-            {w.lastVersion}
+              : w.status === "paused"
+                ? "Paused"
+                : w.status === "stopped"
+                  ? "Stopped"
+                  : "Interrupted"}{" "}
+            · Full text · baseline version {w.baseline.materialVersion} · latest
+            processed/skipped version {w.lastVersion}
           </p>
           <p>{w.notice}</p>
+          {w.status === "paused" && (
+            <p className="notice">
+              Continue keeps this watch and its history, finishes any paused
+              check from its frozen version, then checks newer saved changes. No
+              checks run while paused.
+            </p>
+          )}
           <small>
             Watch ID: {w.id} · Confirmed on{" "}
             {new Date(w.confirmedAt).toLocaleString("en-US")}
           </small>
           <div className="panel-actions">
-            {w.status === "active" ? (
-              <button disabled={busy} onClick={() => void stop(w.id)}>
-                Stop watching
-              </button>
+            {w.status === "active" || w.status === "paused" ? (
+              <>
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    void action(
+                      w.id,
+                      w.status === "paused" ? "resume" : "pause",
+                    )
+                  }
+                >
+                  {w.status === "paused" ? "Continue watch" : "Pause watch"}
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() => void action(w.id, "stop")}
+                >
+                  Stop watching
+                </button>
+              </>
             ) : (
               <button
                 disabled={
                   !materials.some((m) => m.id === w.materialId) ||
                   watches.some(
                     (x) =>
-                      x.materialId === w.materialId && x.status === "active",
+                      x.materialId === w.materialId &&
+                      (x.status === "active" || x.status === "paused"),
                   )
                 }
                 onClick={() => {

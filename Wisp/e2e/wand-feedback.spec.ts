@@ -1,10 +1,11 @@
+import { editDocument } from "./document-editor";
 import {
   test,
   expect,
   type Locator,
   type Page,
   type Route,
-} from "@playwright/test";
+} from "./offline-app";
 import type { MaterialSnapshot } from "../apps/web/src/domain/model";
 
 async function cursor(target: Locator) {
@@ -109,7 +110,7 @@ test.beforeEach(async ({ page }) => {
   );
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
 });
 
 test("hover and pressed cursors share the hotspot and one valid click gives a brief fixed effect", async ({
@@ -229,7 +230,7 @@ test("title controls keep hover priority while window drag and resize capture su
   await expect(html).not.toHaveAttribute("data-wisp-gesture", "drag");
   await expect(window).not.toHaveAttribute("data-wisp-dragging", "true");
   await expect(feedback).not.toHaveAttribute("data-state", "dragging");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.hover();
   await expectCursorResource(editor, "wand-text.svg", [12, 12], "text");
   await expect(feedback).toHaveAttribute("data-state", "none");
@@ -291,7 +292,7 @@ test("text cursor preserves real drag selection, native copy and replacing selec
   await page
     .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   const original = "Wisp keeps selection and editing usable.";
   await editor.fill(original);
   const textGeometry = await editor.evaluate((element: HTMLTextAreaElement) => {
@@ -472,7 +473,7 @@ test("busy feedback stays within its panel while native controls and document ed
   await stop.hover();
   await expect(stop).toBeEnabled();
   await expect(feedback).toHaveAttribute("data-state", "hover");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.hover();
   await expectCursorResource(editor, "wand-text.svg", [12, 12], "text");
   await expect(feedback).toHaveAttribute("data-state", "none");
@@ -527,7 +528,7 @@ test("cancelling a local wait clears busy feedback and a background familiar nev
   await expect(page.locator(".floating-panel")).toHaveCount(0);
   await page.mouse.move(1200, 700);
   await expect(feedback).toHaveAttribute("data-state", "none");
-  await page.getByLabel("Bookstore event proposal text").fill("使魔工作时也能编辑。");
+  await (await editDocument(page, "Bookstore event proposal")).fill("使魔工作时也能编辑。");
   await page.getByRole("button", { name: "View familiar tasks", exact: true }).click();
   await page.getByRole("button", { name: "Recall task", exact: true }).click();
   await success(requests[1]).catch(() => {});

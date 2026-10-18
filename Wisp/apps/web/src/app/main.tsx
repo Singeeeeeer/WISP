@@ -14,7 +14,6 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   initialize,
-  openMaterial,
   useDocuments,
   useInteraction,
   useWorkspace,
@@ -25,8 +24,16 @@ import { Grimoire } from "../features/grimoire/Grimoire";
 import { Companion } from "../features/companion/Companion";
 import { WandFeedback } from "../features/companion/WandFeedback";
 import { rememberPointer } from "../features/companion/pointer";
-import { checkHealth } from "../services/api";
+import {
+  DesktopFiles,
+  DesktopFooter,
+  DesktopHint,
+  DesktopMenubar,
+  WorkspaceDock,
+} from "../features/workspace/DesktopChrome";
+import { useCauldron } from "../services/cauldron-runtime";
 import "./styles.css";
+import "./prototype-theme.css";
 function App() {
   const docs = useDocuments((s) => s.materials);
   const ready = useDocuments((s) => s.ready);
@@ -41,9 +48,10 @@ function App() {
   const watchDraft = useInteraction((s) => s.watchDraft);
   const jointDraft = useInteraction((s) => s.jointDraft);
   const message = useInteraction((s) => s.message);
+  const reducedMotion = useInteraction((s) => s.settings.reducedMotion);
 
   const [history, setHistory] = useState(false);
-  const [api, setApi] = useState("API status not checked");
+  const cauldronCount = useCauldron((s) => s.entries.length);
   const [, resize] = useState(0);
   useEffect(() => {
     if (ready) {
@@ -61,8 +69,13 @@ function App() {
   }, [ready]);
   useEffect(() => {
     void initialize();
+    const reset = (event: Event) => {
+      if ((event as CustomEvent<{ remote: boolean }>).detail.remote)
+        useDocuments.setState({ ready: false, status: {}, fatal: "This workspace was reset in another Wisp tab. Reload after that reset finishes to open the fresh desktop." });
+    };
     const onResize = () => resize((n) => n + 1);
     const key = (e: KeyboardEvent) => {
+      if (document.documentElement.dataset.workspaceReset) return;
       const target = e.target as HTMLElement;
       const input = !!target.closest(
         'input, textarea, select, [contenteditable="true"]',
@@ -104,9 +117,7 @@ function App() {
     };
     const leaving = (e: BeforeUnloadEvent) => {
       if (
-        Object.values(useDocuments.getState().status).some(
-          (s) => s !== "saved",
-        )
+        Object.values(useDocuments.getState().status).some((s) => s !== "saved")
       ) {
         e.preventDefault();
         e.returnValue = "";
@@ -116,11 +127,13 @@ function App() {
     window.addEventListener("resize", onResize);
     window.addEventListener("keydown", key);
     window.addEventListener("beforeunload", leaving);
+    window.addEventListener("wisp:workspace-reset", reset);
     return () => {
       window.removeEventListener("pointermove", rememberPointer);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("keydown", key);
       window.removeEventListener("beforeunload", leaving);
+      window.removeEventListener("wisp:workspace-reset", reset);
     };
   }, [history]);
   if (fatal)
@@ -133,48 +146,13 @@ function App() {
     );
   if (!ready) return <main className="startup">Opening your workspace…</main>;
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand">
-          ✦ <strong>Wisp</strong>
-          <span>A little working magic</span>
-        </div>
-        <div className="top-status">
-          <span className="status-dot" />
-          Local workspace <span className="module-tag">MODULE 02 · LOCAL</span>
-          <button
-            data-cauldron-target
-            disabled={!!draft}
-            title={draft ? "Close the current panel before opening another" : undefined}
-            onClick={() =>
-              useInteraction.setState({
-                cauldron: true,
-                menu: false,
-                book: false,
-              })
-            }
-          >
-            Inspiration Cauldron
-          </button>
-          <button
-            disabled={!!draft}
-            title={draft ? "Close the current panel before opening another" : undefined}
-            onClick={() => {
-              useInteraction.setState({ menu: false, book: false });
-              setHistory(true);
-            }}
-          >
-            Run history
-          </button>
-          <button
-            disabled={!!draft}
-            title={draft ? "Close the current panel before opening another" : undefined}
-            onClick={() => useInteraction.setState({ book: true, menu: false })}
-          >
-            Grimoire
-          </button>
-        </div>
-      </header>
+    <div className="app-shell" data-reduced-motion={reducedMotion}>
+      <DesktopMenubar
+        openHistory={() => {
+          useInteraction.setState({ menu: false, book: false });
+          setHistory(true);
+        }}
+      />
       <main
         className="desktop"
         aria-label="Virtual desktop"
@@ -184,6 +162,11 @@ function App() {
             !useInteraction.getState().draft &&
             !useInteraction.getState().batchDraft &&
             !useInteraction.getState().canvas &&
+            !useInteraction.getState().cauldron &&
+            !useInteraction.getState().book &&
+            !useInteraction.getState().jointDraft &&
+            !useInteraction.getState().watchDraft &&
+            !history &&
             !(e.target as HTMLElement).closest("textarea,input,button")
           ) {
             e.preventDefault();
@@ -192,11 +175,7 @@ function App() {
           }
         }}
       >
-        <div className="desktop-intro">
-          <div className="eyebrow">A QUIET PLACE FOR YOUR IDEAS</div>
-          <h1>Give your thoughts room to take shape.</h1>
-          <p>A little space for the words at hand.</p>
-        </div>
+        <DesktopFiles />
         {windows.map((w) => {
           const m = docs.find((m) => m.id === w.materialId);
           return m ? (
@@ -204,15 +183,29 @@ function App() {
           ) : null;
         })}
         <TaskMarker />
-        <div className="desktop-note">
-          Your words stay in this browser.
-          <br />
-          Wisp processes only the materials you choose; Gemini always requires confirmation.
-        </div>
+        <DesktopHint />
+        <WorkspaceDock />
+        <DesktopFooter />
       </main>
       <Companion />
       <WandFeedback />
       <CauldronDropTarget />
+      <button
+        className="furnace-anchor"
+        data-cauldron-target
+        aria-label="Inspiration Cauldron"
+        disabled={
+          !!(draft || canvas || book || history || jointDraft || watchDraft)
+        }
+        title="Open Inspiration Cauldron, or drag a desktop file here"
+        onClick={() =>
+          useInteraction.setState({ cauldron: true, menu: false, book: false })
+        }
+      >
+        <img src="/assets/prototype/pot_low.png" alt="" />
+        <span>Idea Cauldron</span>
+        <small>{cauldronCount}</small>
+      </button>
       <ProposalHost
         blocked={
           !!(
@@ -232,7 +225,11 @@ function App() {
           {message || layoutError}
           <button
             disabled={!!draft}
-            title={draft ? "Close the current panel before opening another" : undefined}
+            title={
+              draft
+                ? "Close the current panel before opening another"
+                : undefined
+            }
             onClick={() => {
               useInteraction.setState({ message: "" });
               useWorkspace.setState({ error: "" });
@@ -242,61 +239,6 @@ function App() {
           </button>
         </div>
       )}
-      <nav className="dock" aria-label="Workspace tools">
-        <div className="dock-documents">
-          {docs
-            .filter((m) => windows.some((w) => w.materialId === m.id))
-            .map((m) => (
-              <button
-                key={m.id}
-                aria-label={"Open " + m.title}
-                onClick={() => {
-                  openMaterial(m.id);
-                  useInteraction.setState({ selection: undefined });
-                }}
-              >
-                <span>▤</span>
-                {m.title}
-              </button>
-            ))}
-        </div>
-        <div className="dock-divider" />
-        <button
-          aria-label="Open Canvas board"
-          disabled={
-            !!(draft || book || cauldron || history || jointDraft || watchDraft)
-          }
-          aria-pressed={canvas}
-          onClick={() => useInteraction.setState({ canvas: true, menu: false })}
-        >
-          Canvas
-        </button>
-        <button
-          disabled={!!draft}
-          title={draft ? "Close the current panel before choosing another ability" : undefined}
-          className="spell-button"
-          aria-label="Open core abilities"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            if (e.detail > 0) rememberPointer(e);
-            useInteraction.setState({ menu: !menu });
-          }}
-        >
-          <span>✦</span>Core abilities <kbd>Q</kbd>
-        </button>
-      </nav>
-      <footer className="statusbar">
-        <span>Editable sample materials · saved automatically on this device</span>
-        <button
-          onClick={() => {
-            setApi("Checking API…");
-            void checkHealth().then(setApi);
-          }}
-        >
-          {api} ↻
-        </button>
-        <span>Local first · Gemini runs only after you confirm</span>
-      </footer>
       {cauldron &&
         !history &&
         !draft &&

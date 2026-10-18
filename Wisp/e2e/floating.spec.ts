@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect } from "./offline-app";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/check", (route) => route.abort());
@@ -19,7 +20,7 @@ test("context menu preserves selection and results stay compact with explicit co
       configurable: true,
     }),
   );
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.evaluate((el: HTMLTextAreaElement) => {
     el.focus();
     el.setSelectionRange(0, 12);
@@ -59,7 +60,7 @@ test("context menu preserves selection and results stay compact with explicit co
 test("context menu without selection uses full document and panel clamps after resize", async ({
   page,
 }) => {
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.evaluate((el: HTMLTextAreaElement) => {
     el.focus();
     el.setSelectionRange(0, 0);
@@ -117,7 +118,7 @@ test("Gemini result continues its original snapshot and mode without a second re
       },
     });
   });
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   const original = await editor.inputValue();
   await editor.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Check", exact: true }).click();
@@ -143,6 +144,7 @@ test("Gemini result continues its original snapshot and mode without a second re
   );
   expect(calls).toBe(1);
   await page.getByRole("button", { name: "Close panel", exact: true }).click();
+  await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page.getByRole("button", { name: "View check result", exact: true }).click();
   await page.getByRole("button", { name: "Summon familiar again", exact: true }).click();
@@ -154,11 +156,11 @@ test("Gemini result continues its original snapshot and mode without a second re
 test("an open draft cannot be replaced by background panels while documents remain editable", async ({
   page,
 }) => {
-  await page.getByLabel("Bookstore event proposal text").click({ button: "right" });
+  await (await editDocument(page, "Bookstore event proposal")).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Check", exact: true }).click();
   for (const name of [
     "Open core abilities",
-    "Run history",
+    "File",
     "Grimoire",
     "Inspiration Cauldron",
     "View familiar tasks",
@@ -167,7 +169,7 @@ test("an open draft cannot be replaced by background panels while documents rema
       page.getByRole("button", { name, exact: true }),
     ).toBeDisabled();
   await page.getByRole("button", { name: "Open Venue notes", exact: true }).click();
-  await page.getByLabel("Venue notes text").fill("可以继续编辑另一份文档");
+  await (await editDocument(page, "Venue notes")).fill("可以继续编辑另一份文档");
   await expect(page.getByTestId("snapshot-text")).not.toContainText(
     "可以继续编辑另一份文档",
   );

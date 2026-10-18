@@ -5,7 +5,7 @@ import { fileSource } from "../domain/cauldron";
 import { useDocuments, useInteraction, useWorkspace } from "../state/stores";
 import { useCauldron } from "./cauldron-runtime";
 
-type ImportRequest = { file: File } | { copy: Material };
+type ImportRequest = { file: File } | { files: File[] } | { copy: Material };
 export const useCauldronImport = create<{
   request?: ImportRequest;
   occupied: boolean;
@@ -28,7 +28,10 @@ export function releaseImport(owner: string | undefined) {
 }
 export function reportImportError(error: unknown) {
   useCauldronImport.setState({
-    error: error instanceof Error ? error.message : "Could not add the material. Please try again.",
+    error:
+      error instanceof Error
+        ? error.message
+        : "Could not add the material. Please try again.",
   });
 }
 
@@ -56,12 +59,17 @@ export function importBlockReason(): string {
 export function copyFromDocument(id: string, selectionOnly = false): Material {
   const docs = useDocuments.getState();
   const material = docs.materials.find((m) => m.id === id);
-  if (!material) throw new Error("The current document is unavailable. Reopen it.");
+  if (!material)
+    throw new Error("The current document is unavailable. Reopen it.");
   if (docs.status[id] !== "saved" || docs.errors[id])
-    throw new Error("Save the original document and resolve any save conflicts before adding a copy.");
+    throw new Error(
+      "Save the original document and resolve any save conflicts before adding a copy.",
+    );
   const selection = useInteraction.getState().selection;
   if (selectionOnly && (!selection || selection.materialId !== id))
-    throw new Error("Select valid text in the current document first. The selection will not be replaced with the full text automatically.");
+    throw new Error(
+      "Select valid text in the current document first. The selection will not be replaced with the full text automatically.",
+    );
   return createMaterialCopy(material, selectionOnly ? selection : undefined);
 }
 
@@ -72,13 +80,37 @@ export function currentDocumentId(): string | undefined {
   )?.materialId;
 }
 
+export function validateImportFiles(files: readonly File[]) {
+  if (!files.length) throw new Error("Choose at least one file.");
+  if (files.length > 12)
+    throw new Error("Choose up to 12 files at a time. No files were added.");
+  const room = 12 - useCauldron.getState().entries.length;
+  if (files.length > room)
+    throw new Error(
+      `The cauldron has room for ${room} more materials. Choose fewer files or remove materials first. No files were added.`,
+    );
+  for (const file of files) {
+    try {
+      fileSource(file.name);
+    } catch (error) {
+      throw new Error(
+        `${error instanceof Error ? error.message : "Unsupported file."} No files were added.`,
+      );
+    }
+    if (file.size > 20_000_000)
+      throw new Error(`File ${file.name} exceeds 20 MB. No files were added.`);
+  }
+}
+
 export function queueImport(request: ImportRequest) {
   const reason = importBlockReason();
   if (reason) throw new Error(reason);
   if ("file" in request) {
-    fileSource(request.file.name);
-    if (request.file.size > 20_000_000)
-      throw new Error("A single file must not exceed 20 MB.");
+    validateImportFiles([request.file]);
+  }
+  if ("files" in request) {
+    validateImportFiles(request.files);
+    request = { files: [...request.files] };
   }
   // Claim the slot synchronously: a second drop cannot replace this draft.
   claimImport(request);
@@ -113,6 +145,8 @@ export function endDocumentDrag() {
 }
 export function draggedDocument(transfer: DataTransfer): Material {
   if (!dragging || transfer.getData(DOCUMENT_DRAG_TYPE) !== dragging.token)
-    throw new Error("The dragged document is no longer available. Drag the separate Add to Cauldron handle again.");
+    throw new Error(
+      "The dragged document is no longer available. Drag the separate Add to Cauldron handle again.",
+    );
   return dragging.copy;
 }

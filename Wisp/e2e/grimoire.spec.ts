@@ -1,4 +1,5 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Locator, type Page } from "./offline-app";
 import { resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -46,7 +47,7 @@ test.beforeEach(async ({ page }) => {
     await route.abort("blockedbyclient");
   });
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
 });
 
 test.afterEach(async ({ page }) => {
@@ -58,13 +59,29 @@ async function openBook(page: Page) {
   await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   const book = page.getByRole("dialog", { name: "Grimoire", exact: true });
   await expect(book).toBeVisible();
+  await settleBook(book);
   return book;
+}
+
+async function settleBook(book: Locator) {
+  await book.evaluate(async (element) => {
+    await document.fonts.ready;
+    // The book unfolds from the pointer; layout assertions measure its resting pages.
+    const opening = element
+      .getAnimations({ subtree: true })
+      .filter((animation) =>
+        Number.isFinite(animation.effect?.getComputedTiming().endTime),
+      );
+    await Promise.all(
+      opening.map((animation) => animation.finished.catch(() => {})),
+    );
+  });
 }
 
 async function hasNoHorizontalOverflow(locator: Locator) {
   expect(
     await locator.evaluate(
-      // The decorative corners occupy the dialog's border, outside its client box.
+      // Allow a subpixel difference between the CSS box and its rendered artwork.
       (element) =>
         element.scrollWidth + element.clientLeft <=
         element.getBoundingClientRect().width + 1,
@@ -91,6 +108,16 @@ for (const viewport of [
   }, testInfo) => {
     await page.setViewportSize(viewport);
     const book = await openBook(page);
+    await expect(book.locator(".grimoire-art")).toBeVisible();
+    expect(
+      await book
+        .locator(".grimoire-art")
+        .evaluate(
+          (image) =>
+            (image as HTMLImageElement).complete &&
+            (image as HTMLImageElement).naturalWidth > 0,
+        ),
+    ).toBe(true);
     const index = book.locator(".grimoire-index");
     const content = book.getByRole("region", {
       name: "Getting started",
@@ -143,6 +170,7 @@ for (const viewport of [
     await page.keyboard.press("Alt+KeyM");
     const book = page.getByRole("dialog", { name: "Grimoire", exact: true });
     await expect(book).toBeVisible();
+    await settleBook(book);
     const index = (await book.locator(".grimoire-index").boundingBox())!;
     const content = (await book
       .getByRole("region", { name: "Getting started", exact: true })
@@ -165,6 +193,23 @@ for (const viewport of [
     await proposals.scrollIntoViewIfNeeded();
     await fitsViewport(proposals, page);
     await page.screenshot({ path: testInfo.outputPath("narrow-settings.png") });
+    for (const name of ["Export notebook", "Reset demo desktop"]) {
+      const action = book.getByRole("button", { name, exact: true });
+      await action.scrollIntoViewIfNeeded();
+      await fitsViewport(action, page);
+      await expect(action).toBeEnabled();
+    }
+    await book.getByRole("button", { name: "Reset demo desktop", exact: true }).click();
+    const reset = book.getByRole("group", { name: "Confirm workspace reset" });
+    await expect(reset).toBeVisible();
+    const keep = reset.getByRole("button", { name: "Keep my session", exact: true });
+    await keep.scrollIntoViewIfNeeded();
+    await fitsViewport(keep, page);
+    await hasNoHorizontalOverflow(book);
+    await hasNoHorizontalOverflow(book.getByRole("region", { name: "Settings", exact: true }));
+    await page.screenshot({ path: testInfo.outputPath("narrow-settings-actions.png") });
+    await keep.click();
+    await expect(reset).toHaveCount(0);
     await book.getByLabel("Close Grimoire", { exact: true }).click();
     await expect(book).not.toBeVisible();
   });
@@ -179,7 +224,9 @@ test("keyboard focus stays in the book and Escape returns to the opening control
   const book = page.getByRole("dialog", { name: "Grimoire", exact: true });
   await expect(book).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(book.getByLabel("Close Grimoire", { exact: true })).toBeFocused();
+  await expect(
+    book.getByLabel("Close Grimoire", { exact: true }),
+  ).toBeFocused();
   for (let i = 0; i < 12; i++) {
     await page.keyboard.press("Tab");
     expect(
@@ -239,9 +286,12 @@ for (const viewport of [
         `材料第 ${i + 1} 行：${"可核对的原文内容与需要保留的上下文。".repeat(12)}${"long-source-token-".repeat(8)}`,
     ).join("\n");
     await page
-      .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
+      .getByRole("button", {
+        name: "Open Bookstore event proposal",
+        exact: true,
+      })
       .click();
-    await page.getByLabel("Bookstore event proposal text").fill(text);
+    await (await editDocument(page, "Bookstore event proposal")).fill(text);
     await expect(page.getByTestId("save-proposal")).toHaveText("saved");
     await page
       .getByRole("button", { name: "Open core abilities", exact: true })
@@ -250,10 +300,12 @@ for (const viewport of [
     await page
       .getByRole("button", { name: "Page Sprite", exact: false })
       .click();
-    await expect(page.getByLabel("Execution mode", { exact: true })).toHaveValue(
-      "local",
-    );
-    await page.getByRole("button", { name: "Summon familiar", exact: true }).click();
+    await expect(
+      page.getByLabel("Execution mode", { exact: true }),
+    ).toHaveValue("local");
+    await page
+      .getByRole("button", { name: "Summon familiar", exact: true })
+      .click();
     await expect(
       page.getByRole("complementary", { name: "Familiar task status" }),
     ).toContainText("1 unread");
@@ -295,7 +347,9 @@ for (const viewport of [
     });
     await closeResult.click();
     await expect(book.getByTestId("task-card")).toHaveCount(1);
-    await book.getByRole("button", { name: "Archive record", exact: true }).click();
+    await book
+      .getByRole("button", { name: "Archive record", exact: true })
+      .click();
     await expect(book.getByTestId("task-card")).toContainText("Archived");
   });
 }

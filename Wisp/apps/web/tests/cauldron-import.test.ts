@@ -28,6 +28,7 @@ import {
   requestDocumentCopy,
   startDocumentDrag,
   useCauldronImport,
+  validateImportFiles,
 } from "../src/services/cauldron-import";
 
 let material: Material;
@@ -174,9 +175,9 @@ it("preserves a batch confirmation when file or document-copy imports are attemp
     familiar: "page_sprite" as const,
   };
   useInteraction.setState({ batchDraft });
-  expect(() =>
-    queueImport({ file: new File(["text"], "input.txt") }),
-  ).toThrow("current panel");
+  expect(() => queueImport({ file: new File(["text"], "input.txt") })).toThrow(
+    "current panel",
+  );
   requestDocumentCopy(material.id);
   expect(useCauldronImport.getState().error).toContain("current panel");
   const drag = transfer();
@@ -224,19 +225,78 @@ it("rejects unsupported and oversized files before occupying a slot", () => {
   }
 });
 
+it("keeps a selected batch in order and protects it from replacement", () => {
+  const files = [
+    new File(["first"], "first.txt"),
+    new File(["broken"], "broken.docx"),
+    new File(["last"], "last.txt"),
+  ];
+  queueImport({ files });
+  const request = useCauldronImport.getState().request!;
+  expect("files" in request && request.files.map((file) => file.name)).toEqual([
+    "first.txt",
+    "broken.docx",
+    "last.txt",
+  ]);
+  files.pop();
+  expect("files" in request && request.files).toHaveLength(3);
+  expect(() =>
+    queueImport({ files: [new File(["replacement"], "replacement.txt")] }),
+  ).toThrow("preview is still open");
+  expect(useCauldronImport.getState().request).toBe(request);
+});
+
+it("rejects an empty or oversized batch without silently dropping files", () => {
+  const files = Array.from(
+    { length: 13 },
+    (_, index) => new File([String(index)], `${index}.txt`),
+  );
+  expect(() => validateImportFiles([])).toThrow("at least one");
+  expect(() => queueImport({ files })).toThrow("up to 12 files");
+  expect(useCauldronImport.getState().occupied).toBe(false);
+  useCauldron.setState({
+    entries: [{ materialId: "occupied", addedAt: new Date().toISOString() }],
+  });
+  expect(() => queueImport({ files: files.slice(0, 12) })).toThrow(
+    "room for 11",
+  );
+  expect(useCauldronImport.getState().request).toBeUndefined();
+  queueImport({ files: files.slice(0, 11) });
+  expect(useCauldronImport.getState().occupied).toBe(true);
+});
+
+it("rejects a batch when any file has an unsupported format or is oversized", () => {
+  const unsupported = new File(["image"], "picture.png");
+  const oversized = new File(["large"], "large.txt");
+  Object.defineProperty(oversized, "size", { value: 20_000_001 });
+  for (const files of [
+    [new File(["ok"], "ok.txt"), unsupported],
+    [new File(["ok"], "ok.txt"), oversized],
+  ]) {
+    expect(() => validateImportFiles(files)).toThrow("No files were added");
+    expect(useCauldronImport.getState().occupied).toBe(false);
+  }
+});
+
 it.each(["pending", "saving", "failed"] as const)(
   "rejects a document with save state %s",
   (status) => {
     useDocuments.setState({ status: { [material.id]: status } });
-    expect(() => copyFromDocument(material.id)).toThrow("Save the original document");
+    expect(() => copyFromDocument(material.id)).toThrow(
+      "Save the original document",
+    );
     expect(useCauldronImport.getState().occupied).toBe(false);
   },
 );
 
 it("rejects missing documents, absent save confirmation and unresolved save errors", () => {
-  expect(() => copyFromDocument("missing")).toThrow("current document is unavailable");
+  expect(() => copyFromDocument("missing")).toThrow(
+    "current document is unavailable",
+  );
   useDocuments.setState({ status: {} });
-  expect(() => copyFromDocument(material.id)).toThrow("Save the original document");
+  expect(() => copyFromDocument(material.id)).toThrow(
+    "Save the original document",
+  );
   useDocuments.setState({
     status: { [material.id]: "saved" },
     errors: { [material.id]: "另一标签页有更新" },
@@ -326,7 +386,9 @@ it("captures drag contents before subsequent document edits and refuses blocked 
   endDocumentDrag();
   claimImport();
   const blocked = transfer();
-  expect(() => startDocumentDrag(material.id, blocked)).toThrow("A material preview is still open");
+  expect(() => startDocumentDrag(material.id, blocked)).toThrow(
+    "A material preview is still open",
+  );
   expect(blocked.getData(DOCUMENT_DRAG_TYPE)).toBe("");
   expect(() => draggedDocument(blocked)).toThrow("no longer available");
 });

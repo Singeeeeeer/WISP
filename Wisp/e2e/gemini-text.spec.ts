@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Page } from "./offline-app";
 
 async function open(page: Page, entry: string) {
   await page.getByRole("button", { name: "Open core abilities" }).click();
@@ -98,7 +99,7 @@ test("Understand freezes selection, retries only saving, copies evidence and pre
     return route.fulfill({ json: reply(sent, "understand") });
   });
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill("只发送这句。私有未选中内容");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await editor.press("Control+Home");

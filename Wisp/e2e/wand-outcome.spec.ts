@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Page, type Route } from "./offline-app";
 import type { MaterialSnapshot } from "../apps/web/src/domain/model";
 
 type ClipboardWindow = Window & {
@@ -140,7 +141,7 @@ test.beforeEach(async ({ page }) => {
   );
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   await expect(page.locator(".wand-outcome")).toHaveAttribute(
     "data-outcome",
     "none",
@@ -384,7 +385,7 @@ for (const source of ["application", "system"] as const) {
       ),
     ).toBe(0);
     await expect(outcome).toHaveCSS("pointer-events", "none");
-    const editor = page.getByLabel("Bookstore event proposal text");
+    const editor = (await editDocument(page, "Bookstore event proposal"));
     await editor.fill("结果提示显示期间仍可编辑原文。");
     await expect(editor).toHaveValue("结果提示显示期间仍可编辑原文。");
     await expect(outcome).toHaveAttribute("data-outcome", "none", {

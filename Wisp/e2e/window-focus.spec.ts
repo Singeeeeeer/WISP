@@ -1,9 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./offline-app";
 test("initial active material matches the frontmost restored window", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   const front = await page
     .locator(".desktop-window")
     .evaluateAll((windows) =>

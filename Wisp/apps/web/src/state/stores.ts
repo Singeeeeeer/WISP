@@ -199,7 +199,7 @@ export const useWorkspace = create<Workspace>((set, get) => ({
     set({
       active: id,
       windows: get().windows.map((w) =>
-        w.id === id ? { ...w, minimized: false, z } : w,
+        w.id === id ? { ...w, minimized: false, closed: false, z } : w,
       ),
     });
     persistLayout();
@@ -210,8 +210,14 @@ export const useWorkspace = create<Workspace>((set, get) => ({
     }
   },
   move(id, patch) {
+    const windows = get().windows.map((w) =>
+      w.id === id ? { ...w, ...patch } : w,
+    );
     set({
-      windows: get().windows.map((w) => (w.id === id ? { ...w, ...patch } : w)),
+      windows,
+      ...(get().active === id && (patch.minimized || patch.closed)
+        ? { active: windows.filter((w) => !w.minimized && !w.closed).sort((a, b) => b.z - a.z)[0]?.id ?? "" }
+        : {}),
     });
     persistLayout();
   },
@@ -293,6 +299,9 @@ export function initialize() {
   return (boot ??= (async () => {
     try {
       const materials = await repository.initialize();
+      const checklist = await repository.ensureDesktopChecklist();
+      if (!materials.some((material) => material.id === checklist.id))
+        materials.push(checklist);
       for (const m of materials) savedVersions[m.id] = m.version;
       const persisted =
         await repository.readPreference<WindowState[]>("windows");
@@ -337,6 +346,7 @@ export function initialize() {
         useInteraction.setState({
           settings: {
             ...settings,
+            idleAntics: settings.idleAntics !== false,
             idleRhythm: settings.idleRhythm === "lively" ? "lively" : "default",
             characterSize: Math.max(32, Math.min(72, settings.characterSize)),
           },

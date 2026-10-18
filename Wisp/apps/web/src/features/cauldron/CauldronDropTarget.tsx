@@ -8,6 +8,7 @@ import {
   queueImport,
   reportImportError,
   useCauldronImport,
+  validateImportFiles,
 } from "../../services/cauldron-import";
 import "./cauldron.css";
 
@@ -38,17 +39,21 @@ export function CauldronDropTarget() {
           "[data-cauldron-target], .cauldron",
         )
       )
-        reason = "Drag to “Inspiration Cauldron” at the top.";
+        reason = "Drag to the Inspiration Cauldron pot or its open panel.";
       const items = Array.from(data.items).filter(
         (item) => item.kind === "file",
       );
-      if (!reason && files && items.length > 1)
-        reason = "Only one file can be dropped at a time.";
-      if (!reason && files && data.files.length === 1) {
+      if (!reason && files && items.length > 12)
+        reason = "Choose up to 12 files at a time. No files were added.";
+      // Browsers hide DataTransfer.files during dragover. Validate the actual
+      // payload on drop; an empty dragover FileList must not reject the drop.
+      if (
+        !reason &&
+        files &&
+        (event.type === "drop" || data.files.length > 0)
+      ) {
         try {
-          fileSource(data.files[0].name);
-          if (data.files[0].size > 20_000_000)
-            reason = "A single file cannot exceed 20 MB.";
+          validateImportFiles(Array.from(data.files));
         } catch (error) {
           reason = (error as Error).message;
         }
@@ -69,7 +74,7 @@ export function CauldronDropTarget() {
           result.reason ||
           (result.internal
             ? "Drop to add · release to preview the full copy, then confirm and save to add it to the cauldron."
-            : "Drop to add · one TXT / DOCX / PPTX / XLSX / PDF; release to preview, then confirm and save to add."),
+            : "Drop up to 12 TXT / DOCX / PPTX / XLSX / PDF files; review and confirm each file before adding."),
       });
     };
     const enter = (event: DragEvent) => {
@@ -96,9 +101,16 @@ export function CauldronDropTarget() {
           const directory = Array.from(event.dataTransfer!.items).some(
             (item) => item.webkitGetAsEntry?.()?.isDirectory,
           );
-          if (directory || files.length !== 1)
-            throw new Error("Only one file is supported at a time; folders cannot be dropped.");
-          queueImport({ file: files[0] });
+          if (directory)
+            throw new Error(
+              "Folders cannot be dropped. Choose individual files instead.",
+            );
+          validateImportFiles(Array.from(files));
+          queueImport(
+            files.length === 1
+              ? { file: files[0] }
+              : { files: Array.from(files) },
+          );
         }
       } catch (error) {
         reportImportError(error);
@@ -147,7 +159,11 @@ export function CauldronDropTarget() {
           role="status"
           data-allowed={feedback.allowed}
         >
-          <strong>{feedback.allowed ? "Drop into Inspiration Cauldron" : "Cannot drop here"}</strong>
+          <strong>
+            {feedback.allowed
+              ? "Drop into Inspiration Cauldron"
+              : "Cannot drop here"}
+          </strong>
           <span>{feedback.text}</span>
         </div>
       )}

@@ -89,6 +89,44 @@ it("rejects changed authorization under the same submission ID", async () => {
     r.enqueueTask(newTask({ ...d, instruction: "不同要求" })),
   ).rejects.toThrow("submission ID");
 });
+it("keeps a paused task frozen through late replies, recovery and same-id continuation", async () => {
+  const r = createRepository("paused-" + crypto.randomUUID());
+  const task = newTask(draft());
+  await r.enqueueTask(task);
+  await r.changeTask(task.id, { type: "start" });
+  await r.changeTask(task.id, { type: "pause" });
+  const result = runLocal(task.operation, task.snapshot, task.instruction);
+  await r.changeTask(task.id, { type: "complete", result });
+  await r.changeTask(task.id, { type: "fail", error: "aborted attempt" });
+  await r.changeTask(task.id, { type: "interrupt" });
+  await r.changeTask(task.id, { type: "archive" });
+  expect((await r.listTasks())[0]).toMatchObject({
+    id: task.id,
+    status: "paused",
+    snapshot: task.snapshot,
+    unread: false,
+    archived: false,
+  });
+  expect((await r.listTasks())[0].result).toBeUndefined();
+  await r.changeTask(task.id, { type: "resume" });
+  await r.changeTask(task.id, { type: "start" });
+  await r.changeTask(task.id, { type: "complete", result });
+  expect(await r.listTasks()).toHaveLength(1);
+  expect((await r.listTasks())[0]).toMatchObject({
+    id: task.id,
+    status: "completed",
+    result,
+    unread: true,
+  });
+  const cancelled = newTask(draft());
+  await r.enqueueTask(cancelled);
+  await r.changeTask(cancelled.id, { type: "pause" });
+  await r.changeTask(cancelled.id, { type: "cancel" });
+  await r.changeTask(cancelled.id, { type: "resume" });
+  expect(
+    (await r.listTasks()).find((item) => item.id === cancelled.id)?.status,
+  ).toBe("cancelled");
+});
 it("upgrades v3 without losing documents, preferences or direct processing records", async () => {
   const name = "v3-" + crypto.randomUUID();
   const old = await openDB(name, 3, {

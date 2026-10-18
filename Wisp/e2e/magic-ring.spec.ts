@@ -1,10 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./offline-app";
 
 test("magic ring follows invocation, keeps four directions, and stays still for selection", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   await page.mouse.move(700, 400);
   await page.keyboard.press("q");
   const ring = page.getByRole("menu", { name: "Core abilities" });
@@ -41,7 +41,7 @@ test("ring clamps at edges and keyboard can select and dismiss", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   await page.mouse.click(12, 780, { button: "right" });
   const ring = page.getByRole("menu", { name: "Core abilities" });
   await expect(ring).toBeVisible();
@@ -62,7 +62,7 @@ test("supplied sprite loads, follows pointer, and settings keep entries usable",
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   expect(
     await page.evaluate(async () => {
       const img = new Image();

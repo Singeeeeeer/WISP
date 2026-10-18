@@ -7,11 +7,13 @@
   overflow-y: auto;
   overflow-wrap: anywhere;
   padding: 18px;
-  border: 1px solid #b9a5c3;
-  border-radius: 18px;
-  color: #382b40;
-  background: #fffcf5;
-  box-shadow: 0 10px 35px #33213e24;
+  border: 2px solid #b7a2c7;
+  border-radius: 0;
+  color: #79578d;
+  background: #fffaf0;
+  box-shadow:
+    3px 3px 0 #d8c9e2,
+    5px 5px 0 #8a6b9f40;
 }
 .proposal-card p {
   line-height: 1.65;

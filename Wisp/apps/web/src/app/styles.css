@@ -596,3 +596,174 @@ kbd {
     font-size: 21px;
   }
 }
+
+/* Desktop chrome follows the supplied v0.3.2 OS stage. */
+.app-shell { min-height: 420px; background: #c8d4df; }
+.desktop { height: calc(100dvh - 30px); background: #c8d4df; }
+.desktop, .os-menubar, .os-menu {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  color: #343942;
+  letter-spacing: 0;
+}
+.os-icon { width: 17px; height: 17px; object-fit: contain; image-rendering: auto; }
+.desktop-menu-host { position: relative; z-index: 650; }
+.os-menubar {
+  height: 30px; padding: 0 15px; background: #eef2f5d9; display: flex;
+  justify-content: space-between; gap: 12px; backdrop-filter: blur(20px);
+  box-shadow: 0 1px 0 #ffffff44;
+}
+.menu-left, .menu-status { height: 100%; display: flex; align-items: center; gap: 4px; }
+.menu-left > strong { font-size: 12px; min-width: 49px; color: #263342; margin-right: 11px; }
+.menu-left > button { border: 0; background: transparent; color: #2c3744; padding: 3px 9px; font-size: 12px; line-height: 22px; border-radius: 4px; }
+.menu-left > button:hover, .menu-left > button[aria-expanded="true"] { background: #b4c1cd70; }
+.menu-left > .system-mark-button { padding: 0; margin-right: 9px; height: 28px; width: 24px; }
+.system-mark { width: 22px; height: 23px; object-fit: contain; image-rendering: pixelated; }
+.menu-status { gap: 14px; font-size: 11px; color: #29394a; }
+.menu-status > .os-icon { opacity: .75; }
+.menu-status .demo-label { font-size: 8px; letter-spacing: 1.5px; color: #627386; margin-right: 4px; }
+.menu-status time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.os-menu { position: fixed; top: 34px; z-index: 650; width: 310px; max-width: calc(100vw - 20px); max-height: calc(100dvh - 50px); overflow: auto; padding: 5px; background: #f8fafbed; border: 1px solid #a8b4c1; border-radius: 6px; box-shadow: 0 9px 30px #1c2d4930; backdrop-filter: blur(18px); }
+.os-menu > button { width: 100%; display: flex; align-items: center; text-align: left; gap: 9px; border: 0; background: transparent; font-size: 12px; line-height: 1.6; padding: 6px 9px; border-radius: 4px; color: #344252; }
+.os-menu > button:hover:not(:disabled) { background: #5b79a4; color: #fff; }
+.os-menu small { margin-left: auto; color: #8997a5; font-size: 10px; }
+.os-menu-heading { font-size: 9px; color: #8795a4; padding: 7px 10px 4px; letter-spacing: .8px; }
+.desktop-files { position: absolute; right: 79px; top: 28px; display: flex; flex-direction: column; gap: 19px; width: 92px; z-index: 2; }
+.desktop-files button { display: flex; flex-direction: column; align-items: center; width: 92px; gap: 6px; color: #29394b; text-shadow: 0 1px #ffffff55; line-height: 1.3; padding: 5px 3px; border: 1px solid transparent; border-radius: 5px; background: transparent; touch-action: none; cursor: grab; user-select: none; }
+.desktop-files button:hover { background: #e8f0f66b; border-color: #ffffff88; }
+.desktop-files .os-icon { width: 42px; height: 43px; padding: 7px; background: #f7fafce6; border-radius: 6px; box-shadow: 0 2px 3px #24364a16; }
+.desktop-files button:nth-child(1) img { background: #fff2df; }
+.desktop-files button:nth-child(2) img { background: #e8f3ff; }
+.desktop-files button:nth-child(3) img { background: #e9f6e9; }
+.desktop-files button:nth-child(4) img { background: #f0eafa; }
+.desktop-files span { font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.desktop-window { min-height: 220px; min-width: 260px; background: #f8f9fa; border-color: #b4bdc8; border-radius: 9px; box-shadow: 0 10px 25px #24334b1a, 0 1px 4px #1c2c4226; }
+.desktop-window.active { border-color: #a9b3c1; box-shadow: 0 18px 40px #28394b29, 0 2px 5px #1b2c4526; }
+.desktop-window .window-bar { height: 47px; flex-shrink: 0; gap: 14px; padding: 0 14px; background: #e9edf1; border-bottom: 1px solid #d2d8df; }
+.desktop-window.active .window-bar { background: #f0f2f5; }
+.window-bar:focus-visible { outline-offset: -4px; }
+.window-title { flex: 1; min-width: 0; line-height: 1.2; display: flex; flex-direction: column; align-items: center; padding-right: 15px; }
+.window-title strong { font-size: 11px; color: #4f5b69; font-weight: 600; display: flex; align-items: center; gap: 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.window-title strong .os-icon { width: 15px; height: 15px; opacity: .55; flex: none; }
+.window-title small { font-size: 8px; color: #738192; margin-top: 4px; }
+.window-app-label { font-size: 9px; color: #738192; min-width: 35px; text-align: right; }
+.traffic-lights { display: flex; gap: 7px; flex: none; }
+.traffic-lights button { position: relative; height: 12px; width: 12px; min-width: 12px; border-radius: 50%; padding: 0; border: 1px solid #00000012; display: grid; place-items: center; }
+.traffic-lights button::before { content: ""; position: absolute; inset: -3px; }
+.traffic-lights [data-window-action="close"] { background: #ff625a; border-color: #df534c; }
+.traffic-lights [data-window-action="minimize"] { background: #ffbe2f; border-color: #dba32b; }
+.traffic-lights [data-window-action="maximize"] { background: #2acb42; border-color: #25ad37; }
+.traffic-lights button > .os-icon { width: 8px; height: 8px; opacity: 0; }
+.traffic-lights:hover button > .os-icon, .traffic-lights button:focus-visible > .os-icon { opacity: .7; }
+.traffic-lights button:hover { filter: brightness(.95); }
+.os-toolbar { height: 34px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; padding: 0 17px; background: #fafbfc; border-bottom: 1px solid #e0e5eb; user-select: none; }
+.os-toolbar > span { font-size: 9px; color: #6e7d8e; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.os-toolbar > span:first-child { color: #586879; }
+.os-toolbar .os-icon { width: 13px; height: 13px; opacity: .55; }
+.os-toolbar .document-copy-handle { margin-left: auto; display: flex; align-items: center; gap: 4px; padding: 2px 0; border: 0; background: transparent; font-size: 8px; color: #6e7d8e; white-space: nowrap; cursor: grab; }
+.desktop-window .document-content { overflow: auto; background: #fff; scrollbar-width: thin; scrollbar-color: #c3cad3 transparent; padding: 26px 31px 18px; display: flex; flex-direction: column; min-height: 0; }
+.desktop-window .document-meta { gap: 8px; margin-bottom: 0; color: #77879a; font-size: 8px; letter-spacing: 1px; }
+.doc-category { color: #77879a; letter-spacing: 1.7px; font-size: 8px; }
+.desktop-window .document-title { font: 400 28px/1.15 Georgia, serif; letter-spacing: -.7px; color: #2e3b4a; margin: 13px 0 8px; padding: 0; flex-shrink: 0; }
+.doc-subtitle { font-size: 9px; margin: 0 0 23px; color: #788899; }
+.desktop-window .document-body { width: 100%; flex: 1; min-height: 220px; resize: none; border: 0; background: transparent; font: 12px/1.9 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; color: #667385; padding: 0; }
+.desktop-window .reference-sheet { padding: 19px 24px 20px; }
+.reference-sheet .document-title { font-size: 21px; color: #415367; margin: 10px 0; }
+.reference-sheet .doc-subtitle { margin-bottom: 16px; }
+.desktop-window .reference-sheet .document-body { min-height: 160px; font-size: 11px; line-height: 1.8; }
+.desktop-window .table-sheet { padding: 19px 20px 20px; }
+.table-sheet .document-title { font: 400 20px/1.3 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; color: #42566a; margin: 10px 0; }
+.table-sheet .doc-subtitle { margin-bottom: 16px; }
+.document-material-actions { margin-top: 12px; font-size: 9px; color: #708196; }
+.document-material-actions summary { cursor: pointer; }
+.desktop-window .document-copy-actions { margin-top: 8px; flex-wrap: wrap; }
+.desktop-window .document-copy-actions button { font-size: 9px; }
+.document-hint { color: #7d8da0; border-color: #e7edf2; font-size: 9px; line-height: 1.6; margin-top: 12px; }
+.sheet-editor { flex: 1; }
+.sheet-scroll { overflow: auto; }
+.task-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
+.task-table th { text-align: left; background: #ecf2ee; color: #5d7566; padding: 7px; font-size: 9px; border: 1px solid #e0e7e3; }
+.task-table th:first-child { width: 35%; }
+.task-table td { padding: 0; border: 1px solid #e0e7e3; }
+.task-table td textarea { display: block; width: 100%; min-width: 0; resize: none; border: 0; border-radius: 0; padding: 9px 7px; background: #fff; color: #65776c; font-size: 10px; line-height: 1.8; }
+.task-table td textarea:focus { background: #f0f8f2; outline: 1px solid #a7c6b2; outline-offset: -1px; }
+.sheet-tools { display: flex; justify-content: space-between; gap: 10px; margin-top: 13px; }
+.sheet-tools button { padding: 5px 6px; border: 0; background: transparent; font-size: 10px; color: #52795f; }
+.sheet-source { white-space: pre; min-height: 160px; }
+.window-resize { width: 18px; height: 18px; padding: 2px; bottom: 2px; right: 2px; opacity: .6; background: transparent; border: 0; }
+.window-resize .os-icon { width: 12px; height: 12px; }
+.desktop-window.maximized .window-resize { display: none; }
+.desktop-dock.app-switcher { position: absolute; bottom: 24px; z-index: 600; border-radius: 18px; padding: 9px 13px 6px; gap: 6px; background: #f1f5f8b8; border: 1px solid #ffffffb3; box-shadow: 0 7px 25px #2239511c; backdrop-filter: blur(22px); }
+.desktop-dock.app-switcher button { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 54px; padding: 0 6px 8px; gap: 4px; border: 0; border-radius: 9px; background: transparent; transition: transform .15s; }
+.desktop-dock.app-switcher button:hover:not(:disabled) { transform: translateY(-4px); }
+.desktop-dock.app-switcher button > span:last-child { font-size: 8px; color: #4c6076; line-height: 1.3; background: none; padding: 0; }
+.desktop-dock.app-switcher .dock-icon { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 11px; padding: 0; box-shadow: inset 0 1px 1px #ffffff88, 0 2px 2px #22334318; }
+.dock-icon > img { width: 29px; height: 29px; filter: invert(1); image-rendering: auto; }
+.desktop-dock .pages-icon { background: #e9a559; }
+.desktop-dock .mail-icon { background: #5f96ce; }
+.desktop-dock .sheets-icon { background: #64a57e; }
+.desktop-dock .canvas-icon { background: #967fbc; }
+.desktop-dock .files-icon { background: #6eacce; }
+.desktop-dock button.is-open::after { content: ""; position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #60758a; bottom: 0; left: calc(50% - 2px); }
+.desktop-dock button.is-minimized { opacity: .65; }
+.desktop-dock .dock-divider { height: 45px; width: 1px; background: #a4b4c55c; margin: 0 4px 12px; }
+.desktop-footer { position: absolute; bottom: 0; left: 0; right: 0; z-index: 610; display: flex; align-items: center; gap: 16px; font-size: 8px; color: #62778d; padding: 4px 15px; }
+.desktop-footer > span:last-child { margin-left: auto; }
+.desktop-footer button { padding: 0 5px; font-size: 8px; border: 0; background: transparent; color: #526a84; }
+.desktop-footer kbd { font-size: 8px; }
+.demo-hint { position: absolute; right: 22px; bottom: 24px; display: flex; align-items: center; gap: 9px; width: min(272px, calc(50vw - 200px)); padding: 12px 13px; z-index: 3; border: 1px solid #ccb5de; background: #fff9efe8; box-shadow: 2px 2px 0 #bfa5d14a; }
+.demo-hint > img { width: 30px; height: 32px; object-fit: contain; image-rendering: pixelated; }
+.demo-hint span { font-size: 12px; color: #856a96; line-height: 1.3; }
+.demo-hint strong { font-size: 13px; font-weight: 500; display: block; color: #805b94; }
+.demo-hint kbd { font-size: 10px; }
+.demo-hint button { position: absolute; right: 2px; top: 2px; padding: 3px; border: 0; background: transparent; }
+.demo-hint button img { width: 10px; height: 10px; opacity: .6; }
+.furnace-anchor { position: fixed; left: 22px; bottom: 128px; z-index: 660; width: 79px; height: 79px; padding: 5px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid #b7a2c7; border-radius: 0; background: #fffaf0; box-shadow: 3px 3px 0 #ccb6dc; }
+.furnace-anchor > img { width: 41px; height: 39px; object-fit: contain; image-rendering: pixelated; }
+.furnace-anchor > span { font-size: 10px; color: #805b94; line-height: 1.2; }
+.furnace-anchor > small { position: absolute; right: 4px; top: 3px; font-size: 10px; color: #805b94; }
+.onboarding { position: fixed; left: 120px; bottom: 131px; width: 320px; max-width: calc(100vw - 32px); padding: 22px 23px; z-index: 680; border: 2px solid #b7a2c7; background: #fffaf0; box-shadow: 3px 3px 0 #d8c9e2, 5px 5px 0 #8a6b9f40; color: #705381; }
+.onboarding-close { position: absolute; top: 8px; right: 8px; background: transparent; border: 0; padding: 0 5px; }
+.onboarding h1 { font: 400 25px/1.25 Georgia, serif; letter-spacing: -.4px; }
+.onboarding p { font-size: 12px; line-height: 1.8; color: #856b93; }
+.onboarding .eyebrow { font-size: 8px; letter-spacing: 1.2px; }
+.onboarding small { display: block; font-size: 10px; margin-top: 14px; }
+.onboarding .primary { font-size: 11px; }
+.onboarding .text-button { margin-top: 8px; font-size: 10px; border: 0; background: transparent; }
+@media (max-width: 900px) {
+  .menu-status { gap: 9px; }
+  .menu-status .demo-label, .demo-hint, .window-app-label { display: none; }
+  .menu-left { gap: 0; }
+  .menu-left > button { padding: 3px 7px; }
+  .desktop-files { right: 76px; width: 80px; }
+  .desktop-files button { width: 80px; }
+  .window-title { padding-right: 0; }
+  .os-toolbar { gap: 12px; padding: 0 12px; }
+  .os-toolbar > span:nth-child(2) { display: none; }
+  .desktop-dock.app-switcher { gap: 3px; }
+  .desktop-dock.app-switcher button { min-width: 48px; }
+}
+@media (max-width: 600px) {
+  .menu-status > .os-icon, .menu-left > [data-os-menu="edit"], .menu-left > [data-os-menu="help"], .menu-left > [data-os-menu="view"] { display: none; }
+  .menu-status time { font-size: 9px; }
+  .os-menubar { padding: 0 9px; }
+  .menu-left > strong { margin-right: 4px; min-width: 35px; }
+  .menu-left > button { font-size: 10px; padding: 3px 5px; }
+  .menu-left > .system-mark-button { margin-right: 4px; }
+  .desktop-files { right: 63px; }
+  .desktop-dock.app-switcher .dock-icon { width: 36px; height: 36px; border-radius: 9px; }
+  .dock-icon > img { width: 25px; height: 25px; }
+  .desktop-dock.app-switcher button { min-width: 42px; padding: 0 4px 7px; }
+  .desktop-dock.app-switcher { padding: 8px 9px 6px; gap: 2px; }
+  .furnace-anchor { left: 15px; bottom: 120px; }
+  .desktop-footer > span:last-child { font-size: 7px; }
+  .desktop-footer > span:first-child { display: none; }
+  .desktop-window .document-content { padding-left: 20px; padding-right: 20px; }
+  .desktop-window .document-title { font-size: 23px; }
+  .onboarding { left: 22px; bottom: 210px; width: 280px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .desktop-dock.app-switcher button { transition: none; }
+  .desktop-dock.app-switcher button:hover:not(:disabled) { transform: none; }
+}
+.app-shell[data-reduced-motion="true"] .desktop-dock.app-switcher button { transition: none; }
+.app-shell[data-reduced-motion="true"] .desktop-dock.app-switcher button:hover:not(:disabled) { transform: none; }

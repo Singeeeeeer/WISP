@@ -1,0 +1,349 @@
+/* The teammate prototype's magic layer; the desktop and documents keep system type. */
+@font-face {
+  font-family: "Wisp Pixel";
+  src: url("/assets/prototype/fonts/PixelifySans.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:is(
+  .magic-ring,
+  .floating-panel,
+  .proposal-card,
+  .dialog,
+  .familiar-marker,
+  .furnace-anchor,
+  .toast,
+  .cauldron-drop-feedback,
+  .cauldron-import-error,
+  .onboarding,
+  .desktop-hint,
+  .demo-hint
+) {
+  font-family: "Wisp Pixel", monospace;
+  font-kerning: none;
+}
+
+:is(
+    .magic-ring,
+    .floating-panel,
+    .proposal-card,
+    .dialog,
+    .familiar-marker,
+    .furnace-anchor,
+    .toast,
+    .cauldron-drop-feedback,
+    .cauldron-import-error,
+    .onboarding,
+    .desktop-hint,
+    .demo-hint
+  )
+  :is(button, input, textarea, select, pre, kbd, h1, h2, h3) {
+  font-family: "Wisp Pixel", monospace;
+  font-kerning: none;
+}
+
+:is(
+  .floating-panel,
+  .proposal-card,
+  .dialog:not(.grimoire-dialog),
+  .toast,
+  .cauldron-drop-feedback,
+  .cauldron-import-error
+) {
+  border: 2px solid #b7a2c7;
+  border-radius: 0;
+  background: #fffaf0;
+  box-shadow:
+    3px 3px 0 #d8c9e2,
+    5px 5px 0 #8a6b9f40;
+  color: #80668e;
+  backdrop-filter: none;
+}
+
+.overlay:has(.grimoire-dialog) {
+  background: #30263869;
+  backdrop-filter: none;
+}
+
+:is(
+    .magic-ring,
+    .floating-panel,
+    .proposal-card,
+    .dialog:not(.grimoire-dialog),
+    .familiar-marker,
+    .furnace-anchor,
+    .toast,
+    .onboarding,
+    .desktop-hint,
+    .demo-hint
+  )
+  button {
+  border-radius: 0;
+  transition: none;
+}
+
+:is(
+    .magic-ring,
+    .floating-panel,
+    .proposal-card,
+    .dialog:not(.grimoire-dialog),
+    .familiar-marker,
+    .furnace-anchor,
+    .toast,
+    .onboarding
+  )
+  :is(button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid #765487;
+  outline-offset: 3px;
+}
+
+:is(.floating-panel, .proposal-card, .dialog:not(.grimoire-dialog)) {
+  scrollbar-width: thin;
+  scrollbar-color: #ac8dbf #f3e9f8;
+}
+
+.floating-panel .floating-content {
+  font-size: 13px;
+  line-height: 1.45;
+  scrollbar-width: thin;
+  scrollbar-color: #ac8dbf #f3e9f8;
+}
+
+:is(.floating-content, .proposal-card, .dialog:not(.grimoire-dialog)) h2 {
+  color: #674479;
+  font-size: 23px;
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+:is(.floating-content, .proposal-card, .dialog:not(.grimoire-dialog)) .eyebrow {
+  color: #9472a9;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+:is(.floating-content, .proposal-card, .dialog:not(.grimoire-dialog))
+  :is(.subtle, .notice) {
+  color: #806b8c;
+  font-size: 11px;
+  line-height: 1.45;
+  border-radius: 0;
+}
+
+:is(.floating-content, .dialog:not(.grimoire-dialog)) .field-label {
+  color: #856195;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+:is(.floating-content, .dialog:not(.grimoire-dialog))
+  :is(
+    textarea,
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select
+  ) {
+  border: 2px solid #cfb9de;
+  border-radius: 0;
+  background: #fffdf5;
+  box-shadow: inset 2px 2px 0 #efe5f4;
+  color: #765384;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+:is(.floating-content, .dialog:not(.grimoire-dialog)) input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 2px solid #a183b5;
+  border-radius: 0;
+  background: #fff9ef;
+  vertical-align: middle;
+}
+
+:is(.floating-content, .dialog:not(.grimoire-dialog))
+  input[type="checkbox"]:checked {
+  background: #9670ad;
+  box-shadow: inset 0 0 0 2px #fff9ef;
+}
+
+:is(.floating-content, .proposal-card, .dialog:not(.grimoire-dialog))
+  .panel-actions {
+  gap: 6px;
+  background-color: #fffaf0;
+}
+
+:is(.floating-content, .proposal-card, .dialog:not(.grimoire-dialog))
+  .panel-actions
+  button,
+.floating-content .cauldron-toolbar button,
+.floating-content .cauldron-actions button {
+  border: 1px solid #c9b3d8;
+  box-shadow: 2px 2px 0 #ddcce7;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+:is(.floating-content, .proposal-card, .dialog:not(.grimoire-dialog))
+  button:hover:not(:disabled) {
+  background: #f2e4fa;
+  border-color: #ad8fc2;
+}
+
+:is(.floating-content, .proposal-card, .dialog:not(.grimoire-dialog))
+  button:active:not(:disabled) {
+  box-shadow: none;
+}
+
+:is(
+    .floating-content,
+    .proposal-card,
+    .dialog:not(.grimoire-dialog),
+    .onboarding
+  )
+  button.primary {
+  border: 2px solid #634276;
+  background: #79558f;
+  box-shadow: 2px 2px 0 #b99bce;
+  color: #fff8ed;
+}
+
+:is(
+    .floating-content,
+    .proposal-card,
+    .dialog:not(.grimoire-dialog),
+    .onboarding
+  )
+  button.primary:hover:not(:disabled) {
+  background: #69477f;
+}
+
+.floating-content .role-grid button {
+  border: 2px solid #d6c3e1;
+  background: #fffaf1;
+  box-shadow: 2px 2px 0 #e7d9ef;
+}
+
+.floating-content .role-grid button[aria-pressed="true"] {
+  border-color: #a683bc;
+  background: #efe2f7;
+  box-shadow: 2px 2px 0 #cbb1dc;
+}
+
+.floating-content .role-grid strong {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #79578e;
+}
+
+.floating-content .role-grid small {
+  color: #806b8c;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.floating-content .scope {
+  border: 1px solid #d6c3e1;
+  background: #f4eaf8;
+}
+
+.floating-content .scope pre {
+  color: #80668e;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.floating-content :is(.scope p, .scope small) {
+  color: #806b8c;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+:is(.floating-content, .dialog:not(.grimoire-dialog), .onboarding) kbd {
+  border: 1px solid #bfabca;
+  border-radius: 0;
+  padding: 1px 3px;
+  background: #f5eaf5;
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.proposal-card {
+  padding: 15px 16px 11px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.proposal-card small {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.onboarding {
+  padding: 22px;
+}
+
+.onboarding .eyebrow {
+  font-size: 10px;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  color: #a284b4;
+}
+
+.onboarding h1 {
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: #74518a;
+  margin: 12px 0;
+}
+
+.onboarding p {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #957ba5;
+}
+
+.onboarding :is(.primary, .text-button) {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.onboarding > small {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #a18bb0;
+}
+
+.floating-panel,
+.proposal-card {
+  animation: prototype-paper-in 200ms steps(5) both;
+}
+
+@keyframes prototype-paper-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.app-shell[data-reduced-motion="true"] :is(.floating-panel, .proposal-card) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-panel,
+  .proposal-card {
+    animation: none;
+  }
+}

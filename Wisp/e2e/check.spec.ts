@@ -1,9 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect } from "./offline-app";
 test("local Check persists exact evidence, detects stale source and recomputes on explicit confirmation", async ({
   page,
 }) => {
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill(
     "😀 Event notes. The event is scheduled to open on November 8. The poster is scheduled to be finalized on November 10, followed by registration opening.",
   );
@@ -25,6 +26,7 @@ test("local Check persists exact evidence, detects stale source and recomputes o
   await editor.fill("The event is scheduled to open on November 8. The poster is scheduled to be finalized on November 5, followed by registration opening.");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await page.reload();
+  await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("button", { name: "Run history", exact: true }).click();
   await expect(page.getByRole("button", { name: "View check result" })).toHaveCount(
     1,
@@ -46,7 +48,7 @@ test("selection only, empty input and failed persistence never claim success", a
   page,
 }) => {
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill("The event is scheduled to open on November 8. The poster is scheduled to be finalized on November 10, followed by registration opening.");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await editor.press("Control+Home");

@@ -1,4 +1,5 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Locator, type Page } from "./offline-app";
 import type {
   MaterialSnapshot,
   SummaryStyle,
@@ -149,38 +150,11 @@ async function selectSegment(
     exact: true,
   });
   await preview.scrollIntoViewIfNeeded();
-  const points = await preview.evaluate(
-    (element: HTMLTextAreaElement, selection) => {
-      const style = getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      const canvas = document.createElement("canvas");
-      const metrics = canvas.getContext("2d")!;
-      metrics.font = style.font;
-      const left =
-        rect.left +
-        parseFloat(style.borderLeftWidth) +
-        parseFloat(style.paddingLeft);
-      return {
-        start: left + metrics.measureText(selection.prefix).width + 0.5,
-        end:
-          left +
-          metrics.measureText(selection.prefix + selection.text).width +
-          0.5,
-        y:
-          rect.top +
-          parseFloat(style.borderTopWidth) +
-          parseFloat(style.paddingTop) +
-          parseFloat(style.lineHeight) / 2,
-      };
-    },
-    { prefix, text },
-  );
-  // Chrome read-only textareas use arrow keys to scroll. Drag the actual text.
-  const page = preview.page();
-  await page.mouse.move(points.start, points.y);
-  await page.mouse.down();
-  await page.mouse.move(points.end, points.y, { steps: 10 });
-  await page.mouse.up();
+  // Use the real Unicode-safe keyboard selection supported by the preview.
+  await preview.focus();
+  await preview.press("Home");
+  for (const _ of Array.from(prefix)) await preview.press("ArrowRight");
+  for (const _ of Array.from(text)) await preview.press("Shift+ArrowRight");
   await expect
     .poll(() =>
       preview.evaluate((element: HTMLTextAreaElement) =>
@@ -256,7 +230,7 @@ for (const operation of ["understand", "check", "create"] as const) {
     await page.goto("/");
     const dialog = await addPair(page);
     const confirmation = await prepare(page, dialog, labels[operation]);
-    await expect(confirmation).toContainText("Paste text");
+    await expect(confirmation).toContainText("Pasted text");
     await expect(confirmation).toContainText("虚构来源乙.txt");
     for (let i = 0; i < 2; i++)
       await selectSegment(confirmation, i + 1, prefixes[i], selections[i]);
@@ -326,7 +300,8 @@ for (const operation of ["understand", "check", "create"] as const) {
       ).toHaveCount(0);
     }
     await page.reload();
-    await page.getByRole("button", { name: "Run history", exact: true }).click();
+    await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("button", { name: "Run history", exact: true }).click();
     await page.getByRole("button", { name: /View multi-material.*result/ }).click();
     await expect(
       page.getByRole("heading", {
@@ -804,7 +779,7 @@ test("continuation keeps confirmed snapshots after source changes; fresh confirm
     .getByRole("button", { name: "Open editor", exact: true })
     .click();
   const updated = "新版项目甲：改为周日阅读。";
-  await other.getByLabel(titles[0] + "text", { exact: true }).fill(updated);
+  await (await editDocument(other, titles[0])).fill(updated);
   await expect
     .poll(
       async () =>

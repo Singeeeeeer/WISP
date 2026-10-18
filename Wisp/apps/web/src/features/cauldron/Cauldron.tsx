@@ -21,7 +21,7 @@ import {
   useCauldron,
 } from "../../services/cauldron-runtime";
 import { useWatches } from "../../services/watch-runtime";
-import { Dialog } from "../../shared/Dialog";
+import { FloatingPanel } from "../../shared/FloatingPanel";
 import { SourceInfo } from "../../shared/SourceInfo";
 import {
   claimImport,
@@ -29,6 +29,7 @@ import {
   currentDocumentId,
   requestDocumentCopy,
   useCauldronImport,
+  validateImportFiles,
 } from "../../services/cauldron-import";
 import { prepareBatch } from "../batch/actions";
 import "./cauldron.css";
@@ -63,6 +64,8 @@ export function Cauldron() {
   const candidate = useRef<Material | undefined>(undefined);
   const [draftId, setDraftId] = useState("");
   const [copy, setCopy] = useState<Material>();
+  const [fileBatch, setFileBatch] = useState<File[]>([]);
+  const [fileBatchTotal, setFileBatchTotal] = useState(0);
   const importOwner = useRef<string | undefined>(undefined);
   const request = useCauldronImport((s) => s.request);
   const selection = useInteraction((s) => s.selection);
@@ -70,9 +73,9 @@ export function Cauldron() {
   useEffect(() => {
     if (!request) return;
     useCauldronImport.setState({ request: undefined });
-    if ("file" in request) {
+    if ("file" in request || "files" in request) {
       begin("file");
-      void readFile(request.file);
+      startFiles("files" in request ? request.files : [request.file]);
     } else {
       begin("copy");
       setCopy(request.copy);
@@ -91,19 +94,24 @@ export function Cauldron() {
   }, []);
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      if (mode && (text || title || reading || busy)) {
+      if (mode && (text || title || reading || busy || fileBatch.length)) {
         e.preventDefault();
         e.returnValue = "";
       }
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [mode, text, title, reading, busy]);
+  }, [mode, text, title, reading, busy, fileBatch.length]);
   const material = materials.find((m) => m.id === selected);
   const member = (id: string) => entries.some((e) => e.materialId === id);
   const visible = materials.filter((m) => all || member(m.id));
-  const picked = checked.filter((id) => member(id) && materials.some((m) => m.id === id));
-  const pickedUnits = picked.reduce((total, id) => total + materials.find((m) => m.id === id)!.text.length, 0);
+  const picked = checked.filter(
+    (id) => member(id) && materials.some((m) => m.id === id),
+  );
+  const pickedUnits = picked.reduce(
+    (total, id) => total + materials.find((m) => m.id === id)!.text.length,
+    0,
+  );
   const close = () => {
     if (lock.current || reading) return;
     if (mode) {
@@ -123,6 +131,8 @@ export function Cauldron() {
     setNote("");
     setFile(undefined);
     setCopy(undefined);
+    setFileBatch([]);
+    setFileBatchTotal(0);
     setError("");
     setWarnings([]);
     setReadNotice("");
@@ -132,6 +142,43 @@ export function Cauldron() {
   function changedInput() {
     candidate.current = undefined;
     setError("");
+  }
+  function startFiles(files: File[]) {
+    if (!files.length) return;
+    try {
+      validateImportFiles(files);
+      setFileBatch(files);
+      setFileBatchTotal(files.length);
+      void readFile(files[0]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start file import.");
+    }
+  }
+  function clearDraft() {
+    stopReading();
+    setMode(undefined);
+    setCopy(undefined);
+    releaseImport(importOwner.current);
+    setFileBatch([]);
+    setFileBatchTotal(0);
+    setText("");
+    setTitle("");
+    setNote("");
+    setFile(undefined);
+    setWarnings([]);
+    setReadNotice("");
+    setError("");
+    candidate.current = undefined;
+  }
+  function nextFile() {
+    stopReading();
+    const remaining = fileBatch.slice(1);
+    if (!remaining.length) {
+      clearDraft();
+      return;
+    }
+    setFileBatch(remaining);
+    void readFile(remaining[0]);
   }
   async function readFile(chosen?: File) {
     if (!chosen) return;
@@ -148,6 +195,7 @@ export function Cauldron() {
     setText("");
     setTitle("");
     setNote("");
+    setDraftId(crypto.randomUUID());
     candidate.current = undefined;
     try {
       const contents = await readFileText(chosen, controller.signal);
@@ -175,7 +223,9 @@ export function Cauldron() {
       if (ticket === readingTicket.current) {
         finish("error");
         setError(
-          e instanceof Error ? e.message : "Could not read file. Select it again.",
+          e instanceof Error
+            ? e.message
+            : "Could not read file. Select it again.",
         );
       }
     } finally {
@@ -194,15 +244,20 @@ export function Cauldron() {
   async function add() {
     if (lock.current || reading || !mode) return;
     const finish = captureOutcome();
-    const owner = importOwner.current;
     lock.current = true;
     setBusy(true);
     setError("");
     try {
-      if (mode === "file" && !file) throw new Error("Choose a file and wait for it to finish loading first.");
+      if (mode === "file" && !file)
+        throw new Error(
+          "Choose a file and wait for it to finish loading first.",
+        );
       let m = candidate.current;
       if (!m) {
-        if (mode === "copy") throw new Error("The copy preview is no longer valid. Fetch it again.");
+        if (mode === "copy")
+          throw new Error(
+            "The copy preview is no longer valid. Fetch it again.",
+          );
         m = createTextMaterial({
           id: draftId,
           title,
@@ -216,18 +271,19 @@ export function Cauldron() {
       await createMaterial(m);
       finish("success");
       setAll(false);
-      setMode(undefined);
-      setCopy(undefined);
-      releaseImport(owner);
-      setText("");
-      setTitle("");
+      if (mode === "file" && fileBatch.length > 1) nextFile();
+      else clearDraft();
       if (mode === "new_text") {
         openMaterial(m.id);
         useInteraction.setState({ cauldron: false });
       }
     } catch (e) {
       finish("error");
-      setError(e instanceof Error ? e.message : "Could not save material. Please retry.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Could not save material. Please retry.",
+      );
     } finally {
       lock.current = false;
       setBusy(false);
@@ -249,7 +305,11 @@ export function Cauldron() {
       finish("success");
     } catch (e) {
       finish("error");
-      setError(e instanceof Error ? e.message : "Could not update the cauldron. Please retry.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Could not update the cauldron. Please retry.",
+      );
     } finally {
       lock.current = false;
       setBusy(false);
@@ -257,64 +317,76 @@ export function Cauldron() {
     }
   }
   return (
-    <Dialog title="Inspiration Cauldron" close={close}>
+    <FloatingPanel
+      title="Inspiration Cauldron"
+      close={close}
+      busy={busy || reading}
+      className="cauldron-panel"
+      placement="left"
+      closeLabel="Close Inspiration Cauldron"
+    >
       <div className="cauldron" aria-busy={busy || reading}>
-        <div className="panel-heading">
+        <div className="cauldron-heading">
+          <img src="/assets/prototype/pot_idle.png" alt="" />
           <div>
-            <div className="eyebrow">INSPIRATION CAULDRON · LOCAL TEXT</div>
+            <div className="eyebrow">A LITTLE ROOM FOR YOUR IDEAS</div>
             <h2>Inspiration Cauldron</h2>
           </div>
-          <button
-            aria-label="Close Inspiration Cauldron"
-            onClick={close}
-            disabled={busy || reading}
-          >
-            ×
-          </button>
         </div>
-        <p>Collect text here, select one or more materials, confirm the range, then hand it to Wisp.</p>
-        <div className="cauldron-toolbar">
-          <button
-            disabled={!!mode || busy || !ready}
-            onClick={() => begin("new_text")}
-          >
-            New material
-          </button>
-          <button
-            disabled={!!mode || busy || !ready}
-            onClick={() => begin("pasted_text")}
-          >
-            Paste text
-          </button>
-          <button
-            disabled={!!mode || busy || !ready}
-            onClick={() => begin("file")}
-          >
-            Import file
-          </button>
-          <button
-            disabled={!!mode || busy || !ready || !currentId}
-            onClick={() => requestDocumentCopy(currentId)}
-          >
-            Full copy of current document
-          </button>
-          <button
-            disabled={
-              !!mode ||
-              busy ||
-              !ready ||
-              !currentId ||
-              selection?.materialId !== currentId
-            }
-            onClick={() => requestDocumentCopy(currentId, true)}
-          >
-            Copy of current selection
-          </button>
-          <span>{entries.length} / 12 in cauldron</span>
+        <div className="cauldron-dropzone" data-cauldron-target>
+          <strong>A few things to work with</strong>
+          <p>Drop files, paste text, or bring in a copy.</p>
+          <div className="cauldron-toolbar cauldron-inputs">
+            <button
+              disabled={!!mode || busy || !ready}
+              onClick={() => begin("new_text")}
+            >
+              New material
+            </button>
+            <button
+              disabled={!!mode || busy || !ready}
+              onClick={() => begin("pasted_text")}
+            >
+              Paste text
+            </button>
+            <button
+              disabled={!!mode || busy || !ready}
+              onClick={() => begin("file")}
+            >
+              Import file
+            </button>
+            <button
+              disabled={!!mode || busy || !ready || !currentId}
+              onClick={() => requestDocumentCopy(currentId)}
+            >
+              Full copy of current document
+            </button>
+            <button
+              disabled={
+                !!mode ||
+                busy ||
+                !ready ||
+                !currentId ||
+                selection?.materialId !== currentId
+              }
+              onClick={() => requestDocumentCopy(currentId, true)}
+            >
+              Copy of current selection
+            </button>
+          </div>
         </div>
-        <p className="notice">
-          Drop one TXT, DOCX, PPTX, XLSX, or PDF file onto this page, or drag a document’s “Add to cauldron” handle to Inspiration Cauldron. Material is added only after you confirm the preview and save it.
+        <p className="cauldron-count">
+          {entries.length} / 12 in cauldron · TXT, DOCX, PPTX, XLSX, PDF
         </p>
+        <details className="cauldron-help">
+          <summary>How materials are added</summary>
+          <p className="subtle">
+            Drop up to 12 TXT, DOCX, PPTX, XLSX, or PDF files onto this page, or
+            drag a document’s “Add to cauldron” handle to Inspiration Cauldron.
+            Review and confirm each file before it is added. Files that do not
+            fit the available cauldron slots are not silently discarded.
+          </p>
+        </details>
         {(error || loadError) && (
           <p className="error" role="alert">
             {error || loadError}
@@ -334,21 +406,47 @@ export function Cauldron() {
             </h3>
             {mode === "file" && (
               <>
+                {!!fileBatch.length && (
+                  <div className="notice" role="status">
+                    <strong>
+                      File {fileBatchTotal - fileBatch.length + 1} of{" "}
+                      {fileBatchTotal}: {fileBatch[0].name}
+                    </strong>
+                    <p>
+                      {fileBatch.length - 1} files waiting. Each file is added
+                      only after you review and confirm it.
+                    </p>
+                    {fileBatch.length > 1 && (
+                      <details>
+                        <summary>Files waiting for review</summary>
+                        <ol>
+                          {fileBatch.slice(1).map((item, index) => (
+                            <li key={index}>{item.name}</li>
+                          ))}
+                        </ol>
+                      </details>
+                    )}
+                  </div>
+                )}
                 <label className="field-label">
                   Choose file
                   <input
                     type="file"
+                    multiple
                     accept=".txt,.docx,.pptx,.xlsx,.pdf"
-                    disabled={busy || reading}
+                    disabled={busy || reading || fileBatchTotal > 1}
                     onChange={(e) => {
-                      void readFile(e.target.files?.[0]);
+                      startFiles(Array.from(e.target.files ?? []));
                       e.target.value = "";
                     }}
                   />
                 </label>
                 <p className="notice">
-                  TXT (UTF-8), DOCX, PPTX, XLSX, PDF · One file up to 20 MB · Up to 60,000 UTF-16 units.
-                  Files are read locally as editable text without calling Gemini. The original file is not modified or monitored. PDF import extracts only the text layer; OCR is not supported.
+                  TXT (UTF-8), DOCX, PPTX, XLSX, PDF · Up to 12 files, 20 MB
+                  each · Up to 60,000 UTF-16 units. Files are read locally as
+                  editable text without calling Gemini. The original file is not
+                  modified or monitored. PDF import extracts only the text
+                  layer; OCR is not supported.
                 </p>
                 {reading && (
                   <div className="cauldron-toolbar">
@@ -357,7 +455,9 @@ export function Cauldron() {
                       onClick={() => {
                         captureOutcome()("cancel");
                         stopReading();
-                        setReadNotice("Reading stopped; you can choose another file.");
+                        setReadNotice(
+                          "Reading stopped. Retry this file or skip it; waiting files are kept.",
+                        );
                       }}
                     >
                       Stop reading
@@ -368,6 +468,14 @@ export function Cauldron() {
                   <p className="notice" role="status">
                     {readNotice}
                   </p>
+                )}
+                {!reading && !file && !!fileBatch.length && (
+                  <button
+                    disabled={busy}
+                    onClick={() => void readFile(fileBatch[0])}
+                  >
+                    Retry reading this file
+                  </button>
                 )}
               </>
             )}
@@ -441,7 +549,10 @@ export function Cauldron() {
                   {copy.text}
                 </pre>
                 <p className="notice">
-                  Title, text, source version, and range are frozen. Once saved, source changes will not change this copy. If another tab changed the source, cancel this addition, back up unsaved text, reload the page, and fetch the copy again.
+                  Title, text, source version, and range are frozen. Once saved,
+                  source changes will not change this copy. If another tab
+                  changed the source, cancel this addition, back up unsaved
+                  text, reload the page, and fetch the copy again.
                 </p>
               </section>
             )}
@@ -452,29 +563,27 @@ export function Cauldron() {
               </p>
             )}
             {mode === "new_text" && (
-              <p>After saving, a blank editor opens. Add text before using an ability.</p>
+              <p>
+                After saving, a blank editor opens. Add text before using an
+                ability.
+              </p>
             )}
             <div className="panel-actions">
               <button
                 disabled={busy}
                 onClick={() => {
                   captureOutcome()("cancel");
-                  stopReading();
-                  setMode(undefined);
-                  setCopy(undefined);
-                  releaseImport(importOwner.current);
-                  setText("");
-                  setTitle("");
-                  setNote("");
-                  setFile(undefined);
-                  setWarnings([]);
-                  setReadNotice("");
-                  setError("");
-                  candidate.current = undefined;
+                  if (mode === "file" && fileBatch.length > 1) nextFile();
+                  else clearDraft();
                 }}
               >
-                Cancel new material
+                {fileBatchTotal > 1 ? "Skip this file" : "Cancel new material"}
               </button>
+              {fileBatch.length > 1 && (
+                <button disabled={busy} onClick={clearDraft}>
+                  Discard all {fileBatch.length} remaining files
+                </button>
+              )}
               <button
                 className="primary"
                 disabled={busy || reading || (mode === "file" && !file)}
@@ -508,64 +617,97 @@ export function Cauldron() {
                   setError("");
                 }}
               >
-                {batchSelecting ? "Exit multi-material selection" : "Select multiple materials"}
+                {batchSelecting
+                  ? "Exit multi-material selection"
+                  : "Select multiple materials"}
               </button>
             </div>
             {batchSelecting && (
               <section className="scope" aria-label="Multi-material processing">
                 <strong>Selected {picked.length} / 12 items</strong>
                 <p role="status">
-                  Total full text: {pickedUnits.toLocaleString("en-US")} UTF-16 units · Limit for this run: 60,000.{" "}
-                  {pickedUnits > 60000 ? "Narrow each range in the next step; text over the limit will not be submitted." : "In the next step, confirm the full text or a selection from each material."}
+                  Total full text: {pickedUnits.toLocaleString("en-US")} UTF-16
+                  units · Limit for this run: 60,000.{" "}
+                  {pickedUnits > 60000
+                    ? "Narrow each range in the next step; text over the limit will not be submitted."
+                    : "In the next step, confirm the full text or a selection from each material."}
                 </p>
                 <div className="cauldron-actions">
-                  {(["understand", "check", "create", "summon"] as const).map((entry) => (
-                    <button
-                      key={entry}
-                      disabled={busy || !ready || picked.length < 2}
-                      onClick={() => {
-                        try { prepareBatch(picked, entry); }
-                        catch (e) { setError(e instanceof Error ? e.message : "Material unavailable"); }
-                      }}
-                    >
-                      {entry[0].toUpperCase() + entry.slice(1)} multiple materials
-                    </button>
-                  ))}
+                  {(["understand", "check", "create", "summon"] as const).map(
+                    (entry) => (
+                      <button
+                        key={entry}
+                        disabled={busy || !ready || picked.length < 2}
+                        onClick={() => {
+                          try {
+                            prepareBatch(picked, entry);
+                          } catch (e) {
+                            setError(
+                              e instanceof Error
+                                ? e.message
+                                : "Material unavailable",
+                            );
+                          }
+                        }}
+                      >
+                        {entry[0].toUpperCase() + entry.slice(1)} multiple
+                        materials
+                      </button>
+                    ),
+                  )}
                 </div>
-                <p className="subtle">Select 2–12 materials from the cauldron. Combined processing uses Gemini; selecting an ability opens the confirmation panel before anything is sent. Exit multi-material selection to use local rules with one material.</p>
+                <p className="subtle">
+                  Select 2–12 materials from the cauldron. Combined processing
+                  uses Gemini; selecting an ability opens the confirmation panel
+                  before anything is sent. Exit multi-material selection to use
+                  local rules with one material.
+                </p>
               </section>
             )}
             <div className="cauldron-grid">
               <div className="cauldron-list" aria-label="Material list">
                 {!visible.length && (
-                  <p className="empty">The cauldron is empty. Add some text to begin.</p>
+                  <p className="empty">
+                    The cauldron is empty. Add some text to begin.
+                  </p>
                 )}
                 {visible.map((m) => (
                   <div className="cauldron-item" key={m.id}>
-                  {batchSelecting && (
-                    <input
-                      type="checkbox"
-                      aria-label={"Process material " + m.title}
-                      title={member(m.id) ? "Include in this run" : "Add to the cauldron first"}
-                      disabled={!member(m.id) || busy}
-                      checked={picked.includes(m.id)}
-                      onChange={(e) => setChecked(e.target.checked ? [...picked, m.id] : picked.filter((id) => id !== m.id))}
-                    />
-                  )}
-                  <button
-                    aria-label={"Select material " + m.title}
-                    aria-pressed={selected === m.id}
-                    onClick={() => {
-                      useCauldron.setState({ selected: m.id });
-                      setError("");
-                    }}
-                  >
-                    <strong>{m.title || "Untitled material"}</strong>
-                    <small>
-                      {member(m.id) ? "In cauldron" : "Saved locally"} · {status[m.id]}
-                    </small>
-                    <small>{sourceDescription(m)}</small>
-                  </button>
+                    {batchSelecting && (
+                      <input
+                        type="checkbox"
+                        aria-label={"Process material " + m.title}
+                        title={
+                          member(m.id)
+                            ? "Include in this run"
+                            : "Add to the cauldron first"
+                        }
+                        disabled={!member(m.id) || busy}
+                        checked={picked.includes(m.id)}
+                        onChange={(e) =>
+                          setChecked(
+                            e.target.checked
+                              ? [...picked, m.id]
+                              : picked.filter((id) => id !== m.id),
+                          )
+                        }
+                      />
+                    )}
+                    <button
+                      aria-label={"Select material " + m.title}
+                      aria-pressed={selected === m.id}
+                      onClick={() => {
+                        useCauldron.setState({ selected: m.id });
+                        setError("");
+                      }}
+                    >
+                      <strong>{m.title || "Untitled material"}</strong>
+                      <small>
+                        {member(m.id) ? "In cauldron" : "Saved locally"} ·{" "}
+                        {status[m.id]}
+                      </small>
+                      <small>{sourceDescription(m)}</small>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -590,9 +732,13 @@ export function Cauldron() {
                         {status[material.id]}
                       </span>{" "}
                       · Version {material.version} ·{" "}
-                      {material.text.length.toLocaleString("en-US")} UTF-16 units
+                      {material.text.length.toLocaleString("en-US")} UTF-16
+                      units
                     </p>
-                    <SourceInfo value={material} />
+                    <details className="cauldron-source">
+                      <summary>Source details</summary>
+                      <SourceInfo value={material} />
+                    </details>
                     {errors[material.id] && (
                       <p role="alert" className="error">
                         {errors[material.id]}
@@ -606,11 +752,13 @@ export function Cauldron() {
                         w.materialId === material.id && w.status === "active",
                     ) && (
                       <p className="notice">
-                        This material is being watched. Removing it from the cauldron will not stop watching.
+                        This material is being watched. Removing it from the
+                        cauldron will not stop watching.
                       </p>
                     )}
                     <pre className="cauldron-preview">
-                      {material.text || "Empty material. Open the editor to add text."}
+                      {material.text ||
+                        "Empty material. Open the editor to add text."}
                     </pre>
                     <div className="cauldron-toolbar">
                       <button
@@ -628,50 +776,65 @@ export function Cauldron() {
                           void membership(material.id, !member(material.id))
                         }
                       >
-                        {member(material.id) ? "Remove from cauldron" : "Add to cauldron"}
+                        {member(material.id)
+                          ? "Remove from cauldron"
+                          : "Add to cauldron"}
                       </button>
                     </div>
-                    <p className="notice">
-                      Removing a material frees a cauldron slot. Its text, results, tasks, and watches remain; add it again from “All local materials”.
-                    </p>
-                    {!batchSelecting && <div className="cauldron-actions">
-                      {(
-                        ["understand", "check", "create", "summon"] as const
-                      ).map((entry) => (
-                        <button
-                          key={entry}
-                          disabled={
-                            busy ||
-                            !material.text.trim() ||
-                            material.text.length > 60000
-                          }
-                          onClick={() => {
-                            try {
-                              prepareMaterial(material.id, entry);
-                            } catch (e) {
-                              setError(String(e));
+                    <details className="cauldron-help">
+                      <summary>About removing materials</summary>
+                      <p className="subtle">
+                        Removing a material frees a cauldron slot. Its text,
+                        results, tasks, and watches remain; add it again from
+                        “All local materials”.
+                      </p>
+                    </details>
+                    {!batchSelecting && (
+                      <div className="cauldron-actions">
+                        {(
+                          ["understand", "check", "create", "summon"] as const
+                        ).map((entry) => (
+                          <button
+                            key={entry}
+                            disabled={
+                              busy ||
+                              !material.text.trim() ||
+                              material.text.length > 60000
                             }
-                          }}
-                        >
-                          {entry[0].toUpperCase() + entry.slice(1)}
-                        </button>
-                      ))}
-                    </div>}
-                    {!batchSelecting && <p className="subtle">
-                      Only the selected material’s full text is processed. You must still confirm the range next; the document selection is not reused.
-                      {material.text.length > 60000
-                        ? " Full text exceeds the limit; open the editor and choose a smaller range."
-                        : ""}
-                    </p>}
+                            onClick={() => {
+                              try {
+                                prepareMaterial(material.id, entry);
+                              } catch (e) {
+                                setError(String(e));
+                              }
+                            }}
+                          >
+                            {entry[0].toUpperCase() + entry.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {!batchSelecting && (
+                      <p className="subtle">
+                        Only the selected material’s full text is processed. You
+                        must still confirm the range next; the document
+                        selection is not reused.
+                        {material.text.length > 60000
+                          ? " Full text exceeds the limit; open the editor and choose a smaller range."
+                          : ""}
+                      </p>
+                    )}
                   </>
                 ) : (
-                  <p className="empty">Select a material to view its source and actions.</p>
+                  <p className="empty">
+                    Select a material to view its source and actions.
+                  </p>
                 )}
               </section>
             </div>
           </>
         )}
       </div>
-    </Dialog>
+    </FloatingPanel>
   );
 }

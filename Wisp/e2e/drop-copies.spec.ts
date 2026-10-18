@@ -1,5 +1,7 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Locator, type Page } from "./offline-app";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 
 const dialog = (page: Page) =>
@@ -10,6 +12,12 @@ const fixture = (format: string) =>
   readFileSync(path.resolve("e2e/fixtures/pdf02", `book-club.${format}`));
 const importError = (page: Page) =>
   page.locator(".cauldron-import-error, .toast");
+
+async function expandMaterialActions(page: Page) {
+  const actions = venue(page).locator("details.document-material-actions");
+  if ((await actions.getAttribute("open")) === null)
+    await actions.locator("summary").click();
+}
 type DropFile = {
   name: string;
   text?: string;
@@ -85,7 +93,9 @@ async function records(page: Page, store = "materials") {
 async function confirmCopy(page: Page) {
   const d = dialog(page);
   await expect(d.getByTestId("copy-preview")).toBeVisible();
-  await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
+  await d
+    .getByRole("button", { name: "Confirm addition", exact: true })
+    .click();
   await expect(d.getByTestId("copy-preview")).toHaveCount(0);
   return (await records(page)).filter((material) =>
     material.source.endsWith("_copy"),
@@ -122,18 +132,22 @@ test("TXT dropped on the page stays editable and saves only after confirmation",
   ]);
   const d = dialog(page);
   await expect(d.getByTestId("import-preview")).toHaveValue("第一行😀\n第二行");
-  expect(await records(page)).toHaveLength(2);
+  expect(await records(page)).toHaveLength(3);
   await expect(page.locator(".wand-outcome")).not.toHaveAttribute(
     "data-outcome",
     "success",
   );
   await d.getByTestId("import-preview").fill("确认前修订😀");
   await d.getByLabel("New material title").fill("拖放修订稿");
-  await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
+  await d
+    .getByRole("button", { name: "Confirm addition", exact: true })
+    .click();
   await expect(d.getByTestId("material-detail")).toContainText("拖放材料.TXT");
   await expect(d).toContainText("1 / 12");
   await page.reload();
-  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Inspiration Cauldron", exact: true })
+    .click();
   await dialog(page)
     .getByRole("button", { name: "Select material 拖放修订稿", exact: true })
     .click();
@@ -146,12 +160,33 @@ test("TXT dropped on the page stays editable and saves only after confirmation",
 
 for (const [format, marker] of [
   ["docx", "星光读书会😀"],
-  ["pdf", "[第 1 页]"],
+  ["pdf", "[Page 1]"],
 ]) {
   test(`${format} dropped into cauldron uses the real local parser`, async ({
     page,
   }) => {
-    await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
+    if (process.env.WISP_OFFLINE_DIST === "1") {
+      // Exercise the actual extraction worker without starting an API server.
+      await page.route(`**/api/import-text?format=${format}`, async (route) => {
+        const result = JSON.parse(
+          execFileSync(
+            path.resolve("runtime/python/python.exe"),
+            ["-I", "-B", path.resolve("apps/api/app/import_worker.py"), format],
+            {
+              input: route.request().postDataBuffer()!,
+              encoding: "utf8",
+              timeout: 30_000,
+              windowsHide: true,
+            },
+          ),
+        );
+        expect(result.error).toBeUndefined();
+        await route.fulfill({ json: result });
+      });
+    }
+    await page
+      .getByRole("button", { name: "Inspiration Cauldron", exact: true })
+      .click();
     await dropFiles(
       page,
       [{ name: `book-club.${format}`, bytes: [...fixture(format)] }],
@@ -162,7 +197,9 @@ for (const [format, marker] of [
       new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
     );
     await d.getByTestId("import-preview").fill(`${format} 可编辑的解析副本`);
-    await d.getByRole("button", { name: "Confirm addition", exact: true }).click();
+    await d
+      .getByRole("button", { name: "Confirm addition", exact: true })
+      .click();
     await expect(d.getByTestId("material-detail")).toContainText(
       `book-club.${format}`,
     );
@@ -187,7 +224,7 @@ test("the independent handle really drags a full copy while the old titlebar sti
   expect(moved!.x - before!.x).toBeCloseTo(60, 0);
   expect(moved!.y - before!.y).toBeCloseTo(50, 0);
   await expect(dialog(page)).toHaveCount(0);
-  const text = await page.getByLabel("Venue notes text").inputValue();
+  const text = (await page.getByLabel("Venue notes reading view", { exact: true }).textContent())!;
   const handle = page.getByRole("button", {
     name: "Drag into cauldron Venue notes",
     exact: true,
@@ -213,11 +250,12 @@ test("the independent handle really drags a full copy while the old titlebar sti
 test("full and selection copies freeze original title, version and UTF-16 range across source edits and refresh", async ({
   page,
 }) => {
-  const editor = page.getByLabel("Venue notes text");
+  const editor = (await editDocument(page, "Venue notes"));
   const text = "开场😀\n需要保留的选区。\n收尾";
   await editor.fill(text);
   await expect(page.getByTestId("save-venue")).toHaveText("saved");
   const original = (await records(page)).find((m) => m.id === "venue");
+  await expandMaterialActions(page);
   await venue(page)
     .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
@@ -232,7 +270,10 @@ test("full and selection copies freeze original title, version and UTF-16 range 
     end = text.indexOf("\n收尾");
   await chooseRange(editor, start, end);
   await venue(page)
-    .getByRole("button", { name: "Add selection copy to cauldron", exact: true })
+    .getByRole("button", {
+      name: "Add selection copy to cauldron",
+      exact: true,
+    })
     .click();
   await expect(dialog(page).getByTestId("copy-preview")).toHaveText(
     text.slice(start, end),
@@ -268,9 +309,14 @@ test("full and selection copies freeze original title, version and UTF-16 range 
     m.source.endsWith("_copy"),
   );
   expect(frozen).toEqual(copies);
-  await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Inspiration Cauldron", exact: true })
+    .click();
   await dialog(page)
-    .getByRole("button", { name: "Select material Venue notes · selection copy", exact: true })
+    .getByRole("button", {
+      name: "Select material Venue notes · selection copy",
+      exact: true,
+    })
     .click();
   await expect(dialog(page).getByTestId("material-detail")).toContainText(
     text.slice(start, end),
@@ -310,7 +356,7 @@ test("incoming files cannot replace a preview or enter while another modal is op
   await page.screenshot({
     path: test.info().outputPath("blocked-modal-drop.png"),
   });
-  expect(await records(page)).toHaveLength(2);
+  expect(await records(page)).toHaveLength(3);
 });
 
 test("a second drop cannot replace a parser in progress and cancellation ignores a late reply", async ({
@@ -362,32 +408,37 @@ test("a second drop cannot replace a parser in progress and cancellation ignores
   expect(requests).toBe(1);
 });
 
-test("multiple files, directories, unsupported formats and oversized files are refused without saving", async ({
+test("oversized batches, directories, unsupported formats and oversized files are refused without saving", async ({
   page,
 }) => {
   for (const [files, directory, message] of [
     [
-      [
-        { name: "a.txt", text: "A" },
-        { name: "b.txt", text: "B" },
-      ],
+      Array.from({ length: 13 }, (_, index) => ({
+        name: `${index}.txt`,
+        text: "A",
+      })),
       false,
-      /single|one/,
+      /up to 12 files/,
     ],
-    [[{ name: "folder.txt", text: "目录不是文件" }], true, /directories|folders/],
+    [
+      [{ name: "folder.txt", text: "目录不是文件" }],
+      true,
+      /directories|folders/i,
+    ],
     [[{ name: "unsupported.png", text: "not text" }], false, /TXT|supported/],
     [[{ name: "large.pdf", size: 20_000_001 }], false, /20 MB/],
   ] as [DropFile[], boolean, RegExp][]) {
     await dropFiles(page, files, "body", directory);
     await expect(importError(page)).toContainText(message);
     await expect(dialog(page)).toHaveCount(0);
-    expect(await records(page)).toHaveLength(2);
+    expect(await records(page)).toHaveLength(3);
   }
 });
 
 test("failed copy persistence preserves its frozen candidate and retry adds exactly one entry", async ({
   page,
 }) => {
+  await expandMaterialActions(page);
   await venue(page)
     .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
@@ -411,7 +462,7 @@ test("failed copy persistence preserves its frozen candidate and retry adds exac
     "模拟副本入炉失败",
   );
   await expect(dialog(page).getByTestId("copy-preview")).toHaveText(text!);
-  expect(await records(page)).toHaveLength(2);
+  expect(await records(page)).toHaveLength(3);
   expect(await records(page, "cauldronEntries")).toHaveLength(0);
   await expect(page.locator(".wand-outcome")).not.toHaveAttribute(
     "data-outcome",
@@ -425,6 +476,7 @@ test("failed copy persistence preserves its frozen candidate and retry adds exac
 test("pending and failed original-document saves cannot be labelled as a saved-version copy", async ({
   page,
 }) => {
+  await expandMaterialActions(page);
   await page.evaluate(() => {
     const original = window.setTimeout;
     window.setTimeout = ((
@@ -448,7 +500,7 @@ test("pending and failed original-document saves cannot be labelled as a saved-v
       return put.apply(this, args);
     };
   });
-  await page.getByLabel("Venue notes text").fill("尚未持久保存的原文");
+  await (await editDocument(page, "Venue notes")).fill("尚未持久保存的原文");
   await expect(page.getByTestId("save-venue")).toHaveText("pending");
   await venue(page)
     .getByRole("button", { name: "Add full copy to cauldron", exact: true })
@@ -457,7 +509,10 @@ test("pending and failed original-document saves cannot be labelled as a saved-v
   await expect(dialog(page)).toHaveCount(0);
   await expect(page.getByTestId("save-venue")).toHaveText("failed");
   await page
-    .getByRole("button", { name: "Drag into cauldron Venue notes", exact: true })
+    .getByRole("button", {
+      name: "Drag into cauldron Venue notes",
+      exact: true,
+    })
     .click();
   await expect(dialog(page)).toHaveCount(0);
   expect(
@@ -468,7 +523,10 @@ test("pending and failed original-document saves cannot be labelled as a saved-v
     .click();
   await expect(page.getByTestId("save-venue")).toHaveText("saved");
   await page
-    .getByRole("button", { name: "Drag into cauldron Venue notes", exact: true })
+    .getByRole("button", {
+      name: "Drag into cauldron Venue notes",
+      exact: true,
+    })
     .click();
   await expect(dialog(page).getByTestId("copy-preview")).toHaveText(
     "尚未持久保存的原文",
@@ -478,13 +536,17 @@ test("pending and failed original-document saves cannot be labelled as a saved-v
 test("capacity counts independent copies and a rejected thirteenth drop does not save", async ({
   page,
 }) => {
+  await expandMaterialActions(page);
   await venue(page)
     .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
   for (let index = 0; index < 12; index++) {
     if (index)
       await dialog(page)
-        .getByRole("button", { name: "Full copy of current document", exact: true })
+        .getByRole("button", {
+          name: "Full copy of current document",
+          exact: true,
+        })
         .click();
     await confirmCopy(page);
   }
@@ -496,7 +558,7 @@ test("capacity counts independent copies and a rejected thirteenth drop does not
   );
   await expect(importError(page)).toContainText("12");
   await expect(dialog(page).getByTestId("import-preview")).toHaveCount(0);
-  expect(await records(page)).toHaveLength(14);
+  expect(await records(page)).toHaveLength(15);
   expect(await records(page, "cauldronEntries")).toHaveLength(12);
   await dialog(page)
     .getByRole("button", { name: "Remove from cauldron", exact: true })
@@ -533,7 +595,7 @@ test("document drag highlights only the cauldron target and dropping elsewhere d
     "blocked",
   );
   await expect(page.locator(".cauldron-drop-feedback")).toContainText(
-    "Drag to the top",
+    "Drag to the Inspiration Cauldron pot or its open panel.",
   );
   await page
     .locator("[data-cauldron-target]")
@@ -550,10 +612,12 @@ test("document drag highlights only the cauldron target and dropping elsewhere d
   });
   await page.locator("body").dispatchEvent("drop", { dataTransfer: transfer });
   await expect(dialog(page)).toHaveCount(0);
-  await expect(importError(page)).toContainText("Drag to the top");
+  await expect(importError(page)).toContainText(
+    "Drag to the Inspiration Cauldron pot or its open panel.",
+  );
   await expect(page.locator("html")).not.toHaveAttribute("data-cauldron-drop");
   await expect(page.locator(".cauldron-drop-feedback")).toHaveCount(0);
-  expect(await records(page)).toHaveLength(2);
+  expect(await records(page)).toHaveLength(3);
   await transfer.dispose();
 });
 
@@ -561,7 +625,8 @@ test("another tab changing the original before confirmation rejects the stale co
   page,
   context,
 }) => {
-  const text = await page.getByLabel("Venue notes text").inputValue();
+  const text = (await page.getByLabel("Venue notes reading view", { exact: true }).textContent())!;
+  await expandMaterialActions(page);
   await venue(page)
     .getByRole("button", { name: "Add full copy to cauldron", exact: true })
     .click();
@@ -576,7 +641,7 @@ test("another tab changing the original before confirmation rejects the stale co
     },
   );
   await other.goto("/");
-  await other.getByLabel("Venue notes text").fill("另一标签保存的新原文");
+  await (await editDocument(other, "Venue notes")).fill("另一标签保存的新原文");
   await expect(other.getByTestId("save-venue")).toHaveText("saved");
   await page.bringToFront();
   await dialog(page)

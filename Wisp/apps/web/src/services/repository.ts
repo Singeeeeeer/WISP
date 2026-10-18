@@ -22,7 +22,7 @@ import {
   type SingleTask,
   type TaskAction,
 } from "../domain/task";
-import { openDB, type IDBPDatabase, type DBSchema } from "idb";
+import { openDB, deleteDB, type IDBPDatabase, type DBSchema } from "idb";
 import { seeds, selectText, type Material } from "../domain/model";
 import {
   ENGLISH_SEED_MIGRATION_KEY,
@@ -39,6 +39,32 @@ interface WispDB extends DBSchema {
   watches: { key: string; value: Watch };
   canvasNotes: { key: string; value: CanvasNote };
   canvasConnections: { key: string; value: SavedConnection };
+}
+const connections = new Map<string, Set<IDBPDatabase<WispDB>>>();
+const resetting = new Set<string>();
+const resetChannel = typeof window !== "undefined" && typeof BroadcastChannel !== "undefined"
+  ? new BroadcastChannel("wisp-workspace-reset") : undefined;
+const taskChannel = typeof window !== "undefined" && typeof BroadcastChannel !== "undefined"
+  ? new BroadcastChannel("wisp-local-tasks") : undefined;
+function haltStorage(name: string, remote: boolean) {
+  resetting.add(name);
+  for (const database of connections.get(name) ?? []) database.close();
+  connections.delete(name);
+  if (typeof window !== "undefined" && name === "wisp-module-one")
+    document.documentElement.dataset.workspaceReset = "true";
+  if (typeof window !== "undefined" && name === "wisp-module-one")
+    window.dispatchEvent(new CustomEvent("wisp:workspace-reset", { detail: { remote } }));
+}
+if (resetChannel) resetChannel.onmessage = (event) => {
+  if (event.data?.kind === "reset" && event.data.name === "wisp-module-one")
+    haltStorage(event.data.name, true);
+};
+const notebookStores = ["materials", "cauldronEntries", "preferences", "checks", "tasks", "watches", "canvasNotes", "canvasConnections"] as const;
+export interface Notebook {
+  format: "wisp-notebook";
+  version: 1;
+  exportedAt: string;
+  stores: Record<string, { key: IDBValidKey; value: unknown }[]>;
 }
 function materialIdentity(m: Material): string {
   const o = m.origin;
@@ -77,6 +103,7 @@ function materialIdentity(m: Material): string {
 export function createRepository(name = "wisp-module-one") {
   let pending: Promise<IDBPDatabase<WispDB>> | undefined;
   function getDb() {
+    if (resetting.has(name)) return Promise.reject<IDBPDatabase<WispDB>>(new Error("The workspace is being reset. Reload after the reset finishes."));
     return (pending ??= new Promise<IDBPDatabase<WispDB>>((resolve, reject) => {
       let wasBlocked = false;
       const opening = openDB<WispDB>(name, 9, {
@@ -113,8 +140,15 @@ export function createRepository(name = "wisp-module-one") {
         },
       });
       void opening.then((database) => {
-        if (wasBlocked) database.close();
-        else resolve(database);
+        if (wasBlocked || resetting.has(name)) {
+          database.close();
+          reject(new Error("The workspace is being reset. Reload after the reset finishes."));
+        } else {
+          const opened = connections.get(name) ?? new Set<IDBPDatabase<WispDB>>();
+          opened.add(database);
+          connections.set(name, opened);
+          resolve(database);
+        }
       }, reject);
     }));
   }
@@ -192,6 +226,25 @@ export function createRepository(name = "wisp-module-one") {
     }
   }
   return {
+    async exportNotebook(): Promise<Notebook> {
+      const tx = (await getDb()).transaction([...notebookStores], "readonly");
+      const stores: Notebook["stores"] = {};
+      await Promise.all(notebookStores.map(async (name) => {
+        const store = tx.objectStore(name);
+        const [keys, values] = await Promise.all([store.getAllKeys(), store.getAll()]);
+        stores[name] = keys.map((key, i) => ({ key, value: values[i] }));
+      }));
+      await tx.done;
+      return { format: "wisp-notebook", version: 1, exportedAt: new Date().toISOString(), stores };
+    },
+    async resetNotebook(onBlocked?: () => void): Promise<void> {
+      if (resetting.has(name)) throw new Error("A reset is already in progress. Reload after it finishes.");
+      haltStorage(name, false);
+      resetChannel?.postMessage({ kind: "reset", name });
+      // Deletion waits for all existing transactions/connections. Old instances stay
+      // read-only until reload, so late task replies cannot recreate removed data.
+      await deleteDB(name, { blocked: onBlocked });
+    },
     async listCanvasNotes(): Promise<CanvasNote[]> {
       return (await (await getDb()).getAll("canvasNotes")).sort((a, b) =>
         a.id.localeCompare(b.id),
@@ -359,7 +412,7 @@ export function createRepository(name = "wisp-module-one") {
       );
       const m = await tx.objectStore("materials").get(w.materialId);
       const active = (await tx.objectStore("watches").getAll()).some(
-        (x) => x.materialId === w.materialId && x.status === "active",
+        (x) => x.materialId === w.materialId && (x.status === "active" || x.status === "paused"),
       );
       if (
         active ||
@@ -384,6 +437,36 @@ export function createRepository(name = "wisp-module-one") {
         b.confirmedAt.localeCompare(a.confirmedAt),
       );
     },
+    async pauseWatch(id: string): Promise<Watch> {
+      const tx = (await getDb()).transaction(["watches", "tasks"], "readwrite");
+      const previous = await tx.objectStore("watches").get(id);
+      if (!previous || !["active", "paused"].includes(previous.status)) {
+        await tx.done;
+        throw new Error("This watch can no longer be paused.");
+      }
+      const paused: Watch = { ...previous, status: "paused", updatedAt: new Date().toISOString(), notice: "Paused. No new checks will start until you continue." };
+      await tx.objectStore("watches").put(paused);
+      for (const task of await tx.objectStore("tasks").getAll())
+        if (task.watchId === id && (task.status === "queued" || task.status === "running"))
+          await tx.objectStore("tasks").put(transition(task, { type: "pause" }));
+      await tx.done;
+      taskChannel?.postMessage("changed");
+      return paused;
+    },
+    async resumeWatch(id: string): Promise<Watch> {
+      const tx = (await getDb()).transaction(["watches", "materials"], "readwrite");
+      const previous = await tx.objectStore("watches").get(id);
+      if (!previous || previous.status !== "paused" ||
+          !(await tx.objectStore("materials").get(previous.materialId)) ||
+          (await tx.objectStore("watches").getAll()).some((w) => w.id !== id && w.materialId === previous.materialId && (w.status === "active" || w.status === "paused"))) {
+        await tx.done;
+        throw new Error("The watch cannot continue: its source is missing or another watch owns this material.");
+      }
+      const active: Watch = { ...previous, status: "active", updatedAt: new Date().toISOString(), notice: "Watching again. Checking for a newly saved version." };
+      await tx.objectStore("watches").put(active);
+      await tx.done;
+      return active;
+    },
     async readMaterial(id: string) {
       return (await getDb()).get("materials", id);
     },
@@ -402,7 +485,7 @@ export function createRepository(name = "wisp-module-one") {
     async endWatch(id: string, status: "stopped" | "interrupted") {
       const tx = (await getDb()).transaction(["watches", "tasks"], "readwrite");
       const w = await tx.objectStore("watches").get(id);
-      if (w?.status === "active") {
+      if (w?.status === "active" || (status === "stopped" && w?.status === "paused")) {
         await tx.objectStore("watches").put({
           ...w,
           status,
@@ -415,7 +498,7 @@ export function createRepository(name = "wisp-module-one") {
         for (const task of await tx.objectStore("tasks").getAll()) {
           if (
             task.watchId === id &&
-            (task.status === "queued" || task.status === "running")
+            (task.status === "queued" || task.status === "running" || task.status === "paused")
           )
             await tx.objectStore("tasks").put(
               transition(task, {
@@ -451,7 +534,7 @@ export function createRepository(name = "wisp-module-one") {
         (await tx.objectStore("tasks").getAll()).some(
           (t) =>
             t.watchId === w.id &&
-            (t.status === "queued" || t.status === "running"),
+            (t.status === "queued" || t.status === "running" || t.status === "paused"),
         )
       ) {
         await tx.done;
@@ -567,6 +650,27 @@ export function createRepository(name = "wisp-module-one") {
       return (await (await getDb()).getAll("checks")).sort((a, b) =>
         b.createdAt.localeCompare(a.createdAt),
       );
+    },
+    async ensureDesktopChecklist(): Promise<Material> {
+      const tx = (await getDb()).transaction("materials", "readwrite");
+      const id = "wisp-demo-checklist";
+      const existing = await tx.store.get(id);
+      if (existing) {
+        await tx.done;
+        return existing;
+      }
+      const material: Material = {
+        id,
+        kind: "text",
+        source: "virtual_document",
+        title: "Event checklist",
+        text: "Task\tOwner\tWhen\tStatus\nVenue confirmation\tLin\tNov 6\tTo confirm\nPoster deadline\tYao\tNov 10\tIn progress\nDoors open\tTeam\tNov 8\tNot started\nPrint materials\tUnassigned\tNov 7\tTo confirm",
+        version: 1,
+        updatedAt: new Date().toISOString(),
+      };
+      await tx.store.add(material);
+      await tx.done;
+      return material;
     },
     async initialize() {
       const database = await getDb();

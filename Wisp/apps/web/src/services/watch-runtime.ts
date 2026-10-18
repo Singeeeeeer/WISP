@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { newWatch, watchTask, type Watch } from "../domain/watch";
 import type { MaterialSnapshot } from "../domain/model";
 import { createRepository } from "./repository";
-import { submitWatchTask, recoverTasks } from "./task-runtime";
+import { submitWatchTask, resumeTask, recoverTasks } from "./task-runtime";
 import { setWatchedMaterials } from "./proposal-runtime";
 const repository = createRepository();
 export const useWatches = create<{
@@ -19,17 +19,24 @@ const channel =
 const delay = () => new Promise<void>((resolve) => setTimeout(resolve, 500));
 function report(e: unknown) {
   useWatches.setState({
-    error: e instanceof Error ? e.message : "Watch records are unavailable. Please try again.",
+    error:
+      e instanceof Error
+        ? e.message
+        : "Watch records are unavailable. Please try again.",
   });
 }
 let generation = 0;
+let workspaceReset = false;
 async function refresh() {
+  if (workspaceReset) return;
   const ticket = ++generation;
   const watches = await repository.listWatches();
-  if (ticket !== generation) return;
+  if (ticket !== generation || workspaceReset) return;
   useWatches.setState({ watches, ready: true });
   setWatchedMaterials(
-    watches.filter((w) => w.status === "active").map((w) => w.materialId),
+    watches
+      .filter((w) => w.status === "active" || w.status === "paused")
+      .map((w) => w.materialId),
   );
 }
 async function changed() {
@@ -39,7 +46,9 @@ async function changed() {
 export function startWatching(s: MaterialSnapshot): Promise<void> {
   if (!navigator.locks || typeof Worker === "undefined")
     return Promise.reject(
-      new Error("Continuous watching requires Web Locks and Workers. Use a browser that supports them."),
+      new Error(
+        "Continuous watching requires Web Locks and Workers. Use a browser that supports them.",
+      ),
     );
   let watch: Watch;
   try {
@@ -47,6 +56,19 @@ export function startWatching(s: MaterialSnapshot): Promise<void> {
   } catch (e) {
     return Promise.reject(e);
   }
+  return ownWatch(watch);
+}
+export async function resumeWatching(id: string): Promise<void> {
+  const watch = (await repository.listWatches()).find((item) => item.id === id);
+  if (!watch || watch.status !== "paused")
+    throw new Error("Only a paused watch can be continued.");
+  return ownWatch(watch, true);
+}
+function ownWatch(watch: Watch, resume = false): Promise<void> {
+  if (workspaceReset)
+    return Promise.reject(
+      new Error("The workspace was reset. Reload before watching."),
+    );
   return new Promise((resolve, reject) => {
     void navigator.locks
       .request(
@@ -54,8 +76,13 @@ export function startWatching(s: MaterialSnapshot): Promise<void> {
         { ifAvailable: true },
         async (lock) => {
           if (!lock)
-            throw new Error("This text is already being watched in another tab. Stop the existing watch first.");
-          await repository.startWatch(watch);
+            throw new Error(
+              resume
+                ? "The previous watch is still stopping or is owned by another tab. Wait briefly, then continue again."
+                : "This text is already being watched in another tab. Stop the existing watch first.",
+            );
+          if (resume) await repository.resumeWatch(watch.id);
+          else await repository.startWatch(watch);
           let alive = true;
           owners.set(watch.id, () => {
             alive = false;
@@ -73,8 +100,19 @@ export function startWatching(s: MaterialSnapshot): Promise<void> {
                 (w) => w.id === watch.id,
               );
               if (currentWatch?.status !== "active") break;
+              const pausedTask = (await repository.listTasks()).find(
+                (task) => task.watchId === watch.id && task.status === "paused",
+              );
+              if (pausedTask) {
+                if (!resume) continue;
+                resume = false;
+                await resumeTask(pausedTask.id, true);
+                await changed();
+                continue;
+              }
               const material = await repository.readMaterial(watch.materialId);
-              if (!material) throw new Error("Watched material is unavailable.");
+              if (!material)
+                throw new Error("Watched material is unavailable.");
               if (material.version <= currentWatch.lastVersion) continue;
               if (pendingVersion !== material.version) {
                 pendingVersion = material.version;
@@ -94,12 +132,16 @@ export function startWatching(s: MaterialSnapshot): Promise<void> {
               await changed();
             }
           } catch (e) {
-            report(e);
-            reject(e);
+            if (!workspaceReset) {
+              report(e);
+              reject(e);
+            }
           } finally {
             owners.delete(watch.id);
-            await repository.endWatch(watch.id, "interrupted");
-            await changed();
+            if (!workspaceReset) {
+              await repository.endWatch(watch.id, "interrupted");
+              await changed();
+            }
           }
         },
       )
@@ -108,6 +150,13 @@ export function startWatching(s: MaterialSnapshot): Promise<void> {
         reject(e);
       });
   });
+}
+export async function pauseWatching(id: string) {
+  await repository.pauseWatch(id);
+  owners.get(id)?.();
+  await changed();
+  // Persisted task pauses stop the actual worker in this page and other observers.
+  await recoverTasks();
 }
 export async function stopWatching(id: string) {
   await repository.endWatch(id, "stopped");
@@ -118,7 +167,8 @@ export async function stopWatching(id: string) {
 let recovery: Promise<void> | undefined;
 export function recoverWatches() {
   return (recovery ??= (async () => {
-    if (!navigator.locks) throw new Error("This browser cannot manage continuous watching.");
+    if (!navigator.locks)
+      throw new Error("This browser cannot manage continuous watching.");
     for (const w of await repository.listWatches()) {
       if (w.status !== "active") continue;
       await navigator.locks.request(
@@ -140,6 +190,7 @@ export function observeWatches() {
   void recoverWatches();
   const update = () => {
     void recoverWatches();
+    void recoverTasks();
   };
   const leaving = () => {
     for (const [id, stop] of owners) {
@@ -151,11 +202,22 @@ export function observeWatches() {
   window.addEventListener("pagehide", leaving);
   window.addEventListener("focus", update);
   const timer = setInterval(update, 1000);
+  const reset = () => {
+    workspaceReset = true;
+    ++generation;
+    clearInterval(timer);
+    channel?.removeEventListener("message", update);
+    window.removeEventListener("focus", update);
+    window.removeEventListener("pagehide", leaving);
+    for (const stop of owners.values()) stop();
+  };
+  window.addEventListener("wisp:workspace-reset", reset);
   return () => {
-    leaving();
+    if (!workspaceReset) leaving();
     clearInterval(timer);
     channel?.removeEventListener("message", update);
     window.removeEventListener("pagehide", leaving);
     window.removeEventListener("focus", update);
+    window.removeEventListener("wisp:workspace-reset", reset);
   };
 }

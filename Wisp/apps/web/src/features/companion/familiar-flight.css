@@ -17,3 +17,102 @@
   width: 48px;
   height: 48px;
 }
+.summon-ritual {
+  position: absolute;
+  inset: 0;
+  animation: summon-ritual 1700ms ease-out forwards;
+}
+.familiar-flight[data-flight="handoff"] .summon-ritual {
+  display: none;
+}
+.ceremony-circle {
+  position: absolute;
+  width: 148px;
+  height: 148px;
+  left: -50px;
+  top: -48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.ceremony-circle.back {
+  opacity: 0.5;
+  transform: rotate(-16deg) scale(0.9);
+}
+.ceremony-circle.front {
+  opacity: 0.8;
+  transform: rotate(12deg);
+}
+.summon-glow {
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff1bd99,
+    #d8c0fa33 48%,
+    transparent 72%
+  );
+}
+.summon-name {
+  position: absolute;
+  top: 84px;
+  left: -86px;
+  width: 220px;
+  text-align: center;
+  color: #4b365e;
+  font:
+    14px/1.3 "Wisp Pixel",
+    monospace;
+  text-shadow: 0 1px #fff9ee;
+}
+.familiar-flight .wisp-sprite {
+  position: relative;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.familiar-flight[data-flight="flying"] .wisp-sprite {
+  animation: summoned-familiar 1700ms ease-out;
+}
+@keyframes summon-ritual {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.16);
+  }
+}
+@keyframes summoned-familiar {
+  0%,
+  12% {
+    opacity: 0;
+    transform: translateY(15px) scale(0.25);
+  }
+  32% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.12);
+  }
+  65% {
+    transform: translateY(0) scale(1);
+  }
+  82% {
+    transform: translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.familiar-sparkles { position: fixed; inset: 0; z-index: 1201; pointer-events: none; overflow: hidden; }
+.familiar-sparkle { position: fixed; width: 3px; height: 3px; background: #b591ce; pointer-events: none; animation: familiar-sparkle .9s steps(6) both; }
+@keyframes familiar-sparkle { from { opacity: .8; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-20px) scale(0); } }
+@media (prefers-reduced-motion: reduce) { .familiar-sparkles { display: none; } }

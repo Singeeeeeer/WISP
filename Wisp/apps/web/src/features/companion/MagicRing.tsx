@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useInteraction } from "../../state/stores";
+import { useDocuments, useInteraction, useWorkspace } from "../../state/stores";
 import { Sprite, type SpriteName } from "./Sprite";
 import type { MagicLayout, Point } from "./magic-layout";
 import "./magic-ring.css";
@@ -8,12 +8,27 @@ const entries = [
   {
     id: "understand",
     label: "Understand",
-    subtitle: "Explanation and summary",
+    subtitle: "Explain & summarize",
     sprite: "book",
   },
-  { id: "check", label: "Check", subtitle: "Findings and evidence", sprite: "check" },
-  { id: "create", label: "Create", subtitle: "Drafts and directions", sprite: "create" },
-  { id: "summon", label: "Summon", subtitle: "One-time delegation", sprite: "summon" },
+  {
+    id: "check",
+    label: "Check",
+    subtitle: "Find gaps & conflicts",
+    sprite: "check",
+  },
+  {
+    id: "create",
+    label: "Create",
+    subtitle: "Ideas & first drafts",
+    sprite: "create",
+  },
+  {
+    id: "summon",
+    label: "Summon",
+    subtitle: "Call a familiar",
+    sprite: "summon",
+  },
 ] as const;
 
 export function MagicRing({
@@ -26,6 +41,13 @@ export function MagicRing({
   reduced: boolean;
 }) {
   const open = useInteraction((s) => s.open);
+  const materials = useDocuments((s) => s.materials);
+  const active = useWorkspace((s) => s.active);
+  const windows = useWorkspace((s) => s.windows);
+  const selection = useInteraction((s) => s.selection);
+  const material = materials.find((m) => m.id === windows.find((w) => w.id === active && !w.minimized && !w.closed)?.materialId);
+  const selected = material && selection?.materialId === material.id && selection.materialVersion === material.version;
+  const context = material ? selected ? `Your selected text is ready · ${material.title}` : `Full document · ${material.title}` : "Open a document to choose your material";
   const characterVisible = useInteraction((s) => s.settings.characterVisible);
   const ref = useRef<HTMLDivElement>(null);
   const previousFocus = useRef(document.activeElement as HTMLElement | null);
@@ -125,7 +147,16 @@ export function MagicRing({
           }
         }}
       >
-        <div className="ring-orbit" aria-hidden="true" />
+        <img
+          className="ring-orbit"
+          src="/assets/prototype/quiet-ring.png"
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+        />
+        <div className="ring-heading" aria-hidden="true">
+          <span>BASICS</span><kbd>Esc</kbd>
+        </div>
         {entries.map((entry) => (
           <button
             key={entry.id}
@@ -139,6 +170,7 @@ export function MagicRing({
             <small>{entry.subtitle}</small>
           </button>
         ))}
+        <div className="menu-context" title={context}>{context}</div>
       </div>
     </>
   );

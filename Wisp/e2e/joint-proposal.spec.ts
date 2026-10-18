@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Page } from "./offline-app";
 async function enable(page: Page) {
   await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -29,11 +30,9 @@ test("joint confirmation preserves two full sources, persists one result, copies
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByLabel("Bookstore event proposal text")
+  await (await editDocument(page, "Bookstore event proposal"))
     .fill("😀甲第一行\n甲第二行\n甲第三行\n甲第四行");
-  await page
-    .getByLabel("Venue notes text")
+  await (await editDocument(page, "Venue notes"))
     .fill("乙第一行\n乙第二行\n乙第三行\n乙第四行");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await expect(page.getByTestId("save-venue")).toHaveText("saved");
@@ -90,7 +89,7 @@ test("joint confirmation preserves two full sources, persists one result, copies
   await expect(page.getByTestId("joint-result-source")).toHaveCount(2);
   await page.getByRole("button", { name: "Close joint result" }).click();
   await page.getByRole("button", { name: "Close run history" }).click();
-  await page.getByLabel("Venue notes text").fill("乙新版本");
+  await (await editDocument(page, "Venue notes")).fill("乙新版本");
   await expect(page.getByTestId("save-venue")).toHaveText("saved");
   await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page.getByRole("button", { name: "View joint result" }).click();
@@ -156,20 +155,20 @@ test("disabled and empty materials do not trigger; edited sources expire a visib
   await expect(page.getByRole("button", { name: "View the two materials" })).toHaveCount(
     0,
   );
-  await page.getByLabel("Venue notes text").fill(" ");
+  await (await editDocument(page, "Venue notes")).fill(" ");
   await expect(page.getByTestId("save-venue")).toHaveText("saved");
   await enable(page);
   await switchPair(page);
   await expect(page.getByRole("button", { name: "View the two materials" })).toHaveCount(
     0,
   );
-  await page.getByLabel("Venue notes text").fill("恢复内容");
+  await (await editDocument(page, "Venue notes")).fill("恢复内容");
   await expect(page.getByTestId("save-venue")).toHaveText("saved");
   await switchPair(page);
   await expect(
     page.getByRole("button", { name: "View the two materials" }),
   ).toBeVisible();
-  await page.getByLabel("Venue notes text").fill("提议出现后又改了");
+  await (await editDocument(page, "Venue notes")).fill("提议出现后又改了");
   await expect(page.getByRole("button", { name: "View the two materials" })).toHaveCount(
     0,
   );
@@ -187,7 +186,7 @@ test("confirmed copies stay frozen and result retry or explicit update requires 
   await page.getByRole("button", { name: "View the two materials" }).click();
   const original = await page.getByTestId("joint-source").allTextContents();
   // Explicitly inject a local edit while the modal is open to exercise a concurrent-change boundary.
-  await page.getByLabel("Bookstore event proposal text").evaluate(el => {
+  await (await editDocument(page, "Bookstore event proposal")).evaluate(el => {
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(el, "确认之后的新甲");
     el.dispatchEvent(new Event("input", { bubbles: true }));
   });
@@ -217,7 +216,7 @@ test("confirmed copies stay frozen and result retry or explicit update requires 
   await expect(
     page.getByTestId("joint-source").filter({ hasText: "确认之后的新甲" }),
   ).toHaveCount(1);
-  await page.getByLabel("Venue notes text").evaluate(el => {
+  await (await editDocument(page, "Venue notes")).evaluate(el => {
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(el, "再次确认后的新乙");
     el.dispatchEvent(new Event("input", { bubbles: true }));
   });

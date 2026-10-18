@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Page } from "./offline-app";
 async function summon(page: Page, role = "Page Sprite") {
   await page
     .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
@@ -72,7 +73,7 @@ test("a second tab does not interrupt a live task; recall wins", async ({
   context,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   await holdWorker(page);
   await summon(page);
   await expect(
@@ -96,7 +97,7 @@ test("reload interrupts unfinished work and retry requires a fresh confirmation"
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   await holdWorker(page);
   await summon(page);
   await expect(
@@ -163,7 +164,7 @@ test("selected material remains frozen while document changes and double submiss
   page,
 }) => {
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill("只带走这一行\n不带走的私有内容");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await editor.press("Control+Home");
@@ -195,7 +196,7 @@ test("reply save failure never creates an unread or completed reply", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   await page.evaluate(() => {
     const original = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = function (

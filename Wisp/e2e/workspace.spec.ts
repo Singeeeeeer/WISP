@@ -1,11 +1,12 @@
-import { test, expect } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect } from "./offline-app";
 test("editing, frozen selection, honest capability states and persistence", async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill("The event opens on November 8.😀海报11月10日定稿。");
   await expect(page.getByTestId("save-proposal")).toHaveText("Saved");
   await editor.press("Control+Home");
@@ -22,7 +23,7 @@ test("editing, frozen selection, honest capability states and persistence", asyn
   await editor.fill("New body; should not be overwritten by the example");
   await expect(page.getByTestId("save-proposal")).toHaveText("Saved");
   await page.reload();
-  await expect(page.getByLabel("Bookstore event proposal text")).toHaveValue(
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toHaveText(
     "New body; should not be overwritten by the example",
   );
   await page.getByRole("button", { name: "Open core abilities" }).click();
@@ -38,9 +39,9 @@ test("editing, frozen selection, honest capability states and persistence", asyn
 test("window manipulation and settings survive reload", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Minimize Venue notes" }).click();
-  await expect(page.getByLabel("Venue notes text")).not.toBeVisible();
+  await expect(page.getByLabel("Venue notes reading view", { exact: true })).not.toBeVisible();
   await page.getByRole("button", { name: "Open venue notes" }).click();
-  await expect(page.getByLabel("Venue notes text")).toBeVisible();
+  await expect(page.getByLabel("Venue notes reading view", { exact: true })).toBeVisible();
   const header = page.getByTestId("drag-proposal");
   const before = await header.boundingBox();
   await header.hover({ position: { x: 160, y: 20 } });

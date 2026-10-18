@@ -64,3 +64,57 @@ it("retains completed replies when stopping and records skipped invalid revision
   expect((await r.listWatches())[0].lastVersion).toBe(3);
   expect((await r.listWatches())[0].status).toBe("interrupted");
 });
+it("pauses a watch and its current task atomically, then continues the same records before newer versions", async () => {
+  const r = createRepository("watch-paused-" + crypto.randomUUID());
+  const [material] = await r.initialize();
+  const watch = newWatch(snapshot(material));
+  await r.startWatch(watch);
+  const next = { ...material, version: 2, text: "Paused version" };
+  await r.saveMaterial(next, 1);
+  const task = watchTask(watch, next);
+  await r.enqueueWatchTask(task);
+  await r.changeTask(task.id, { type: "start" });
+  await r.pauseWatch(watch.id);
+  await r.endWatch(watch.id, "interrupted");
+  expect((await r.listWatches())[0]).toMatchObject({
+    id: watch.id,
+    status: "paused",
+    lastVersion: 2,
+  });
+  expect((await r.listTasks())[0]).toMatchObject({
+    id: task.id,
+    status: "paused",
+  });
+  await expect(r.startWatch(newWatch(snapshot(next)))).rejects.toThrow(
+    "already being watched",
+  );
+  const newer = { ...next, version: 3, text: "Newer version while paused" };
+  await r.saveMaterial(newer, 2);
+  expect(await r.enqueueWatchTask(watchTask(watch, newer))).toBeUndefined();
+  const resumed = await r.resumeWatch(watch.id);
+  expect(resumed).toMatchObject({
+    id: watch.id,
+    status: "active",
+    lastVersion: 2,
+    baseline: watch.baseline,
+  });
+  expect(await r.enqueueWatchTask(watchTask(resumed, newer))).toBeUndefined();
+  await r.changeTask(task.id, { type: "resume" });
+  await r.changeTask(task.id, { type: "start" });
+  await r.changeTask(task.id, {
+    type: "complete",
+    result: runLocal("check", task.snapshot, task.instruction),
+  });
+  await r.enqueueWatchTask(watchTask(resumed, newer));
+  expect(await r.listWatches()).toHaveLength(1);
+  expect(await r.listTasks()).toHaveLength(2);
+  await r.pauseWatch(watch.id);
+  await r.endWatch(watch.id, "stopped");
+  expect((await r.listWatches())[0].status).toBe("stopped");
+  expect(
+    (await r.listTasks()).find((item) => item.id !== task.id)?.status,
+  ).toBe("cancelled");
+  expect(
+    (await r.listTasks()).find((item) => item.id === task.id)?.status,
+  ).toBe("completed");
+});

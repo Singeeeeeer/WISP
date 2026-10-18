@@ -67,7 +67,11 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
       useInteraction.setState({ draft: undefined });
     } catch (e) {
       finish("error");
-      setError(e instanceof Error ? e.message : "Could not save delegation. Please retry.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Could not save delegation. Please retry.",
+      );
     } finally {
       lock.current = false;
       setBusy(false);
@@ -76,12 +80,20 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
   return (
     <FloatingPanel busy={busy} title="Material confirmation" close={close}>
       <div className="eyebrow">
-        SUMMON · {gemini ? "One-time Gemini delegation" : "One-time local delegation · no AI"}
+        SUMMON ·{" "}
+        {gemini
+          ? "One-time Gemini delegation"
+          : "One-time local delegation · no AI"}
       </div>
       <h2>Entrust one task to a familiar</h2>
+      <p className="summon-intro">
+        Keep working. It will bring its discoveries back.
+      </p>
       {draft.fromResult && (
         <p className="notice">
-          This task reuses the source copy and instruction from the previous result. The generated result is not used as source text. Check the range below before summoning; nothing is submitted automatically.
+          This task reuses the source copy and instruction from the previous
+          result. The generated result is not used as source text. Check the
+          range below before summoning; nothing is submitted automatically.
         </p>
       )}
       <div className="role-grid">
@@ -101,7 +113,11 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
               })
             }
           >
-            <strong>{roles[id].name}</strong>
+            <img
+              src={`/assets/prototype/${id === "scout_bat" ? "bat_open.png" : id === "page_sprite" ? "book_open.png" : "pot_idle.png"}`}
+              alt=""
+            />
+            <strong>{roles[id].name.split(" · ")[0]}</strong>
             <small>{roles[id].operation}</small>
           </button>
         ))}
@@ -116,13 +132,16 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
           })
         }
       />
-      <p className="notice">
-        {gemini
-          ? draft.familiar === "scout_bat"
-            ? GEMINI_LIMIT
-            : GEMINI_TEXT_LIMIT
-          : limitDescription(roles[draft.familiar].operation, localLimit)}
-      </p>
+      <details className="summon-method">
+        <summary>How this familiar works</summary>
+        <p className="notice">
+          {gemini
+            ? draft.familiar === "scout_bat"
+              ? GEMINI_LIMIT
+              : GEMINI_TEXT_LIMIT
+            : limitDescription(roles[draft.familiar].operation, localLimit)}
+        </p>
+      </details>
       {draft.familiar === "page_sprite" && !gemini && (
         <ExcerptChoice
           value={localLimit}
@@ -140,7 +159,9 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
         />
       )}
       <label className="field-label" htmlFor="summon-instruction">
-        {gemini ? "Delegation instruction" : "Delegation instruction (record only; local rules do not interpret free text)"}
+        {gemini
+          ? "Delegation instruction"
+          : "Delegation instruction (record only; local rules do not interpret free text)"}
       </label>
       <textarea
         id="summon-instruction"
@@ -157,11 +178,14 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
       <div className="scope">
         <div className="eyebrow">ONLY THIS MATERIAL · Frozen copy</div>
         <strong>{draft.snapshot.title}</strong>
-        <SourceInfo value={draft.snapshot} />
-        <p>
-          Version {draft.snapshot.materialVersion} · UTF-16 range [
-          {draft.snapshot.start}, {draft.snapshot.end})
-        </p>
+        <details className="summon-source">
+          <summary>Source and range</summary>
+          <SourceInfo value={draft.snapshot} />
+          <p>
+            Version {draft.snapshot.materialVersion} · UTF-16 range [
+            {draft.snapshot.start}, {draft.snapshot.end})
+          </p>
+        </details>
         <pre data-testid="snapshot-text">{draft.snapshot.text}</pre>
       </div>
       {current?.version !== draft.snapshot.materialVersion && (
@@ -183,7 +207,8 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
       )}
       {saveStatus !== "saved" && (
         <p className="notice">
-          The source has not been saved successfully. Delegation uses this confirmed copy; saving the reply does not save the source.
+          The source has not been saved successfully. Delegation uses this
+          confirmed copy; saving the reply does not save the source.
         </p>
       )}
       <p>
@@ -204,7 +229,11 @@ export function SummonPanel({ draft }: { draft: ActionDraft }) {
         >
           {busy ? "Saving delegation…" : "Summon familiar"}
         </button>
-        <button aria-label="Close material panel" disabled={busy} onClick={close}>
+        <button
+          aria-label="Close material panel"
+          disabled={busy}
+          onClick={close}
+        >
           Continue working
         </button>
       </div>

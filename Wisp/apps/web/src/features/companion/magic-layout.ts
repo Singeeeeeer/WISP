@@ -10,11 +10,11 @@ export function getMagicLayout(
 ) {
   const size = Math.max(
     0,
-    Math.min(360, viewport.width - 16, viewport.height - 16),
+    Math.min(296, viewport.width - 16, viewport.height - 48),
   );
   const center = {
     x: clamp(anchor.x, size / 2 + 8, viewport.width - size / 2 - 8),
-    y: clamp(anchor.y, size / 2 + 8, viewport.height - size / 2 - 8),
+    y: clamp(anchor.y, size / 2 + 8, Math.max(size / 2 + 8, viewport.height - size / 2 - 40)),
   };
   const facing: 1 | -1 = anchor.x < center.x ? -1 : 1;
   const scale = characterWidth / 270;

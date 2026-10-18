@@ -5,6 +5,15 @@ const writePreference = vi.hoisted(() => vi.fn(async () => undefined));
 vi.mock("../src/services/repository", () => ({
   createRepository: () => ({
     initialize: async () => [],
+    ensureDesktopChecklist: async () => ({
+      id: "wisp-demo-checklist",
+      kind: "text",
+      source: "virtual_document",
+      title: "Event checklist",
+      text: "Task\tOwner\tWhen\tStatus",
+      version: 1,
+      updatedAt: "2026-10-18T00:00:00.000Z",
+    }),
     readPreference: async (key: string) =>
       key === "settings" ? persisted.settings : undefined,
     writePreference,
@@ -49,6 +58,7 @@ it.each([
     expect(useDocuments.getState().fatal).toBe("");
     expect(useInteraction.getState().settings).toEqual({
       ...olderSettings,
+      idleAntics: true,
       idleRhythm: expected,
     });
   },
@@ -62,8 +72,16 @@ it("persists a rhythm change through the existing settings save queue", async ()
   await vi.waitFor(() =>
     expect(writePreference).toHaveBeenCalledWith("settings", {
       ...olderSettings,
+      idleAntics: true,
       idleRhythm: "lively",
     }),
   );
   expect(useInteraction.getState().settingsStatus).toBe("Settings saved");
+});
+
+it("retains an explicitly disabled idle-antics preference after loading", async () => {
+  persisted.settings = { ...olderSettings, idleAntics: false };
+  const { initialize, useInteraction } = await import("../src/state/stores");
+  await initialize();
+  expect(useInteraction.getState().settings.idleAntics).toBe(false);
 });

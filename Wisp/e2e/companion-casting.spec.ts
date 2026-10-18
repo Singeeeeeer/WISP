@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "./offline-app";
 
 async function pitch(heading: Locator) {
   return heading.evaluate((element) => {
@@ -64,7 +64,7 @@ test.beforeEach(async ({ page }) => {
   );
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
 });
 
 test("flight turns horizontally, pitches vertically, and preserves direction through idle and jitter", async ({

@@ -1,4 +1,5 @@
-import { test, expect, type Locator } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Locator } from "./offline-app";
 
 async function motionRange(target: Locator) {
   return target.evaluate(
@@ -29,7 +30,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 503, body: "Companion test: API disabled" }),
   );
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
 });
 
 test("wand cursor loads while text and resize resources retain their semantic fallbacks", async ({
@@ -48,7 +49,7 @@ test("wand cursor loads while text and resize resources retain their semantic fa
       return [image.naturalWidth, image.naturalHeight];
     }, resource),
   ).toEqual([24, 24]);
-  await expect(page.getByLabel("Bookstore event proposal text")).toHaveCSS(
+  await expect((await editDocument(page, "Bookstore event proposal"))).toHaveCSS(
     "cursor",
     /wand-text\.svg.*\) 12 12, text$/,
   );
@@ -83,7 +84,7 @@ test("focus and text selection yield to the corner without interrupting editing"
   await page
     .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill(
     "选中这段文字以后，小魔女应当让开。\n仍然可以继续输入文字。",
   );

@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Page } from "./offline-app";
 async function settings(page: Page) {
   await page.getByRole("button", { name: "Grimoire", exact: true }).click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -41,8 +42,7 @@ test("proposal saves only after confirmation and applies to new direct and famil
   page,
 }) => {
   await page.goto("/");
-  await page
-    .getByLabel("Bookstore event proposal text")
+  await (await editDocument(page, "Bookstore event proposal"))
     .fill("一\n二\n三\n四\n五\n六\n七\n八\n九");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await offer(page);

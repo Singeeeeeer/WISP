@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./offline-app";
 import type { ConnectionRequest } from "../apps/web/src/domain/canvas";
 
 const first = { title: "潮汐魔石", text: "魔石只在退潮后的月光下显现。" };
@@ -61,9 +61,11 @@ async function add(page: Page, note: typeof first) {
 async function selectPair(page: Page) {
   await page
     .getByRole("article", { name: `Note ${first.title}`, exact: true })
+    .getByRole("heading", { name: first.title, exact: true })
     .click();
   await page
     .getByRole("article", { name: `Note ${second.title}`, exact: true })
+    .getByRole("heading", { name: second.title, exact: true })
     .click({ modifiers: ["Shift"] });
   await expect(page.getByText("Selected 2 / 2 notes", { exact: true })).toBeVisible();
 }
@@ -122,7 +124,7 @@ test("explicit analysis, evidence, keep, reload, movement, stale versions and ca
     exact: true,
   });
   const before = await note.boundingBox();
-  const grip = page.getByRole("button", { name: `Move note ${first.title}` });
+  const grip = page.getByRole("button", { name: `Move note ${first.title}`, exact: true });
   await grip.focus();
   await grip.press("ArrowRight");
   await expect
@@ -166,6 +168,7 @@ test("explicit analysis, evidence, keep, reload, movement, stale versions and ca
   await expect(
     page.locator(".canvas-lines path[data-state=stale]"),
   ).toHaveCount(1);
+  await page.getByRole("button", { name: /^Connections/ }).click();
   await page.getByRole("button", { name: title, exact: true }).click();
   await expect(
     page.locator(".canvas-explanation blockquote").first(),
@@ -314,6 +317,7 @@ test("cross-tab conflicts preserve drafts and deleting a relation clears open de
   const other = await context.newPage();
   await isolateApi(other);
   await open(other);
+  await other.getByRole("button", { name: /^Connections/ }).click();
   other.once("dialog", (dialog) => dialog.accept());
   await other.getByRole("button", { name: `Remove connection ${title}` }).click();
   await expect(page.locator(".canvas-saved-item")).toHaveCount(0);
@@ -352,7 +356,7 @@ test("drag cancellation and upper dialogs preserve the board and draft on a smal
     exact: true,
   });
   const before = await note.boundingBox();
-  const grip = page.getByRole("button", { name: `Move note ${first.title}` });
+  const grip = page.getByRole("button", { name: `Move note ${first.title}`, exact: true });
   await grip.hover();
   await page.mouse.down();
   await page.mouse.move(before!.x + 350, before!.y + 200);

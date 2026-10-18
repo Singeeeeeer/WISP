@@ -1,3 +1,4 @@
+import { downloadText } from "../../shared/download";
 import { captureOutcome } from "../companion/outcome";
 import { useState } from "react";
 import {
@@ -59,13 +60,14 @@ export function GeminiTextResult({
         </small>
       </blockquote>
     ));
-  async function copy(draftOnly = false) {
+  async function copy(draftOnly = false, download = false) {
     const finish = captureOutcome();
     try {
       const body =
         r.operation === "understand"
           ? [
-              "Summary length: " + (r.summaryStyle === "brief" ? "Brief" : "Standard"),
+              "Summary length: " +
+                (r.summaryStyle === "brief" ? "Brief" : "Standard"),
               "Material overview",
               r.summary || "Not enough material to generate a summary.",
               ...r.summaryEvidence.map(evidenceText),
@@ -103,19 +105,33 @@ export function GeminiTextResult({
               "Additional instruction: " + r.instruction,
               ...body,
               "Information to add",
-              ...(r.missingInformation.length ? r.missingInformation : ["None"]),
+              ...(r.missingInformation.length
+                ? r.missingInformation
+                : ["None"]),
               "Model: " + meta.modelId,
               "Prompt: " + meta.promptVersion,
               "Validator: " + meta.validatorVersion,
               "Duration (ms): " + meta.durationMs,
               "Provider-reported usage: " +
-                (meta.usage ? JSON.stringify(meta.usage) : "Not provided; no estimate"),
+                (meta.usage
+                  ? JSON.stringify(meta.usage)
+                  : "Not provided; no estimate"),
             ].join("\n");
+      if (download) {
+        downloadText(
+          `Wisp-${r.operation}-result.md`,
+          `# Wisp ${r.operation} result\n\n${text}`,
+          "text/markdown;charset=utf-8",
+        );
+        if (finish("success")) setCopied("Markdown download started");
+        return;
+      }
       await navigator.clipboard.writeText(text);
       if (finish("success"))
         setCopied(draftOnly ? "Draft text copied" : "Result copied");
     } catch {
-      if (finish("error")) setCopied("Copy failed. Select and copy the result text manually.");
+      if (finish("error"))
+        setCopied("Copy failed. Select and copy the result text manually.");
     }
   }
   return (
@@ -129,7 +145,8 @@ export function GeminiTextResult({
       <SourceInfo value={r.snapshot} />
       {stale && (
         <p role="status" className="notice">
-          The source has changed or is unavailable. This result uses an older version and does not represent the current material.
+          The source has changed or is unavailable. This result uses an older
+          version and does not represent the current material.
         </p>
       )}
       <p className="notice">{GEMINI_TEXT_LIMIT}</p>
@@ -144,7 +161,9 @@ export function GeminiTextResult({
           </p>
           <section className="scope">
             <h3>Material overview</h3>
-            <pre>{r.summary || "Not enough material to generate a summary."}</pre>
+            <pre>
+              {r.summary || "Not enough material to generate a summary."}
+            </pre>
             {evidence(r.summaryEvidence)}
           </section>
           {r.keyPoints.map((p, i) => (
@@ -198,7 +217,9 @@ export function GeminiTextResult({
                 ))}
               </ul>
             ) : (
-              <p>No creative assumptions listed; human review is still required.</p>
+              <p>
+                No creative assumptions listed; human review is still required.
+              </p>
             )}
           </section>
         </>
@@ -241,6 +262,9 @@ export function GeminiTextResult({
       <p role="status">{copied}</p>
       <div className="panel-actions">
         <button onClick={() => void copy()}>Copy result</button>
+        <button onClick={() => void copy(false, true)}>
+          Save result as Markdown
+        </button>
         {r.operation === "create" && (
           <button
             disabled={!r.draft}

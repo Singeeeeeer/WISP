@@ -1,3 +1,4 @@
+import { downloadText } from "../../shared/download";
 import { useRef, useState } from "react";
 import type { BatchEvidence, BatchRecord } from "../../domain/batch";
 import type { MaterialSnapshot } from "../../domain/model";
@@ -29,7 +30,8 @@ export function BatchSources({ snapshots }: { snapshots: MaterialSnapshot[] }) {
             <SourceInfo value={s} />
             {stale && (
               <p role="status" className="notice">
-                This source changed or is unavailable; the copy from the old version is retained.
+                This source changed or is unavailable; the copy from the old
+                version is retained.
               </p>
             )}
             <details>
@@ -130,10 +132,19 @@ export function BatchResult({
   const materials = useDocuments((s) => s.materials);
   const [copy, setCopy] = useState("");
   const copyTicket = useRef(0);
-  async function copyResult(draftOnly = false) {
+  async function copyResult(draftOnly = false, download = false) {
     const ticket = ++copyTicket.current;
     const finish = captureOutcome();
     try {
+      if (download) {
+        downloadText(
+          `Wisp-${r.operation}-result.md`,
+          `# Wisp multi-material ${r.operation} result\n\n${copyText(r)}`,
+          "text/markdown;charset=utf-8",
+        );
+        if (finish("success")) setCopy("Markdown download started");
+        return;
+      }
       await navigator.clipboard.writeText(
         draftOnly && r.operation === "create" ? r.draft : copyText(r),
       );
@@ -146,10 +157,14 @@ export function BatchResult({
   const label = r.operation[0].toUpperCase() + r.operation.slice(1);
   return (
     <div className="batch-result">
-      <div className="eyebrow">GEMINI · {r.snapshots.length} independent materials</div>
+      <div className="eyebrow">
+        GEMINI · {r.snapshots.length} independent materials
+      </div>
       <h2>Multi-material {label} result</h2>
       <p className="notice">
-        Generated from the confirmed frozen text. Citation matches only show that text exists in the specified material; they do not guarantee that the summary or draft is correct. Results do not modify the source.
+        Generated from the confirmed frozen text. Citation matches only show
+        that text exists in the specified material; they do not guarantee that
+        the summary or draft is correct. Results do not modify the source.
       </p>
       {r.instruction && <p>Additional instruction: {r.instruction}</p>}
       {r.operation === "understand" && (
@@ -229,12 +244,18 @@ export function BatchResult({
       <h3>Materials and versions in this run</h3>
       <BatchSources snapshots={r.snapshots} />
       <p className="subtle">
-        Model: {r.metadata.modelId} · {new Date(r.createdAt).toLocaleString("en-US")} ·
-        Duration: {r.metadata.durationMs} ms
+        Model: {r.metadata.modelId} ·{" "}
+        {new Date(r.createdAt).toLocaleString("en-US")} · Duration:{" "}
+        {r.metadata.durationMs} ms
       </p>
       <p role="status">{copy}</p>
       <div className="panel-actions">
-        <button onClick={() => void copyResult()}>Copy multi-material result</button>
+        <button onClick={() => void copyResult()}>
+          Copy multi-material result
+        </button>
+        <button onClick={() => void copyResult(false, true)}>
+          Save result as Markdown
+        </button>
         {r.operation === "create" && (
           <button disabled={!r.draft} onClick={() => void copyResult(true)}>
             Copy draft only

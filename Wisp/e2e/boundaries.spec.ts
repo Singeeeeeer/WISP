@@ -1,24 +1,25 @@
-import { test, expect } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect } from "./offline-app";
 
 test("a stale tab cannot overwrite another saved draft", async ({
   page,
   context,
 }) => {
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   const second = await context.newPage();
   await second.goto("/");
-  await expect(second.getByLabel("Bookstore event proposal text")).toBeVisible();
-  await page.getByLabel("Bookstore event proposal text").fill("第一标签页的新版本");
+  await expect(second.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
+  await (await editDocument(page, "Bookstore event proposal")).fill("第一标签页的新版本");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
-  await second.getByLabel("Bookstore event proposal text").fill("第二标签页未保存草稿");
+  await (await editDocument(second, "Bookstore event proposal")).fill("第二标签页未保存草稿");
   await expect(second.getByTestId("save-proposal")).toHaveText("failed");
   await expect(second.getByRole("alert")).toContainText("Save conflict");
-  await expect(second.getByLabel("Bookstore event proposal text")).toHaveValue(
+  await expect((await editDocument(second, "Bookstore event proposal"))).toHaveValue(
     "第二标签页未保存草稿",
   );
   await page.reload();
-  await expect(page.getByLabel("Bookstore event proposal text")).toHaveValue(
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toHaveText(
     "第一标签页的新版本",
   );
 });
@@ -27,7 +28,7 @@ test("invalid UTF-16 selection must not silently expand into the full document",
   page,
 }) => {
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill("A😀BC");
   await editor.evaluate((el: HTMLTextAreaElement) => {
     el.focus();
@@ -75,11 +76,11 @@ test("resize and layout persist, shortcuts respect editors", async ({
     )
     .toBeGreaterThan(500);
   await page.reload();
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   await expect
     .poll(async () => (await win.boundingBox())!.width)
     .toBe(resized!.width);
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.click();
   await editor.press("q");
   await expect(page.getByRole("menu")).toHaveCount(0);
@@ -101,7 +102,7 @@ test("capture review screenshots and confirm no external model request", async (
       external.push(request.url());
   });
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
   await page.screenshot({
     path: "test-results/english/workspace.png",
     fullPage: true,

@@ -64,10 +64,13 @@ export interface WindowState {
   height: number;
   z: number;
   minimized: boolean;
+  closed?: boolean;
+  maximized?: boolean;
 }
 export interface Settings {
   characterVisible: boolean;
   reducedMotion: boolean;
+  idleAntics: boolean;
   idleRhythm: "default" | "lively";
   characterSize: number;
   helpfulProposals: boolean;
@@ -86,6 +89,7 @@ export interface ActionDraft {
 export const defaultSettings: Settings = {
   characterVisible: true,
   reducedMotion: false,
+  idleAntics: true,
   idleRhythm: "default",
   characterSize: 48,
   helpfulProposals: false,
@@ -176,14 +180,43 @@ export function snapshot(
   });
 }
 export function initialWindows(materials: Material[]): WindowState[] {
-  return materials.map((m, i) => ({
-    id: "window-" + m.id,
-    materialId: m.id,
-    x: 44 + i * 440,
-    y: 48 + i * 44,
-    width: 470,
-    height: 470,
-    z: i + 1,
-    minimized: false,
-  }));
+  const viewportWidth = typeof innerWidth === "number" ? innerWidth : 1440;
+  const viewportHeight = typeof innerHeight === "number" ? innerHeight : 1000;
+  const desktopWidth = viewportWidth - (viewportWidth < 600 ? 60 : 72);
+  const desktopHeight = viewportHeight - 30;
+  return materials.map((m, i) => {
+    const mail = m.id === "venue";
+    const sheet = m.id === "wisp-demo-checklist";
+    return {
+      id: "window-" + m.id,
+      materialId: m.id,
+      x: mail
+        ? Math.max(200, desktopWidth * 0.58)
+        : sheet
+          ? Math.max(160, desktopWidth * 0.55)
+          : viewportWidth < 900
+            ? 24
+            : Math.round(desktopWidth * 0.035) +
+              (m.id === "proposal" ? 0 : i * 24),
+      y: mail
+        ? 62
+        : sheet
+          ? Math.max(210, desktopHeight * 0.46)
+          : 42 + (m.id === "proposal" ? 0 : i * 24),
+      width: mail
+        ? 420
+        : sheet
+          ? 480
+          : Math.min(620, Math.max(480, desktopWidth * 0.5)),
+      height: mail
+        ? Math.min(340, desktopHeight * 0.42)
+        : sheet
+          ? Math.min(360, desktopHeight * 0.42)
+          : Math.min(710, desktopHeight - 145),
+      z: m.id === "proposal" ? 40 : sheet ? 20 : mail ? 12 : 41 + i,
+      minimized: false,
+      closed: false,
+      maximized: false,
+    };
+  });
 }

@@ -1,4 +1,4 @@
-// Display cells of the supplied transparent atlas without altering the source image.
+// Keep the calibrated casting cell; use the prototype's original artwork elsewhere.
 const cells = {
   witch: [0, 0],
   casting: [1, 0],
@@ -6,6 +6,13 @@ const cells = {
   check: [3, 2],
   create: [1, 3],
   summon: [1, 2],
+} as const;
+const prototypeSprites = {
+  witch: "witch_idle",
+  book: "book_open",
+  check: "seal",
+  create: "pot_high",
+  summon: "bat_open",
 } as const;
 export type SpriteName = keyof typeof cells;
 export function Sprite({
@@ -15,6 +22,17 @@ export function Sprite({
   name: SpriteName;
   className?: string;
 }) {
+  if (name !== "casting") {
+    return (
+      <img
+        className={`wisp-sprite ${className}`}
+        src={`/assets/prototype/${prototypeSprites[name]}.png`}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+      />
+    );
+  }
   const [col, row] = cells[name];
   return (
     <svg

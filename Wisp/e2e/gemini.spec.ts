@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Page } from "./offline-app";
 const reply = (body: any) => ({
   id: body.snapshot.id,
   operation: "check",
@@ -47,7 +48,7 @@ test("Gemini direct Check retries save only and persists the frozen selection wi
     await route.fulfill({ json: reply(sent) });
   });
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill("只发送这句。私有未选中内容");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await editor.press("Control+Home");

@@ -245,6 +245,7 @@ export function Companion() {
       const idleIndex = Math.floor(Math.max(0, idleAge - idleStart) / 3600) % 3;
       const idleAction =
         state === "idle" &&
+        settings.idleAntics &&
         idleAge >= idleStart &&
         (idleAge - idleStart) % 3600 < 1600
           ? (["hat", "sweep", "nap"] as const)[idleIndex]
@@ -322,6 +323,7 @@ export function Companion() {
   }, [
     settings.characterVisible,
     settings.idleRhythm,
+    settings.idleAntics,
     width,
     reduced,
     menu,

@@ -1,3 +1,4 @@
+import { downloadText } from "../../shared/download";
 import { captureOutcome } from "../companion/outcome";
 import { operationPose, useTaskActivity } from "../companion/activity";
 import { FloatingPanel } from "../../shared/FloatingPanel";
@@ -9,9 +10,17 @@ import { GeminiTextResult } from "./GeminiTextResult";
 import { geminiTextHeading } from "../../domain/gemini-text";
 import { geminiHeading } from "../../domain/gemini-check";
 import type { ProcessingRecord } from "../../domain/processing";
-import { isBatchRecord, batchContinuationDraft, type BatchRecord } from "../../domain/batch";
+import {
+  isBatchRecord,
+  batchContinuationDraft,
+  type BatchRecord,
+} from "../../domain/batch";
 import { BatchResult } from "../batch/BatchResult";
-import { openBatchDraft, prepareBatchAgain, familiarForBatch } from "../batch/actions";
+import {
+  openBatchDraft,
+  prepareBatchAgain,
+  familiarForBatch,
+} from "../batch/actions";
 import { sourceDescription } from "../../domain/cauldron";
 import { SourceInfo } from "../../shared/SourceInfo";
 import type { StoredRecord } from "../../domain/joint";
@@ -62,6 +71,23 @@ export function LocalResult({
     current.title !== record.snapshot.title;
   const [copy, setCopy] = useState("");
   const heading = resultHeading(record);
+  const resultText = () =>
+    [
+      labels[record.operation] + " · Local rules/templates · No AI used",
+      heading,
+      stale ? "Old-version result; not the current material" : "",
+      limitDescription(
+        record.operation,
+        record.operation === "understand" ? record.excerptLimit : undefined,
+      ),
+      `Material: ${record.snapshot.title} · Version ${record.snapshot.materialVersion}`,
+      record.instruction
+        ? `Additional instruction recorded in history: ${record.instruction}`
+        : "",
+      sourceDescription(record.snapshot),
+      ...resultBody(record),
+    ].join("\n");
+
   return (
     <>
       <div className="eyebrow">
@@ -75,7 +101,8 @@ export function LocalResult({
       <SourceInfo value={record.snapshot} />
       {stale && (
         <p role="status" className="notice">
-          The source has changed or is unavailable. This result uses an older version and does not represent the current material.
+          The source has changed or is unavailable. This result uses an older
+          version and does not represent the current material.
         </p>
       )}
       <p className="notice">
@@ -86,7 +113,8 @@ export function LocalResult({
       </p>
       {record.instruction && (
         <p>
-          Additional instruction recorded in history: {record.instruction} (Local rules do not interpret or execute free-text instructions.)
+          Additional instruction recorded in history: {record.instruction}{" "}
+          (Local rules do not interpret or execute free-text instructions.)
         </p>
       )}
       {record.operation === "check" &&
@@ -98,8 +126,8 @@ export function LocalResult({
               <blockquote key={e.start}>
                 <pre>{e.quote}</pre>
                 <small>
-                  Source text version {record.snapshot.materialVersion} · UTF-16 range [
-                  {record.snapshot.start + e.start},{" "}
+                  Source text version {record.snapshot.materialVersion} · UTF-16
+                  range [{record.snapshot.start + e.start},{" "}
                   {record.snapshot.start + e.end})
                 </small>
               </blockquote>
@@ -110,7 +138,10 @@ export function LocalResult({
         <>
           {record.operation === "create" && (
             <section className="scope">
-              <h3>Template draft (not confirmed and not written back automatically)</h3>
+              <h3>
+                Template draft (not confirmed and not written back
+                automatically)
+              </h3>
               <pre data-testid="template-draft">{record.draft}</pre>
             </section>
           )}
@@ -124,19 +155,23 @@ export function LocalResult({
               <blockquote key={e.start}>
                 <pre>{e.quote}</pre>
                 <small>
-                  Source text version {record.snapshot.materialVersion} · UTF-16 range [
-                  {record.snapshot.start + e.start},{" "}
+                  Source text version {record.snapshot.materialVersion} · UTF-16
+                  range [{record.snapshot.start + e.start},{" "}
                   {record.snapshot.start + e.end})
                 </small>
               </blockquote>
             ))}
             {record.operation === "understand" && (
               <p>
-                Non-empty lines not shown: {record.omittedLines}. These lines are not included in the excerpts for this run.
+                Non-empty lines not shown: {record.omittedLines}. These lines
+                are not included in the excerpts for this run.
               </p>
             )}
             {record.operation === "create" && record.excerpts.length === 0 && (
-              <p>No explicit fields could be used from the source. Fill in the template’s placeholders.</p>
+              <p>
+                No explicit fields could be used from the source. Fill in the
+                template’s placeholders.
+              </p>
             )}
           </section>
         </>
@@ -151,35 +186,31 @@ export function LocalResult({
           <button
             onClick={() => {
               const finish = captureOutcome();
-              const text = [
-                labels[record.operation] + " · Local rules/templates · No AI used",
-                heading,
-                stale ? "Old-version result; not the current material" : "",
-                limitDescription(
-                  record.operation,
-                  record.operation === "understand"
-                    ? record.excerptLimit
-                    : undefined,
-                ),
-                `Material: ${record.snapshot.title} · Version ${record.snapshot.materialVersion}`,
-                record.instruction
-                  ? `Additional instruction recorded in history: ${record.instruction}`
-                  : "",
-                sourceDescription(record.snapshot),
-                ...resultBody(record),
-              ].join("\n");
               void Promise.resolve()
-                .then(() => navigator.clipboard.writeText(text))
+                .then(() => navigator.clipboard.writeText(resultText()))
                 .then(() => {
                   if (finish("success")) setCopy("Result copied");
                 })
                 .catch(() => {
                   if (finish("error"))
-                    setCopy("Copy failed. Select and copy the result text manually.");
+                    setCopy(
+                      "Copy failed. Select and copy the result text manually.",
+                    );
                 });
             }}
           >
             Copy result
+          </button>
+          <button
+            onClick={() =>
+              downloadText(
+                `Wisp-${record.operation}-result.md`,
+                `# Wisp ${record.operation} result\n\n${resultText()}`,
+                "text/markdown;charset=utf-8",
+              )
+            }
+          >
+            Save result as Markdown
           </button>
           {summon && <button onClick={summon}>Summon familiar again</button>}
           <button disabled={!current} onClick={again}>
@@ -189,7 +220,9 @@ export function LocalResult({
                 : "Process current full text again")}
           </button>
           <button onClick={close}>
-            {record.operation === "check" ? "Close check result" : "Close result"}
+            {record.operation === "check"
+              ? "Close check result"
+              : "Close result"}
           </button>
         </div>
       )}
@@ -204,7 +237,8 @@ export function ProcessingResult(props: {
   againLabel?: string;
   summon?: () => void;
 }) {
-  if (isBatchRecord(props.record)) return <BatchResult {...props} record={props.record} />;
+  if (isBatchRecord(props.record))
+    return <BatchResult {...props} record={props.record} />;
   return props.record.execution === "gemini" ? (
     props.record.operation === "check" ? (
       <GeminiResult {...props} record={props.record} />
@@ -276,7 +310,11 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
     } catch (e) {
       finishActivity("error");
       finish("error");
-      setError(e instanceof Error ? e.message : "Processing or saving failed. Please retry.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Processing or saving failed. Please retry.",
+      );
     } finally {
       lock.current = false;
       setBusy(false);
@@ -334,7 +372,8 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
             />
           )}
           <label className="field-label" htmlFor="check-instruction">
-            Additional instruction (record only; local rules do not execute free-text instructions)
+            Additional instruction (record only; local rules do not execute
+            free-text instructions)
           </label>
           <textarea
             id="check-instruction"
@@ -358,7 +397,8 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
           </div>
           {current?.version !== draft.snapshot.materialVersion && (
             <div className="notice">
-              The source changed; this is still the copy from when the panel opened.
+              The source changed; this is still the copy from when the panel
+              opened.
               {current && (
                 <button disabled={busy} onClick={reset}>
                   Update to current full text
@@ -368,10 +408,15 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
           )}
           {saveStatus !== "saved" && (
             <p className="notice">
-              The source has not been saved successfully. This run uses the copy in the confirmation panel; saving the result does not save the source.
+              The source has not been saved successfully. This run uses the copy
+              in the confirmation panel; saving the result does not save the
+              source.
             </p>
           )}
-          <p>Processed locally; the material copy and result are saved when complete. The source is not modified.</p>
+          <p>
+            Processed locally; the material copy and result are saved when
+            complete. The source is not modified.
+          </p>
           {error && (
             <p role="alert" className="error">
               {error}
@@ -385,7 +430,11 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
             >
               {busy ? "Processing and saving…" : actions[operation]}
             </button>
-            <button aria-label="Close material panel" disabled={busy} onClick={close}>
+            <button
+              aria-label="Close material panel"
+              disabled={busy}
+              onClick={close}
+            >
               Continue working
             </button>
           </div>
@@ -411,9 +460,24 @@ export function LocalHistory({ close }: { close: () => void }) {
     <Dialog title="Run history" close={close}>
       {selected ? (
         isBatchRecord(selected) ? (
-          <BatchResult record={selected} close={() => setSelected(undefined)}
-            again={() => { if (prepareBatchAgain(selected, selected.operation, familiarForBatch(selected))) close(); }}
-            summon={() => { close(); openBatchDraft(batchContinuationDraft(selected)); }} />
+          <BatchResult
+            record={selected}
+            close={() => setSelected(undefined)}
+            again={() => {
+              if (
+                prepareBatchAgain(
+                  selected,
+                  selected.operation,
+                  familiarForBatch(selected),
+                )
+              )
+                close();
+            }}
+            summon={() => {
+              close();
+              openBatchDraft(batchContinuationDraft(selected));
+            }}
+          />
         ) : selected.operation === "joint" ? (
           <JointResult
             record={selected}
@@ -463,8 +527,8 @@ export function LocalHistory({ close }: { close: () => void }) {
         <>
           <h2>Run history</h2>
           <p>
-            Only successfully saved results are shown, with execution mode; familiar replies appear in
-            Familiars.
+            Only successfully saved results are shown, with execution mode;
+            familiar replies appear in Familiars.
           </p>
           {loading && <p role="status">Loading…</p>}
           {error && <p role="alert">{error}</p>}
@@ -474,35 +538,45 @@ export function LocalHistory({ close }: { close: () => void }) {
           {records.map((r) => (
             <div className="scope" key={r.id}>
               <strong>
-                {isBatchRecord(r) ? r.snapshots.map((s) => s.title + " · Version " + s.materialVersion).join(" + ") : r.operation === "joint"
-                  ? r.sources
-                      .map(
-                        (part) =>
-                          part.snapshot.title +
-                          " · Version " +
-                          part.snapshot.materialVersion,
-                      )
-                    .join(" + ")
-                  : r.snapshot.title + " · Version " + r.snapshot.materialVersion}
+                {isBatchRecord(r)
+                  ? r.snapshots
+                      .map((s) => s.title + " · Version " + s.materialVersion)
+                      .join(" + ")
+                  : r.operation === "joint"
+                    ? r.sources
+                        .map(
+                          (part) =>
+                            part.snapshot.title +
+                            " · Version " +
+                            part.snapshot.materialVersion,
+                        )
+                        .join(" + ")
+                    : r.snapshot.title +
+                      " · Version " +
+                      r.snapshot.materialVersion}
               </strong>
               <p>
                 {new Date(r.createdAt).toLocaleString("en-US")} ·{" "}
-                {isBatchRecord(r) ? "Multi-material " + labels[r.operation] + " · Gemini" : r.operation === "joint"
-                  ? "Joint organization of two texts"
-                  : labels[r.operation] +
-                    " · " +
-                    (r.execution === "gemini"
-                      ? r.operation === "check"
-                        ? geminiHeading(r)
-                        : geminiTextHeading(r)
-                      : resultHeading(r))}
+                {isBatchRecord(r)
+                  ? "Multi-material " + labels[r.operation] + " · Gemini"
+                  : r.operation === "joint"
+                    ? "Joint organization of two texts"
+                    : labels[r.operation] +
+                      " · " +
+                      (r.execution === "gemini"
+                        ? r.operation === "check"
+                          ? geminiHeading(r)
+                          : geminiTextHeading(r)
+                        : resultHeading(r))}
               </p>
               <button onClick={() => setSelected(r)}>
-                {isBatchRecord(r) ? "View multi-material " + labels[r.operation] + " result" : r.operation === "joint"
-                  ? "View joint result"
-                  : r.operation === "check"
-                    ? "View check result"
-                    : "View " + labels[r.operation] + " result"}
+                {isBatchRecord(r)
+                  ? "View multi-material " + labels[r.operation] + " result"
+                  : r.operation === "joint"
+                    ? "View joint result"
+                    : r.operation === "check"
+                      ? "View check result"
+                      : "View " + labels[r.operation] + " result"}
               </button>
             </div>
           ))}

@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "./offline-app";
 import type {
   MaterialSnapshot,
   SummaryStyle,
@@ -99,7 +99,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 503, body: "Offline batch character test" }),
   );
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
 });
 
 test("batch brewing begins with processing, celebrates saved success and clears on close", async ({

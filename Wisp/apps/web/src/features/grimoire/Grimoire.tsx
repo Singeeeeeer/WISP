@@ -1,91 +1,119 @@
+import { useLayoutEffect, useRef, useState } from "react";
+import { NotebookActions } from "./NotebookActions";
 import { AboutYou } from "../proposals/Proposal";
 import { TaskList } from "../delegation/TaskList";
 
 import { useInteraction } from "../../state/stores";
 import { Dialog } from "../../shared/Dialog";
 import { Sprite } from "../companion/Sprite";
+import { pointer } from "../companion/pointer";
 import "./grimoire.css";
 
 const chapters = [
-  { name: "Getting started", label: "Getting started", title: "Meet your companion" },
-  { name: "Familiars", label: "Familiars and replies", title: "A page for familiars" },
-  { name: "About you", label: "About your preferences", title: "A little about you" },
-  { name: "Settings", label: "Companion settings", title: "Make the magic yours" },
+  {
+    name: "Getting started",
+    title: "Getting to know each other",
+    kicker: "HOW WE GET ALONG",
+  },
+  {
+    name: "Familiars",
+    title: "Who is helping today",
+    kicker: "THE FAMILIAR REGISTER",
+  },
+  {
+    name: "About you",
+    title: "The little things she remembers",
+    kicker: "A FEW THINGS ABOUT YOU",
+  },
+  {
+    name: "Settings",
+    title: "A rhythm that feels right",
+    kicker: "MAKE YOURSELF COMFORTABLE",
+  },
 ];
 
 export function Grimoire() {
+  const [resetting, setResetting] = useState(false);
   const tab = useInteraction((s) => s.bookTab);
   const setTab = (bookTab: string) => useInteraction.setState({ bookTab });
   const settings = useInteraction((s) => s.settings);
   const update = useInteraction((s) => s.updateSettings);
   const status = useInteraction((s) => s.settingsStatus);
   const chapter = chapters.find((item) => item.name === tab) ?? chapters[0];
+  const art = useRef<HTMLImageElement>(null);
+  useLayoutEffect(() => {
+    const book = art.current?.closest<HTMLElement>(".grimoire-dialog");
+    book?.style.setProperty("--book-from-x", `${pointer.x - innerWidth / 2}px`);
+    book?.style.setProperty(
+      "--book-from-y",
+      `${pointer.y - innerHeight / 2}px`,
+    );
+  }, []);
   return (
     <Dialog
       title="Grimoire"
-      close={() => useInteraction.setState({ book: false })}
-      className="grimoire-dialog"
+      close={() => { if (!resetting) useInteraction.setState({ book: false }); }}
+      className={
+        "grimoire-dialog" + (settings.reducedMotion ? " grimoire-reduced" : "")
+      }
     >
-      <div className="grimoire-binding" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </div>
-      {["top-left", "top-right", "bottom-left", "bottom-right"].map(
-        (corner) => (
-          <span
-            key={corner}
-            className={`grimoire-corner ${corner}`}
-            aria-hidden="true"
-          />
-        ),
-      )}
+      <img
+        ref={art}
+        className="grimoire-art"
+        src="/assets/prototype/grimoire-spread.png"
+        alt=""
+        aria-hidden="true"
+      />
       <button
         className="grimoire-close"
+        disabled={resetting}
         aria-label="Close Grimoire"
         onClick={() => useInteraction.setState({ book: false })}
       >
-        <span aria-hidden="true">×</span>
+        <span>Close</span>
         <kbd>Esc</kbd>
       </button>
       <div className="grimoire-spread">
         <div className="grimoire-leaf grimoire-index">
           <header className="grimoire-title">
-            <p className="grimoire-caption">Grimoire</p>
-            <h2>A little work magic</h2>
-            <p>A place for your thoughts to land.</p>
+            <p className="grimoire-caption">THE LITTLE GRIMOIRE</p>
+            <h2>
+              Notes of a <br />
+              little companion
+            </h2>
+            <p>Learning your rhythm, a little at a time.</p>
           </header>
           <nav className="grimoire-chapters" aria-label="Grimoire chapters">
-            {chapters.map((item, index) => (
+            {chapters.map((item) => (
               <button
                 key={item.name}
                 aria-label={item.name}
                 aria-pressed={tab === item.name}
+                disabled={resetting}
                 onClick={() => setTab(item.name)}
               >
-                <span className="grimoire-chapter-number" aria-hidden="true">
-                  {["I", "II", "III", "IV"][index]}
-                </span>
                 <span className="grimoire-chapter-name">
                   <strong>{item.name}</strong>
-                  <small aria-hidden="true">{item.label}</small>
                 </span>
-                <span className="grimoire-bookmark" aria-hidden="true" />
               </button>
             ))}
           </nav>
           <div className="grimoire-note">
-            <Sprite name="witch" />
+            <img
+              src="/assets/prototype/witch_book.png"
+              alt=""
+              aria-hidden="true"
+            />
             <p>
-              Your text, your choice.
+              Your words, your decisions.
               <br />
-              Every bit of magic starts with confirmation.
+              My magic stays where you invite it.
             </p>
           </div>
         </div>
         <section className="grimoire-leaf grimoire-reading">
           <header className="grimoire-chapter-heading">
-            <p className="grimoire-caption">{chapter.name}</p>
+            <p className="grimoire-caption">{chapter.kicker}</p>
             <h3>{chapter.title}</h3>
           </header>
           <div
@@ -97,33 +125,72 @@ export function Grimoire() {
           >
             {tab === "Getting started" && (
               <div className="book-page">
-                <h3>Give your thoughts a place to land.</h3>
-                <p>
-                  Edit and select text in a document, then click Core abilities at the bottom to open the magic ring. Without a selection, the current document’s full text is used.
-                </p>
-                <p>
-                  Use Understand to explore your text, Check to review it, Create to draft something new, and Summon to delegate a task.
-                  The three abilities use local processing by default; you can select Gemini explicitly.
-                  Local mode provides source excerpts, limited rule checks, and an event-introduction template.
-                  Gemini provides cited summaries, checks, and creative drafts for human review.
-                  Results are saved in “Run history”. All three familiars support one-time Gemini tasks and replies; continuous watching uses local rules.
-                </p>
-                <p>
-                  <kbd>Q</kbd> Open Core abilities when not typing · <kbd>Alt / Option + M</kbd>{" "}
-                  Open Grimoire · <kbd>Esc</kbd> Close
-                </p>
-                <p>
-                  Drag the window title bar; resize from the bottom-right; use the document button at the bottom to restore it. Text and settings are saved only in this browser.
-                </p>
-                <p>
-                  Right-click an empty desktop area or press Q to open Core abilities. The witch stays in place while the magic ring is open and follows the pointer again when it closes. In document text, use Shift + right-click to open the browser menu.
-                </p>
+                <div className="grimoire-guide-entry">
+                  <Sprite name="witch" />
+                  <div>
+                    <strong>A little life between tasks</strong>
+                    <p>
+                      Pause for a moment. She adjusts her hat, sweeps up
+                      stardust or naps. While a familiar works, she reads or
+                      stirs a little inspiration.
+                    </p>
+                  </div>
+                </div>
+                <div className="grimoire-guide-entry">
+                  <Sprite name="summon" />
+                  <div>
+                    <strong>Four basics, always at your fingertips</strong>
+                    <p>
+                      Understand explains. Check finds gaps. Create drafts.
+                      Summon calls a familiar. Select a passage and open Core
+                      abilities; without a selection, the current document’s
+                      full text is used.
+                    </p>
+                  </div>
+                </div>
+                <div className="grimoire-guide-entry">
+                  <Sprite name="book" />
+                  <div>
+                    <strong>Your grimoire, only when you need it</strong>
+                    <p>
+                      <kbd>Alt / Option + M</kbd> opens this book.{" "}
+                      <kbd>Esc</kbd> closes it. Find the guide, familiar tasks,
+                      confirmed preferences and settings here.
+                    </p>
+                  </div>
+                </div>
+                <div className="grimoire-guide-note">
+                  Right-click for spells, or press <kbd>Q</kbd> when not typing.
+                  In document text, use Shift + right-click for the browser
+                  menu.
+                </div>
+                <div className="grimoire-guide-details">
+                  <strong>About this workspace</strong>
+                  <p>
+                    Drag a window by its title bar, resize from the
+                    bottom-right, and restore it from the Dock. Text and
+                    settings are saved only in this browser.
+                  </p>
+                  <p>
+                    The three abilities use local processing by default; you can
+                    select Gemini explicitly. Local mode provides source
+                    excerpts, limited rule checks, and an event-introduction
+                    template. Gemini provides cited summaries, checks, and
+                    creative drafts for human review.
+                  </p>
+                  <p>
+                    Results are saved in Run history. All three familiars
+                    support one-time Gemini tasks and replies; continuous
+                    watching uses local rules.
+                  </p>
+                </div>
               </div>
             )}
             {tab === "Familiars" && <TaskList />}
             {tab === "About you" && <AboutYou />}
             {tab === "Settings" && (
               <div className="book-page settings">
+                <fieldset disabled={resetting} className="book-settings-fields">
                 <label>
                   <input
                     type="checkbox"
@@ -133,6 +200,11 @@ export function Grimoire() {
                     }
                   />{" "}
                   Show the witch
+                </label>
+                <label>
+                  <input type="checkbox" checked={settings.idleAntics}
+                    onChange={(e) => update({ idleAntics: e.target.checked })} />{" "}
+                  Idle antics
                 </label>
                 <label>
                   <input
@@ -173,7 +245,10 @@ export function Grimoire() {
                   </select>
                 </label>
                 <p id="idle-rhythm-help" className="subtle">
-                  After the pointer pauses for half a second, the witch begins to float. Small gestures start after about 1.2 seconds with the default rhythm or 0.65 seconds with Lively. Gestures stop while moving and stay still when reduced motion is on.
+                  After the pointer pauses for half a second, the witch begins
+                  to float. Small gestures start after about 1.2 seconds with
+                  the default rhythm or 0.65 seconds with Lively. Gestures stop
+                  while moving and stay still when reduced motion is on.
                 </p>
                 <label>
                   <input
@@ -186,6 +261,8 @@ export function Grimoire() {
                   Helpful proposals (local suggestions)
                 </label>
                 <p role="status">{status}</p>
+                </fieldset>
+                <NotebookActions onResetting={setResetting} />
               </div>
             )}
           </div>

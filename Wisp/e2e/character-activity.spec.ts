@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Page, type Route } from "./offline-app";
 
 function reply(route: Route, operation = "understand") {
   const body = route.request().postDataJSON();
@@ -66,7 +67,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 503, body: "Offline character test" }),
   );
   await page.goto("/");
-  await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+  await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
 });
 
 test("reading follows real processing, avoids the panel, lights only on saved success and clears on close", async ({
@@ -194,7 +195,7 @@ test("Check and Create show distinct actions; native editing takes priority", as
       state,
     );
     await page.screenshot({ path: `test-results/english/pdf0710-${state}.png` });
-    const editor = page.getByLabel("Bookstore event proposal text");
+    const editor = (await editDocument(page, "Bookstore event proposal"));
     await editor.focus();
     await page.keyboard.insertText("编辑仍有效");
     await expect(page.locator(".companion")).toHaveAttribute(
@@ -213,7 +214,7 @@ test("system and application reduced motion keep active reading static; hidden c
 }) => {
   for (const mode of ["system", "setting", "hidden"]) {
     await page.reload();
-    await expect(page.getByLabel("Bookstore event proposal text")).toBeVisible();
+    await expect(page.getByLabel("Bookstore event proposal reading view", { exact: true })).toBeVisible();
     if (mode === "system") await page.emulateMedia({ reducedMotion: "reduce" });
     else {
       await page.emulateMedia({ reducedMotion: "no-preference" });

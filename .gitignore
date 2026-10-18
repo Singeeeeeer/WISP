@@ -24,6 +24,7 @@ releases/
 /Wisp/PACKAGE-INFO.json
 /Wisp/docs/gemini-live-*.json
 /*.mp4
+wisp-desktop-companion-v0.3.2/
 
 # Temporary files and local databases
 *.tmp

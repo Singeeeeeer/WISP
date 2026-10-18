@@ -1,0 +1,205 @@
+.familiar-marker.task-rail {
+  position: fixed;
+  z-index: 820;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  width: 52px;
+  max-height: calc(100dvh - 180px);
+  padding: 9px 2px 6px;
+  gap: 7px;
+  border: 2px solid #b7a2c7;
+  border-radius: 0;
+  background: #fffaf0;
+  box-shadow: 2px 2px 0 #cdb8de;
+}
+.task-rail .task-rail-label {
+  font-size: 7px;
+  line-height: 1.2;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #9777ac;
+}
+.task-rail-marks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+.task-rail-marks:empty {
+  display: none;
+}
+.task-rail .familiar-task-mark {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 0;
+  padding: 2px;
+  background: transparent;
+}
+.task-rail .familiar-task-mark img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.task-rail .familiar-task-mark[aria-pressed="true"] {
+  background: #eee2f5;
+  border-color: #aa83c3;
+}
+.task-rail .familiar-task-mark[data-state="running"] img,
+.task-rail .familiar-task-mark[data-state="queued"] img {
+  animation: task-familiar-breathe 1.4s steps(3) infinite;
+}
+.task-rail .task-mark-status {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid #fff8ed;
+  background: #ab8bc1;
+  box-shadow: 1px 1px 0 #9e81b2;
+}
+.task-rail [data-state="completed"] .task-mark-status {
+  background: #7a9c83;
+}
+.task-rail [data-unread="true"] .task-mark-status {
+  background: #bd9254;
+  box-shadow: 0 0 0 2px #f6e5c9;
+}
+.task-rail [data-state="failed"] .task-mark-status,
+.task-rail [data-state="interrupted"] .task-mark-status {
+  background: #be6c64;
+}
+.task-rail [data-state="cancelled"] img,
+.task-rail [data-state="paused"] img,
+.task-rail [data-state="interrupted"] img {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+.task-rail .familiar-watch-mark {
+  border-style: dashed;
+  border-color: #c9b6d5;
+}
+.task-rail .task-register-button {
+  border: 0;
+  border-top: 1px solid #e2d4e9;
+  border-radius: 0;
+  padding: 5px 0 0;
+  background: transparent;
+  width: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 9px;
+  line-height: 1.2;
+  gap: 3px;
+}
+.task-register-button img {
+  width: 23px;
+  height: 23px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.task-rail .task-register-button[data-attention="true"] {
+  color: #9b514c;
+  background: #f8e9e3;
+}
+.familiar-task-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.familiar-task-heading img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.familiar-task-list .scope {
+  border-width: 0 0 1px;
+  border-style: solid;
+  background: transparent;
+  padding-inline: 0;
+}
+.familiar-task-list .scope pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.familiar-task-list .scope > p {
+  margin: 8px 0;
+}
+.familiar-task-list details {
+  margin: 10px 0;
+}
+.familiar-task-panel .task-all-link {
+  margin-top: 12px;
+  font-size: 11px;
+}
+.task-open-error {
+  position: fixed;
+  z-index: 1200;
+  right: 78px;
+  top: 90px;
+  width: min(340px, calc(100vw - 96px));
+  padding: 14px;
+  background: #fffaf0;
+  border: 2px solid #b77c75;
+  color: #8b4c49;
+}
+.task-open-error button {
+  margin-top: 8px;
+}
+@keyframes task-familiar-breathe {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+.task-rail[data-reduced="true"] .familiar-task-mark img {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-rail .familiar-task-mark img {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .familiar-marker.task-rail {
+    left: auto;
+    right: 15px;
+    top: auto;
+    bottom: 120px;
+    transform: none;
+    width: max-content;
+    max-width: calc(100vw - 125px);
+    height: 79px;
+    max-height: 79px;
+    flex-direction: row;
+    padding: 6px;
+  }
+  .task-rail .task-rail-label {
+    display: none;
+  }
+  .task-rail-marks {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .task-rail .task-register-button {
+    margin-left: auto;
+    border-top: 0;
+    border-left: 1px solid #e2d4e9;
+    padding: 0 0 0 6px;
+    width: 48px;
+  }
+}

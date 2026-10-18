@@ -7,11 +7,17 @@ export function FloatingPanel({
   title,
   close,
   busy = false,
+  className = "",
+  placement = "pointer",
+  closeLabel = "Close panel",
   children,
 }: {
   title: string;
   close: () => void;
   busy?: boolean;
+  className?: string;
+  placement?: "pointer" | "left" | "right";
+  closeLabel?: string;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -25,16 +31,32 @@ export function FloatingPanel({
     const panel = ref.current!;
     const previous = document.activeElement as HTMLElement | null;
     const place = () => {
-      const box = panel.getBoundingClientRect();
-      const left =
+      const box = { width: panel.offsetWidth, height: panel.offsetHeight };
+      const dockTop = document
+        .querySelector(".desktop-dock")
+        ?.getBoundingClientRect().top;
+      const bottom =
+        placement === "pointer" && dockTop && dockTop > box.height + 36
+          ? dockTop - 12
+          : innerHeight - 12;
+      const pointerLeft =
         anchor.x + 20 + box.width <= innerWidth - 12
           ? anchor.x + 20
           : anchor.x - box.width - 20;
+      const left =
+        placement === "left"
+          ? 22
+          : placement === "right"
+            ? innerWidth - box.width - 78
+            : pointerLeft;
       setPosition({
         left: Math.max(12, Math.min(left, innerWidth - box.width - 12)),
         top: Math.max(
           12,
-          Math.min(anchor.y - 40, innerHeight - box.height - 12),
+          Math.min(
+            placement === "pointer" ? anchor.y - 40 : 90,
+            bottom - box.height,
+          ),
         ),
       });
     };
@@ -58,11 +80,11 @@ export function FloatingPanel({
       if (panel.contains(document.activeElement) && previous?.isConnected)
         previous.focus({ preventScroll: true });
     };
-  }, [anchor]);
+  }, [anchor, placement]);
   return (
     <div
       ref={ref}
-      className="floating-panel"
+      className={`floating-panel ${className}`.trim()}
       role="dialog"
       aria-modal="false"
       aria-label={title}
@@ -72,7 +94,7 @@ export function FloatingPanel({
     >
       <header className="floating-heading">
         <span>{title}</span>
-        <button aria-label="Close panel" disabled={busy} onClick={close}>
+        <button aria-label={closeLabel} disabled={busy} onClick={close}>
           ×
         </button>
       </header>

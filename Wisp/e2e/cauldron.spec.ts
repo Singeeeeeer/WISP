@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect, type Page } from "./offline-app";
 async function open(page: Page) {
   await page.getByRole("button", { name: "Inspiration Cauldron", exact: true }).click();
   return page.getByRole("dialog", { name: "Inspiration Cauldron" });
@@ -18,14 +19,14 @@ test("cauldron adds pasted text without windows and scopes each capability to on
   page,
 }) => {
   await page.goto("/");
-  const previousEditor = page.getByLabel("Venue notes text");
+  const previousEditor = (await editDocument(page, "Venue notes"));
   await previousEditor.focus();
   await previousEditor.press("Control+Home");
   await previousEditor.press("Shift+ArrowRight");
   const text =
     "主题：熔炉读书会\n时间：周六\n地点：街角书店\nHow to join: Reservation\nThe event is scheduled to open on November 8. The poster is scheduled to be finalized on November 10, followed by registration opening.";
   let d = await paste(page, "单份材料A", text);
-  await expect(page.getByLabel("单份材料A text")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "单份材料A window", exact: true })).toHaveCount(0);
   await d.getByRole("button", { name: "Understand", exact: true }).click();
   await expect(page.getByTestId("snapshot-text")).toHaveText(text);
   await page.getByRole("button", { name: "Organize source excerpts" }).click();
@@ -54,13 +55,13 @@ test("cauldron adds pasted text without windows and scopes each capability to on
   d = await open(page);
   await d.getByRole("button", { name: "Select material 单份材料A" }).click();
   await expect(d.getByTestId("material-detail")).toContainText("saved");
-  await expect(page.getByLabel("单份材料A text")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "单份材料A window", exact: true })).toHaveCount(0);
   await d.getByRole("button", { name: "Remove from cauldron", exact: true }).click();
   await d.getByRole("button", { name: "All local materials", exact: true }).click();
   await d.getByRole("button", { name: "Select material 单份材料A" }).click();
   await d.getByRole("button", { name: "Add to cauldron", exact: true }).click();
   await d.getByRole("button", { name: "Open editor", exact: true }).click();
-  await expect(page.getByLabel("单份材料A text")).toHaveValue(text);
+  await expect(page.getByLabel("单份材料A reading view", { exact: true })).toHaveText(text);
   await expect
     .poll(() =>
       page.evaluate(async () => {
@@ -81,9 +82,9 @@ test("cauldron adds pasted text without windows and scopes each capability to on
         return value.length;
       }),
     )
-    .toBe(3);
+    .toBe(4);
   await page.reload();
-  await expect(page.getByLabel("单份材料A text")).toHaveValue(text);
+  await expect(page.getByLabel("单份材料A reading view", { exact: true })).toHaveText(text);
 });
 test("TXT preview rejects invalid encoding and preserves immutable filename after rename", async ({
   page,
@@ -126,23 +127,23 @@ test("new blank material opens one editor and synchronizes to another tab withou
   await d.getByRole("button", { name: "New material", exact: true }).click();
   await d.getByLabel("New material title").fill("新的空白");
   await d.getByRole("button", { name: "Confirm creation", exact: true }).click();
-  await expect(page.getByLabel("新的空白 text")).toHaveValue("");
+  await expect(page.getByLabel("新的空白 reading view", { exact: true })).toHaveText("Use Edit text to start writing.");
   const od = await open(other);
   await od.getByRole("button", { name: "Select material 新的空白" }).click();
   await expect(
     od.getByRole("button", { name: "Understand", exact: true }),
   ).toBeDisabled();
-  await expect(other.getByLabel("新的空白 text")).toHaveCount(0);
+  await expect(other.getByRole("region", { name: "新的空白 window", exact: true })).toHaveCount(0);
   await od.getByRole("button", { name: "Open editor", exact: true }).click();
-  await expect(other.getByLabel("新的空白 text")).toHaveCount(1);
-  await other.getByLabel("新的空白 text").fill("其他页面先保存");
-  await expect(other.getByText("saved", { exact: true })).toHaveCount(3);
-  await page.getByLabel("新的空白 text").fill("保留本页冲突草稿");
+  await expect(other.getByLabel("新的空白 reading view", { exact: true })).toHaveCount(1);
+  await (await editDocument(other, "新的空白")).fill("其他页面先保存");
+  await expect(other.getByText("saved", { exact: true })).toHaveCount(4);
+  await (await editDocument(page, "新的空白")).fill("保留本页冲突草稿");
   await expect(page.getByRole("alert")).toContainText("Save conflict");
   await open(page);
   await page.getByRole("button", { name: "Refresh material list", exact: true }).click();
   await page.getByRole("button", { name: "Close Inspiration Cauldron", exact: true }).click();
-  await expect(page.getByLabel("新的空白 text")).toHaveValue("保留本页冲突草稿");
+  await expect((await editDocument(page, "新的空白"))).toHaveValue("保留本页冲突草稿");
 });
 test("failed first save keeps draft and retry produces exactly one material", async ({
   page,
@@ -239,7 +240,7 @@ test("imported text watch follows Wisp versions after removal and never watches 
     "being watched",
   );
   await again.getByRole("button", { name: "Open editor", exact: true }).click();
-  await page.getByLabel("关注文件.txt text").fill(text + "\n本地修订");
+  await (await editDocument(page, "关注文件.txt")).fill(text + "\n本地修订");
   await expect(
     page.getByRole("complementary", { name: "Familiar task status" }),
   ).toContainText("1 unread");
@@ -266,12 +267,12 @@ test("unopened materials synchronize saved edits while open editors retain confl
     .click();
   await expect(od.getByTestId("material-detail")).toContainText("初始内容");
   await d.getByRole("button", { name: "Open editor", exact: true }).click();
-  await page.getByLabel("远端材料 text").fill("新的远端内容");
-  await expect(page.getByText("saved", { exact: true })).toHaveCount(3);
+  await (await editDocument(page, "远端材料")).fill("新的远端内容");
+  await expect(page.getByText("saved", { exact: true })).toHaveCount(4);
   await expect(od.getByTestId("material-detail")).toContainText("新的远端内容");
   await od.getByRole("button", { name: "Open editor", exact: true }).click();
-  await other.getByLabel("远端材料 text").fill("接着编辑");
-  await expect(other.getByText("saved", { exact: true })).toHaveCount(3);
+  await (await editDocument(other, "远端材料")).fill("接着编辑");
+  await expect(other.getByText("saved", { exact: true })).toHaveCount(4);
   await expect(other.getByRole("alert")).toHaveCount(0);
 });
 

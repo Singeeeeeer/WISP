@@ -1,11 +1,12 @@
-import { test, expect } from "@playwright/test";
+import { editDocument } from "./document-editor";
+import { test, expect } from "./offline-app";
 test("Understand and Create share persistence, preserve source, and copy labelled output", async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   const source =
     "Topic: 😀 Night reading\nTime: Saturday evening\nLocation: Bookstore\nHow to join: Reservation\n第五行\n第六行\n第七行\n第八行\n未摘录的第九行";
   await editor.fill(source);
@@ -50,6 +51,7 @@ test("Understand and Create share persistence, preserve source, and copy labelle
   await page.getByRole("button", { name: "Close result" }).click();
   await expect(editor).toHaveValue(source);
   await page.reload();
+  await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("button", { name: "Run history", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "View Understand result" }),
@@ -58,8 +60,9 @@ test("Understand and Create share persistence, preserve source, and copy labelle
     page.getByRole("button", { name: "View Create result" }),
   ).toHaveCount(1);
   await page.getByRole("button", { name: "Close run history" }).click();
-  await editor.fill("Topic: New version");
+  await (await editDocument(page)).fill("Topic: New version");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
+  await page.getByRole("button", { name: "File", exact: true }).click();
   await page.getByRole("button", { name: "Run history", exact: true }).click();
   await page.getByRole("button", { name: "View Create result" }).click();
   await expect(
@@ -78,7 +81,7 @@ test("Create only uses selected text and handles failed save with a retry", asyn
   page,
 }) => {
   await page.goto("/");
-  const editor = page.getByLabel("Bookstore event proposal text");
+  const editor = (await editDocument(page, "Bookstore event proposal"));
   await editor.fill("Topic: Selected topic\nLocation: Private address not to copy");
   await expect(page.getByTestId("save-proposal")).toHaveText("saved");
   await editor.press("Control+Home");
