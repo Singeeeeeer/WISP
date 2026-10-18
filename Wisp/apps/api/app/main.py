@@ -12,6 +12,8 @@ from .config import load_settings
 from .check_contract import CheckRequest
 from .text_contract import UnderstandRequest, CreateRequest
 from .connection_contract import ConnectionRequest
+from .batch_contract import BatchRequest, BatchUnderstandRequest
+from .batch_gemini import run_batch
 from .import_text import install_import_route
 from .gemini import Gemini, ModelFailure, strict_json
 
@@ -45,7 +47,8 @@ def create_app(settings=None, *, transport=None):
     async def request_identity(request:Request,call_next):
         request.state.request_id=str(uuid.uuid4())
         # Bound decoded request bytes before FastAPI/Pydantic allocate the object graph.
-        if request.url.path in ('/api/check','/api/understand','/api/create','/api/connections'):
+        if request.url.path in ('/api/check','/api/understand','/api/create','/api/connections',
+                               '/api/batch/check','/api/batch/understand','/api/batch/create'):
             body=bytearray()
             try:
                 async for chunk in request.stream():
@@ -81,7 +84,7 @@ def create_app(settings=None, *, transport=None):
             'model_status':'verified' if engine.verified else ('configured' if engine.settings.configured else 'unconfigured'),
             'jobs_enabled':False}
 
-    async def execute(request:Request, operation, contract):
+    async def execute(request:Request, operation, contract, *, batch=False):
         try:
             parsed=strict_json(await request.body())
             value=contract.model_validate(parsed)
@@ -90,8 +93,8 @@ def create_app(settings=None, *, transport=None):
         if not engine.settings.configured: raise ModelFailure('MODEL_NOT_CONFIGURED',503)
         # Hash every field (including optional source metadata), preserving exact identity.
         import json
-        identity=hashlib.sha256(json.dumps({'operation':operation,'request':parsed},sort_keys=True,ensure_ascii=True,separators=(',',':')).encode()).hexdigest()
-        key=value.id if operation=='connect' else value.snapshot.id
+        identity=hashlib.sha256(json.dumps({'scope':'batch' if batch else 'single','operation':operation,'request':parsed},sort_keys=True,ensure_ascii=True,separators=(',',':')).encode()).hexdigest()
+        key=value.id if batch or operation=='connect' else value.snapshot.id
         now=time.monotonic()
         for old_key in list(completed):
             if completed[old_key][0]<=now: del completed[old_key]
@@ -105,7 +108,7 @@ def create_app(settings=None, *, transport=None):
         if len(inflight)>=8: raise ModelFailure('SERVER_BUSY',503)
         inflight[key]=identity
         try:
-            result=await getattr(engine,operation)(value)
+            result=await run_batch(engine,operation,value) if batch else await getattr(engine,operation)(value)
             completed[key]=(time.monotonic()+cache_ttl,identity,result)
             while len(completed)>cache_limit: completed.popitem(last=False)
             return result
@@ -127,6 +130,18 @@ def create_app(settings=None, *, transport=None):
     @api.post('/api/connections')
     async def connections(request:Request):
         return await execute(request,'connect',ConnectionRequest)
+
+    @api.post('/api/batch/check')
+    async def batch_check(request:Request):
+        return await execute(request,'check',BatchRequest,batch=True)
+
+    @api.post('/api/batch/understand')
+    async def batch_understand(request:Request):
+        return await execute(request,'understand',BatchUnderstandRequest,batch=True)
+
+    @api.post('/api/batch/create')
+    async def batch_create(request:Request):
+        return await execute(request,'create',BatchRequest,batch=True)
 
     @api.post('/api/jobs')
     async def unavailable_jobs():

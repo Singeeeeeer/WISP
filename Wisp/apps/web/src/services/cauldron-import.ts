@@ -36,6 +36,7 @@ export function importBlockReason(): string {
   const state = useInteraction.getState();
   if (
     state.draft ||
+    state.batchDraft ||
     state.jointDraft ||
     state.watchDraft ||
     state.canvas ||

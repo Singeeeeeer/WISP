@@ -30,6 +30,7 @@ import {
   requestDocumentCopy,
   useCauldronImport,
 } from "../../services/cauldron-import";
+import { prepareBatch } from "../batch/actions";
 import "./cauldron.css";
 type Mode = "new_text" | "pasted_text" | "file" | "copy";
 export function Cauldron() {
@@ -40,6 +41,8 @@ export function Cauldron() {
   const { entries, ready, error: loadError, selected } = useCauldron();
   const watches = useWatches((s) => s.watches);
   const [all, setAll] = useState(false);
+  const [batchSelecting, setBatchSelecting] = useState(false);
+  const [checked, setChecked] = useState<string[]>([]);
   const [mode, setMode] = useState<Mode>();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
@@ -99,6 +102,8 @@ export function Cauldron() {
   const material = materials.find((m) => m.id === selected);
   const member = (id: string) => entries.some((e) => e.materialId === id);
   const visible = materials.filter((m) => all || member(m.id));
+  const picked = checked.filter((id) => member(id) && materials.some((m) => m.id === id));
+  const pickedUnits = picked.reduce((total, id) => total + materials.find((m) => m.id === id)!.text.length, 0);
   const close = () => {
     if (lock.current || reading) return;
     if (mode) {
@@ -111,6 +116,7 @@ export function Cauldron() {
   };
   function begin(next: Mode) {
     importOwner.current = claimImport();
+    setBatchSelecting(false);
     setMode(next);
     setTitle("");
     setText("");
@@ -266,7 +272,7 @@ export function Cauldron() {
             ×
           </button>
         </div>
-        <p>收好手边的文字，每次选择一份，确认后再交给 Wisp。</p>
+        <p>收好手边的文字，选择一份或勾选多份，确认范围后再交给 Wisp。</p>
         <div className="cauldron-toolbar">
           <button
             disabled={!!mode || busy || !ready}
@@ -496,15 +502,59 @@ export function Cauldron() {
               <button onClick={() => void refreshCauldron()}>
                 刷新材料列表
               </button>
+              <button
+                aria-pressed={batchSelecting}
+                onClick={() => {
+                  setBatchSelecting(!batchSelecting);
+                  setChecked([]);
+                  setError("");
+                }}
+              >
+                {batchSelecting ? "退出多材料选择" : "勾选多材料"}
+              </button>
             </div>
+            {batchSelecting && (
+              <section className="scope" aria-label="多材料处理">
+                <strong>已选 {picked.length} / 12 份</strong>
+                <p role="status">
+                  全文合计 {pickedUnits.toLocaleString()} UTF-16 单元 · 本次处理上限 60,000。
+                  {pickedUnits > 60000 ? "请在下一步逐份缩小范围，超限不会提交。" : "下一步可逐份确认全文或选段。"}
+                </p>
+                <div className="cauldron-actions">
+                  {(["understand", "check", "create", "summon"] as const).map((entry) => (
+                    <button
+                      key={entry}
+                      disabled={busy || !ready || picked.length < 2}
+                      onClick={() => {
+                        try { prepareBatch(picked, entry); }
+                        catch (e) { setError(e instanceof Error ? e.message : "材料不可用"); }
+                      }}
+                    >
+                      {entry[0].toUpperCase() + entry.slice(1)} 多材料
+                    </button>
+                  ))}
+                </div>
+                <p className="subtle">勾选 2～12 份熔炉材料。综合处理使用 Gemini；点击入口仅确认，不立即发送。单份本地规则请退出多材料选择。</p>
+              </section>
+            )}
             <div className="cauldron-grid">
               <div className="cauldron-list" aria-label="材料列表">
                 {!visible.length && (
                   <p className="empty">熔炉还是空的。加入一份文字开始吧。</p>
                 )}
                 {visible.map((m) => (
+                  <div className="cauldron-item" key={m.id}>
+                  {batchSelecting && (
+                    <input
+                      type="checkbox"
+                      aria-label={"处理材料 " + m.title}
+                      title={member(m.id) ? "加入本次处理" : "请先加入熔炉"}
+                      disabled={!member(m.id) || busy}
+                      checked={picked.includes(m.id)}
+                      onChange={(e) => setChecked(e.target.checked ? [...picked, m.id] : picked.filter((id) => id !== m.id))}
+                    />
+                  )}
                   <button
-                    key={m.id}
                     aria-label={"选择材料 " + m.title}
                     aria-pressed={selected === m.id}
                     onClick={() => {
@@ -518,6 +568,7 @@ export function Cauldron() {
                     </small>
                     <small>{sourceDescription(m)}</small>
                   </button>
+                  </div>
                 ))}
               </div>
               <section
@@ -585,7 +636,7 @@ export function Cauldron() {
                     <p className="notice">
                       移出只腾出容器名额。材料、结果、任务与持续关注均保留，可从“全部本地材料”重新加入。
                     </p>
-                    <div className="cauldron-actions">
+                    {!batchSelecting && <div className="cauldron-actions">
                       {(
                         ["understand", "check", "create", "summon"] as const
                       ).map((entry) => (
@@ -607,13 +658,13 @@ export function Cauldron() {
                           {entry[0].toUpperCase() + entry.slice(1)}
                         </button>
                       ))}
-                    </div>
-                    <p className="subtle">
+                    </div>}
+                    {!batchSelecting && <p className="subtle">
                       仅处理当前选中材料的全文。下一步仍需确认范围，不沿用文档选区。
                       {material.text.length > 60000
                         ? "全文超出处理上限，可打开编辑选择较小范围。"
                         : ""}
-                    </p>
+                    </p>}
                   </>
                 ) : (
                   <p className="empty">选择一份材料，查看来源与处理入口。</p>

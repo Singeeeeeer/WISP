@@ -162,6 +162,32 @@ it("blocks other dialogs but permits the cauldron's own dialog", () => {
   expect(importBlockReason()).toBe("");
 });
 
+it("preserves a batch confirmation when file or document-copy imports are attempted", () => {
+  const batchDraft = {
+    id: "batch-confirmation",
+    entry: "understand" as const,
+    snapshots: [
+      snapshot(material),
+      snapshot({ ...material, id: "second-material" }),
+    ],
+    instruction: "共同理解",
+    familiar: "page_sprite" as const,
+  };
+  useInteraction.setState({ batchDraft });
+  expect(() =>
+    queueImport({ file: new File(["text"], "input.txt") }),
+  ).toThrow("当前面板");
+  requestDocumentCopy(material.id);
+  expect(useCauldronImport.getState().error).toContain("当前面板");
+  const drag = transfer();
+  expect(() => startDocumentDrag(material.id, drag)).toThrow("当前面板");
+  expect(drag.getData(DOCUMENT_DRAG_TYPE)).toBe("");
+  expect(useCauldronImport.getState().occupied).toBe(false);
+  expect(useCauldronImport.getState().request).toBeUndefined();
+  expect(useInteraction.getState().cauldron).toBe(false);
+  expect(useInteraction.getState().batchDraft).toBe(batchDraft);
+});
+
 it.each(["documents", "cauldron"])(
   "rejects drops before %s has loaded",
   (store) => {

@@ -42,7 +42,7 @@ it("upgrades v2 and preserves its Check records and user documents", async () =>
   expect(await r.listChecks()).toEqual([check]);
   expect(await r.initialize()).toEqual([material]);
   const probe = await openDB(name);
-  expect(probe.version).toBe(8);
+  expect(probe.version).toBe(9);
   probe.close();
 });
 it("does not return a different operation for a reused submission ID", async () => {

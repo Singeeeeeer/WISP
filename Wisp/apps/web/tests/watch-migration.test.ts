@@ -41,6 +41,6 @@ it("upgrades v4 without losing documents, settings, joint records or tasks", asy
     helpfulProposals: true,
   });
   const probe = await openDB(name);
-  expect(probe.version).toBe(8);
+  expect(probe.version).toBe(9);
   probe.close();
 });
