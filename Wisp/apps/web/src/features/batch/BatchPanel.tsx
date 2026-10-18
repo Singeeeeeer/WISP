@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 import {
   sliceBatchSnapshot,
   validBatchSnapshots,
@@ -16,12 +22,15 @@ import { FloatingPanel } from "../../shared/FloatingPanel";
 import { SourceInfo } from "../../shared/SourceInfo";
 import { SummaryChoice } from "../check/SummaryChoice";
 import { captureOutcome } from "../companion/outcome";
+import { useTaskActivity } from "../companion/activity";
+import { captureSummonFlight } from "../companion/summon-flight";
 import { BatchResult } from "./BatchResult";
 import { openBatchDraft, prepareBatchAgain, familiarForBatch } from "./actions";
 import "./batch.css";
 
 const repository = createRepository();
 export function BatchPanel({ draft }: { draft: BatchDraft }) {
+  const activity = useTaskActivity("brewing");
   const materials = useDocuments((s) => s.materials);
   const saveStatus = useDocuments((s) => s.status);
   const ready = useTasks((s) => s.ready);
@@ -143,9 +152,17 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
       [index]: [target.selectionStart, target.selectionEnd],
     }));
   }
-  async function submit() {
+  async function submit(event: MouseEvent<HTMLButtonElement>) {
     if (locked.current || !valid) return;
     const finish = captureOutcome();
+    const finishActivity =
+      draft.entry === "summon"
+        ? undefined
+        : activity.start(event.currentTarget);
+    const launch =
+      draft.entry === "summon"
+        ? captureSummonFlight(draft.familiar, event.currentTarget, event)
+        : undefined;
     locked.current = true;
     attempted.current = true;
     setBusy(true);
@@ -164,6 +181,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
               : undefined,
         });
         if (mounted.current) {
+          launch?.();
           finish("success");
           useInteraction.setState({ batchDraft: undefined });
         }
@@ -179,6 +197,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
         );
         const saved = await submission.current.run(abort.signal);
         if (mounted.current) {
+          finishActivity?.("success");
           finish("success");
           setRecord(saved);
           setRunState("completed");
@@ -188,6 +207,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
       if (mounted.current) {
         const cancelled =
           abort.signal.aborted && !submission.current?.hasResult();
+        finishActivity?.(cancelled ? "cancel" : "error");
         finish(cancelled ? "cancel" : "error");
         setRunState(cancelled ? "cancelled" : "failed");
         setError(
@@ -377,7 +397,7 @@ export function BatchPanel({ draft }: { draft: BatchDraft }) {
                 disabled={
                   busy || !valid || (draft.entry === "summon" && !ready)
                 }
-                onClick={() => void submit()}
+                onClick={(event) => void submit(event)}
               >
                 {busy
                   ? "正在处理并保存…"

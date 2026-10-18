@@ -166,6 +166,7 @@ export function prepareMaterial(id: string, entry: ActionDraft["entry"]) {
     selectionError: undefined,
     draft: {
       entry,
+      ...(entry !== "summon" ? { presentation: "brewing" as const } : {}),
       snapshot: snapshot(m),
       instruction: "",
       familiar: "page_sprite",
@@ -336,6 +337,7 @@ export function initialize() {
         useInteraction.setState({
           settings: {
             ...settings,
+            idleRhythm: settings.idleRhythm === "lively" ? "lively" : "default",
             characterSize: Math.max(32, Math.min(72, settings.characterSize)),
           },
         });

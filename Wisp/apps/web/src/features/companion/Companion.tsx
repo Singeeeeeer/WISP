@@ -4,6 +4,13 @@ import { Sprite } from "./Sprite";
 import { MagicRing } from "./MagicRing";
 import { getMagicLayout, type Point } from "./magic-layout";
 import { pointer, rememberPointer } from "./pointer";
+import {
+  besideSurface,
+  useBackgroundActivity,
+  useCharacterActivity,
+} from "./activity";
+import { CharacterPose, type CharacterPoseName } from "./CharacterPose";
+import { FamiliarFlight } from "./FamiliarFlight";
 import "./wand-cursor.css";
 import "./companion.css";
 
@@ -16,6 +23,16 @@ function isEditing(target: EventTarget | null) {
 export function Companion() {
   const settings = useInteraction((s) => s.settings);
   const menu = useInteraction((s) => s.menu);
+  const foreground = useCharacterActivity((s) => s.current);
+  const background = useBackgroundActivity();
+  const activity = foreground ?? background;
+  const activityRef = useRef(activity);
+  activityRef.current = activity;
+  const [visual, setVisual] = useState<{
+    pose: CharacterPoseName;
+    success: boolean;
+  }>({ pose: "flying", success: false });
+  const visualRef = useRef(visual);
   // The character and ring share one anchor for the entire menu session.
   const anchor = useMemo(() => ({ ...pointer }), [menu]);
   const [viewport, setViewport] = useState(() => ({
@@ -35,6 +52,7 @@ export function Companion() {
   const heading = useRef<HTMLDivElement>(null);
   const position = useRef<Point | undefined>(undefined);
   const flight = useRef({ facing: 1, pitch: 0 });
+  const gesture = useRef({ pressed: false, selecting: false });
   useEffect(() => {
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
     const change = () => setSystemReduced(preference.matches);
@@ -50,7 +68,10 @@ export function Companion() {
   useLayoutEffect(() => {
     const el = ref.current;
     const direction = heading.current;
-    if (!el || !direction || !settings.characterVisible) return;
+    if (!el || !direction || !settings.characterVisible) {
+      gesture.current = { pressed: false, selecting: false };
+      return;
+    }
     const height = (width * 260) / 270;
     // 34px per axis leaves about 48px from the hotspot.
     const gap = 34;
@@ -88,7 +109,11 @@ export function Companion() {
       el.style.transform = `translate(${x}px, ${y}px)`;
     };
     if (menu) {
+      gesture.current = { pressed: false, selecting: false };
       el.dataset.state = "casting";
+      el.dataset.phase = "";
+      el.dataset.activitySource = "";
+      el.dataset.idleAction = "";
       el.style.visibility = "visible";
       orient(layout.caster.facing, 0);
       place(layout.caster.x, layout.caster.y);
@@ -99,11 +124,17 @@ export function Companion() {
     let previous = lastMove;
     let lastPoint = { ...pointer };
     let lastTurnX = pointer.x;
-    let dragging = false;
-    let pressed = false;
-    let selecting = false;
     let inside = document.hasFocus();
     let frame = 0;
+    const showPose = (pose: CharacterPoseName, success = false) => {
+      if (
+        visualRef.current.pose === pose &&
+        visualRef.current.success === success
+      )
+        return;
+      visualRef.current = { pose, success };
+      setVisual(visualRef.current);
+    };
     const move = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
       rememberPointer(event);
@@ -127,21 +158,17 @@ export function Companion() {
     };
     const down = (event: PointerEvent) => {
       if (event.button !== 0) return;
-      pressed = true;
-      const target = event.target;
-      dragging =
-        target instanceof Element &&
-        !!target.closest(".window-titlebar, .resize-handle") &&
-        !target.closest("button");
+      lastMove = performance.now();
+      gesture.current.pressed = true;
     };
     const end = () => {
-      pressed = false;
-      dragging = false;
-      selecting = false;
+      gesture.current.pressed = false;
+      gesture.current.selecting = false;
       lastMove = performance.now();
     };
     const selection = () => {
-      selecting = pressed && !!document.getSelection()?.toString();
+      gesture.current.selecting =
+        gesture.current.pressed && !!document.getSelection()?.toString();
     };
     const leave = () => {
       inside = false;
@@ -154,36 +181,113 @@ export function Companion() {
       lastTurnX = pointer.x;
     };
     const tick = (now: number) => {
-      const state = reduced
-        ? "still"
-        : dragging || selecting || isEditing(document.activeElement)
-          ? "yielding"
-          : now - lastMove >= 500
-            ? "idle"
-            : "following";
+      const current = activityRef.current;
+      const yielding =
+        !!document.documentElement.dataset.wispGesture ||
+        gesture.current.selecting ||
+        isEditing(document.activeElement);
+      const modal = document.querySelector(
+        '[role="dialog"][aria-modal="true"]',
+      );
+      const working =
+        current?.surface.isConnected &&
+        !yielding &&
+        (!modal || modal === current.surface)
+          ? current
+          : undefined;
+      const box = working?.surface.getBoundingClientRect();
+      const blocked = box
+        ? Array.from(
+            document.querySelectorAll(".desktop textarea"),
+            (element) => element.getBoundingClientRect(),
+          ).filter((rect) => rect.width > 0 && rect.height > 0)
+        : [];
+      const taskTarget = box
+        ? besideSurface(
+            box,
+            width,
+            height,
+            { width: innerWidth, height: innerHeight },
+            blocked,
+          )
+        : undefined;
+      const state = yielding
+        ? reduced
+          ? "still"
+          : "yielding"
+        : working
+          ? working.kind
+          : reduced
+            ? "still"
+            : now - lastMove >= 500
+              ? "idle"
+              : "following";
       el.dataset.state = state;
-      el.style.visibility = inside || reduced ? "visible" : "hidden";
-      orient(flight.current.facing, reduced ? 0 : flight.current.pitch);
+      el.dataset.phase = working?.phase ?? "";
+      el.dataset.activitySource = working
+        ? useCharacterActivity.getState().current === working
+          ? "foreground"
+          : "background"
+        : "";
+      // On narrow screens no decoration is preferable to covering the material.
+      el.style.visibility =
+        (inside || reduced) && (!working || taskTarget) ? "visible" : "hidden";
+      orient(
+        working
+          ? taskTarget && box && taskTarget.x < box.left
+            ? 1
+            : -1
+          : flight.current.facing,
+        reduced || working ? 0 : flight.current.pitch,
+      );
+      const idleAge = now - lastMove;
+      const idleStart = settings.idleRhythm === "lively" ? 650 : 1200;
+      const idleIndex = Math.floor(Math.max(0, idleAge - idleStart) / 3600) % 3;
+      const idleAction =
+        state === "idle" &&
+        idleAge >= idleStart &&
+        (idleAge - idleStart) % 3600 < 1600
+          ? (["hat", "sweep", "nap"] as const)[idleIndex]
+          : "flying";
+      el.dataset.idleAction = idleAction === "flying" ? "" : idleAction;
+      showPose(working?.kind ?? idleAction, working?.phase === "success");
       const target =
-        state === "yielding" || state === "still"
+        taskTarget ??
+        (state === "yielding" || state === "still"
           ? {
               x: limit(innerWidth - width - 32, width, innerWidth),
               y: limit(innerHeight - height - 100, height, innerHeight),
             }
-          : nearby();
+          : nearby());
       const alpha = 1 - Math.exp(-Math.min(now - previous, 64) / 110);
       previous = now;
       // Yield immediately so the character never travels across the selection.
-      if (state === "yielding" || state === "still") {
+      if (state === "yielding" || state === "still" || reduced) {
         x = target.x;
         y = target.y;
       } else {
         x += (target.x - x) * alpha;
         y += (target.y - y) * alpha;
       }
+      if (
+        working &&
+        box &&
+        taskTarget &&
+        [box, ...blocked].some(
+          (rect) =>
+            x < rect.right + 8 &&
+            x + width > rect.left - 8 &&
+            y < rect.bottom + 8 &&
+            y + height > rect.top - 8,
+        )
+      ) {
+        x = taskTarget.x;
+        y = taskTarget.y;
+      }
       // Constrain the rotated sprite, not just its unrotated positioning box.
       const radians =
-        (Math.abs(reduced ? 0 : flight.current.pitch) * Math.PI) / 180;
+        (Math.abs(reduced || working ? 0 : flight.current.pitch) * Math.PI) /
+        180;
       const cosine = Math.cos(radians);
       const sine = Math.sin(radians);
       const extraX = Math.max(0, (width * cosine + height * sine - width) / 2);
@@ -215,7 +319,14 @@ export function Companion() {
       document.documentElement.removeEventListener("pointerenter", enter);
       document.removeEventListener("selectionchange", selection);
     };
-  }, [settings.characterVisible, width, reduced, menu, layout]);
+  }, [
+    settings.characterVisible,
+    settings.idleRhythm,
+    width,
+    reduced,
+    menu,
+    layout,
+  ]);
 
   return (
     <>
@@ -224,18 +335,19 @@ export function Companion() {
           ref={ref}
           aria-hidden="true"
           className={"companion" + (reduced ? " still" : "")}
-          data-state={menu ? "casting" : reduced ? "still" : "following"}
           style={{ width }}
         >
           <div ref={heading} className="companion-heading">
-            <Sprite
-              name={menu ? "casting" : "witch"}
-              className="companion-pose"
-            />
+            {menu ? (
+              <Sprite name="casting" className="companion-pose" />
+            ) : (
+              <CharacterPose pose={visual.pose} success={visual.success} />
+            )}
           </div>
         </div>
       )}
       {menu && <MagicRing anchor={anchor} layout={layout} reduced={reduced} />}
+      <FamiliarFlight reduced={reduced} visible={settings.characterVisible} />
     </>
   );
 }

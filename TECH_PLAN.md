@@ -1,4 +1,6 @@
-# Witch Pointer 技术方案候选 v0.11
+# Witch Pointer 技术方案候选 v0.13
+
+2026-10-18 集成完成：三个本地分支已合入 main，多材料动画和导入互斥已补齐；248 项前端单元、83 项 API、159 项既有浏览器＋4 项新增交叉回归、类型与构建通过。下方各分支测试数量保留为历史记录；当前集成结果见 [合并验证](Wisp/docs/merge-integration-verification.md)。
 
 PDF-03／04 本分支：独立 cauldron-import 服务管理投放占用，material-copy 生成冻结来源；保存同事务核对原文版本与范围，前后端三能力支持 document_copy／selection_copy。无需依赖和数据库结构升级；独立 15310 离线验证通过，主预览保持现状；共享接口见 Wisp/docs/pdf03-04-import-copies-verification.md。
 
@@ -16,6 +18,14 @@ PDF-03／04 本分支：独立 cauldron-import 服务管理投放占用，materi
 
 用户确认第 4.12 节方案，独立分支实现与离线验证已完成。新增独立批量快照和 `/api/batch/understand`、`check`、`create`；请求保留有序独立快照，供应商只接收编号和正文，返回引用按指定材料校验。复用现有 Gemini 有界传输、一次性使魔生命周期及记录存储，保持原单材料契约。所有快照与参数共同参与幂等和任务绑定；合计 60,000 UTF-16、2～12 份。IndexedDB v9 隔离不能识别新记录的旧客户端，不改写旧记录；无需新依赖。验证使用虚构文本和模拟模型、独立 15320 端口；184 项前端单元、77 项 API、46 项浏览器及类型／构建通过。真实输出与集成回归待后续，见 [验证记录](Wisp/docs/pdf05-multi-material-verification.md) 和 [并行集成契约](Wisp/contracts/multi-material.md)。
 
+### 角色表现 PDF-07～10（已实现，体验与集成待审阅）
+
+复用当前像素图集、SVG／CSS 和真实任务状态，不新增位图、依赖或模型请求。Settings 增加 `idleRhythm: "default" | "lively"`，默认 default；旧设置缺失或非法值回退 default，沿用现有保存队列。500ms 轻浮不变，小动作阈值分别约 1.2s／0.65s，移动中断，帽子／扫星屑／打盹依次呈现。
+
+独立临时活动模块提供 `useTaskActivity(kind)`，kind 为 reading／checking／creating／brewing；`start(origin?)` 返回成功／失败／取消结局回调，clear 和卸载清理，同一来源新操作使旧回调失效。前台本地与 Gemini 完成均等待真实结果保存，Gemini 已取得结果后的 abort 按实际保存结局处理。后台读取既有 running／completed／failed／cancelled／interrupted，不把 submitTask 的入库成功当任务完成；只有本次显式召唤入库后播放前往 `.familiar-marker` 的装饰飞行，任务不等待动画。
+
+菜单／编辑让位优先，前台任务优先于最新运行中的后台使魔，再到待机；位置避让正文和控件，两种减少动态静态展示，隐藏角色不影响业务。当前 `prepareMaterial` 对非 summon 草稿设置 `presentation: "brewing"`，前台面板据此显式选动作；该字段仅在 `ActionDraft` 内，不进入 Task／结果记录。PDF-05 新多材料处理面板直接接 brewing；现有导入解析和材料保存 busy 不触发熬制。共享 model／stores／任务接线点记录为集成核对项，不修改持久化业务协议。独立 15330 系列端口、空模型配置与模拟响应验收，主 15278 不更新；164 项单元、58 项浏览器、类型及独立构建通过。窄屏无任务标记时抑制后台角色，召唤回退魔法书入口；前台无安全位置时隐藏装饰。真实任务变化通过 ref 供 RAF 读取，不重建进行中的手势监听。验证与接线契约见 Wisp/docs/pdf0710-character-verification.md。详见 DESIGN.md 第 4.13 节。
+
 ### 复杂格式导入 PDF-02
 
 已实现本机 `/api/import-text`，安装并锁定 python-docx、python-pptx、openpyxl、pypdf 与必要依赖。复杂格式使用独立进程解析，30 秒限时、最多 2 个并发，断连／超时回收；20 MB／60,000 UTF-16、压缩内容与页数等限额见 Wisp/contracts/import-text.md。熔炉复用事务与来源快照，支持可编辑预览／确认保存、取消迟到保护，三能力白名单已同步，不改变 IndexedDB v8。159 项前端单元、61 项 API、15 项浏览器及修复后 7 项针对性复测、类型／构建通过，15278 已更新。范围见 DESIGN.md 第 4.10 节；用户体验待审阅。
@@ -26,7 +36,7 @@ PDF-03／04 本分支：独立 cauldron-import 服务管理投放占用，materi
 
 ### Understand 阅读动作 WP-07
 
-已确认交互流程：复用既有读书图集，跟随角色进入前台阅读／完成恢复状态，浮层旁定位避让与现有真实结果同步，减少动态静态展示，快速任务不因动画延迟。代码待实施；Check／Create／Summon 任务动作不随本条自动扩展。
+已确认交互流程：复用既有读书图集，跟随角色进入前台阅读／完成恢复状态，浮层旁定位避让与现有真实结果同步，减少动态静态展示，快速任务不因动画延迟。现统一并入 PDF-07～10 实施；其他动作的授权来自 DESIGN.md 第 4.13 节后续确认，不追溯改写本条早期范围。
 
 ### 三种结果反馈 WP-06
 

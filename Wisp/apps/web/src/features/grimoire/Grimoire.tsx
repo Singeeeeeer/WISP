@@ -91,6 +91,25 @@ export function Grimoire() {
             />
           </label>
           <label>
+            待机节奏
+            <select
+              value={settings.idleRhythm}
+              aria-describedby="idle-rhythm-help"
+              onChange={(e) =>
+                update({
+                  idleRhythm: e.target.value === "lively" ? "lively" : "default",
+                })
+              }
+            >
+              <option value="default">默认</option>
+              <option value="lively">活泼</option>
+            </select>
+          </label>
+          <p id="idle-rhythm-help" className="subtle">
+            停留半秒后仍开始轻浮；小动作在默认约 1.2 秒、活泼约 0.65 秒后开始。
+            移动时停止小动作，减少动态时静态展示。
+          </p>
+          <label>
             <input
               type="checkbox"
               checked={settings.helpfulProposals}

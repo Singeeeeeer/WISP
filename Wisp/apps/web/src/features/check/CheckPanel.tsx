@@ -1,4 +1,5 @@
 import { captureOutcome } from "../companion/outcome";
+import { operationPose, useTaskActivity } from "../companion/activity";
 import { FloatingPanel } from "../../shared/FloatingPanel";
 import { summonFromResult } from "../../domain/continuation";
 import { ExecutionChoice } from "./ExecutionChoice";
@@ -225,6 +226,9 @@ export function LocalPanel({ draft }: { draft: ActionDraft }) {
 }
 function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
   const operation = draft.entry === "summon" ? "check" : draft.entry;
+  const activity = useTaskActivity(
+    draft.presentation === "brewing" ? "brewing" : operationPose(operation),
+  );
   const materials = useDocuments((s) => s.materials);
   const current = materials.find((m) => m.id === draft.snapshot.materialId);
   const saveStatus = useDocuments((s) => s.status[draft.snapshot.materialId]);
@@ -243,6 +247,7 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
   };
   const reset = () => {
     if (current) {
+      activity.clear();
       setRecord(undefined);
       setExcerptLimit(defaultExcerptLimit());
       setError("");
@@ -251,9 +256,10 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
       });
     }
   };
-  async function submit() {
+  async function submit(origin: Element) {
     if (lock.current) return;
     const finish = captureOutcome();
+    const finishActivity = activity.start(origin);
     lock.current = true;
     setBusy(true);
     setError("");
@@ -265,10 +271,12 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
         excerptLimit,
       );
       const saved = await repository.saveRecord(computed);
+      finishActivity("success");
       finish("success");
       setRecord(saved);
       completedForProposal(saved);
     } catch (e) {
+      finishActivity("error");
       finish("error");
       setError(e instanceof Error ? e.message : "处理或保存失败，请重试。");
     } finally {
@@ -375,7 +383,7 @@ function LocalOnlyPanel({ draft }: { draft: ActionDraft }) {
             <button
               className="primary"
               disabled={busy}
-              onClick={() => void submit()}
+              onClick={(e) => void submit(e.currentTarget)}
             >
               {busy ? "正在处理并保存…" : actions[operation]}
             </button>
