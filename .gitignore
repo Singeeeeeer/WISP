@@ -1,0 +1,30 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
+
+# Dependencies, portable runtimes, and generated output
+node_modules/
+runtime/
+.venv/
+.npm-cache/
+dist/
+__pycache__/
+.pytest_cache/
+test-results/
+playwright-report/
+coverage/
+releases/
+*.zip
+/Wisp/PACKAGE-INFO.json
+/Wisp/docs/gemini-live-*.json
+/*.mp4
+
+# Local tooling and OS files
+.codex/
+.agents/
+.DS_Store
+Thumbs.db

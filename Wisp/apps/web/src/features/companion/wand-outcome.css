@@ -1,0 +1,46 @@
+/* Decorative result feedback; existing status/error text carries the meaning. */
+.wand-outcome {
+  position: fixed;
+  width: 36px;
+  height: 36px;
+  z-index: 2301;
+  pointer-events: none;
+  opacity: 0;
+  transform-origin: center;
+  overflow: visible;
+}
+.wand-outcome[data-outcome]:not([data-outcome="none"]) {
+  opacity: 1;
+}
+.wand-outcome > g {
+  display: none;
+}
+.wand-outcome[data-outcome="success"] .outcome-success,
+.wand-outcome[data-outcome="error"] .outcome-error,
+.wand-outcome[data-outcome="cancel"] .outcome-cancel {
+  display: initial;
+}
+.outcome-success {
+  fill: #dfb54f;
+  stroke: #fff8df;
+  stroke-width: 0.8;
+}
+.outcome-error {
+  fill: #fff8df;
+  stroke: #65416e;
+  stroke-width: 2;
+}
+.outcome-error path {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.outcome-cancel {
+  fill: #9f7ab0;
+  stroke: #fff8df;
+  stroke-width: 1;
+}
+.outcome-cancel path {
+  fill: none;
+  stroke: #90709c;
+}

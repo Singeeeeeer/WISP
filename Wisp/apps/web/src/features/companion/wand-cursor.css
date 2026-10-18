@@ -1,0 +1,92 @@
+@media (any-pointer: fine) {
+  .app-shell {
+    --wisp-wand-cursor: url("/assets/wisp/wand-cursor.svg") 5 1, default;
+    cursor: var(--wisp-wand-cursor);
+  }
+
+  .app-shell button:enabled:not([aria-disabled="true"]),
+  .app-shell a[href]:not([aria-disabled="true"]),
+  .app-shell summary,
+  .app-shell .ring-dismiss {
+    cursor: var(--wisp-wand-cursor);
+  }
+
+  .app-shell button:enabled:not([aria-disabled="true"]):hover,
+  .app-shell a[href]:not([aria-disabled="true"]):hover,
+  .app-shell summary:not([aria-disabled="true"]):hover {
+    cursor:
+      url("/assets/wisp/wand-hover.svg") 5 1,
+      pointer;
+  }
+
+  .app-shell button:enabled:not([aria-disabled="true"]):active,
+  .app-shell a[href]:not([aria-disabled="true"]):active,
+  .app-shell summary:not([aria-disabled="true"]):active {
+    cursor:
+      url("/assets/wisp/wand-pressed.svg") 5 1,
+      pointer;
+  }
+
+  /* Native cursor images retain familiar editing and directional silhouettes. */
+  .app-shell input,
+  .app-shell select {
+    cursor: auto;
+  }
+
+  .app-shell textarea,
+  .app-shell
+    input:where(
+      :not([type]),
+      [type="text"],
+      [type="search"],
+      [type="email"],
+      [type="url"],
+      [type="tel"],
+      [type="password"],
+      [type="number"]
+    ) {
+    cursor:
+      url("/assets/wisp/wand-text.svg") 12 12,
+      text;
+  }
+
+  .app-shell [contenteditable=""],
+  .app-shell [contenteditable="true"],
+  .app-shell [contenteditable="plaintext-only"] {
+    cursor:
+      url("/assets/wisp/wand-text.svg") 12 12,
+      text;
+  }
+
+  .app-shell .window-titlebar {
+    cursor:
+      url("/assets/wisp/wand-grab.svg") 12 12,
+      grab;
+  }
+
+  .app-shell .resize-handle {
+    cursor:
+      url("/assets/wisp/wand-resize.svg") 12 12,
+      nwse-resize;
+  }
+
+  .app-shell :is(:disabled, :disabled *, [aria-disabled="true"], [aria-disabled="true"] *) {
+    cursor:
+      url("/assets/wisp/wand-forbidden.svg") 5 1,
+      not-allowed !important;
+  }
+}
+
+@media (any-pointer: fine) {
+  html[data-wisp-gesture="drag"] .app-shell,
+  html[data-wisp-gesture="drag"] .app-shell * {
+    cursor: grabbing !important;
+  }
+
+  html[data-wisp-gesture="resize"] .app-shell,
+  html[data-wisp-gesture="resize"] .app-shell * {
+    cursor:
+      url("/assets/wisp/wand-resize.svg") 12 12,
+      nwse-resize !important;
+  }
+}

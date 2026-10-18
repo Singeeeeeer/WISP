@@ -1,0 +1,113 @@
+.dialog:has(.cauldron) {
+  width: 960px;
+}
+.cauldron {
+  color: #63576c;
+}
+.cauldron-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.cauldron-toolbar > span {
+  margin-left: auto;
+  font-size: 12px;
+  color: #80748a;
+}
+.cauldron-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr);
+  gap: 22px;
+}
+.cauldron-list {
+  max-height: 470px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cauldron-list > button {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  overflow-wrap: anywhere;
+  flex-shrink: 0;
+}
+.cauldron-list small {
+  font-size: 10px;
+  color: #80748a;
+}
+.cauldron-list small:last-child {
+  max-height: 34px;
+  overflow: hidden;
+}
+.cauldron-detail {
+  min-width: 0;
+  border-left: 1px solid #e4dce8;
+  padding-left: 22px;
+}
+.cauldron .field-label {
+  margin-top: 12px;
+}
+.cauldron input:not([type="file"]),
+.cauldron textarea {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 9px;
+  border: 1px solid #d2c7d7;
+  background: #fffef9;
+  border-radius: 5px;
+}
+.cauldron textarea {
+  min-height: 170px;
+  resize: vertical;
+}
+.cauldron-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 180px;
+  overflow: auto;
+  line-height: 1.8;
+  background: #f5f1f7;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 12px;
+}
+.cauldron-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.source-info {
+  font-size: 11px;
+  color: #7b6b88;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.65;
+}
+.dock {
+  max-width: 96vw;
+}
+.dock-documents {
+  overflow-x: auto;
+  max-width: 65vw;
+}
+@media (max-width: 700px) {
+  .cauldron-grid {
+    grid-template-columns: 1fr;
+  }
+  .cauldron-list {
+    max-height: 150px;
+  }
+  .cauldron-detail {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .cauldron-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

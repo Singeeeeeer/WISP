@@ -1,0 +1,92 @@
+.wand-feedback {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 2300;
+  pointer-events: none;
+}
+.wand-feedback > * {
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  pointer-events: none;
+}
+.wand-hover-ring {
+  color: #c99942;
+  fill: none;
+  stroke: #c99942;
+  stroke-width: 1;
+}
+.wand-press-glow {
+  color: #ffe5a6;
+  fill: #ffe5a6;
+  filter: drop-shadow(0 0 3px #efc668);
+}
+.wand-progress {
+  color: #d6a848;
+  left: 12px;
+  fill: #d6a848;
+  stroke: #fff3bd;
+  stroke-width: 0.5;
+  transform-origin: center;
+}
+.wand-feedback > .wand-traction {
+  color: #d0a252;
+  left: -14px;
+  top: -14px;
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: #d0a252;
+  stroke-width: 1;
+}
+.wand-feedback[data-state="hover"] .wand-hover-ring {
+  opacity: 0.7;
+}
+.wand-feedback[data-state="pressed"] .wand-press-glow {
+  opacity: 1;
+}
+.wand-feedback[data-state="progress"] .wand-progress {
+  left: 12px;
+  opacity: 0.9;
+  animation: wand-progress-orbit 1.4s linear infinite;
+}
+.wand-feedback[data-state="dragging"] .wand-traction {
+  opacity: 0.8;
+}
+.wand-feedback[data-reduced="true"] .wand-progress {
+  left: 12px;
+  animation: none;
+}
+.wand-click {
+  color: #d9aa50;
+  position: fixed;
+  width: 24px;
+  height: 24px;
+  z-index: 2300;
+  opacity: 0;
+  pointer-events: none;
+  fill: none;
+  stroke: #d9aa50;
+  stroke-width: 1;
+  transform-origin: center;
+}
+.desktop-window[data-wisp-dragging="true"] {
+  outline: 1px solid #c99942;
+  outline-offset: 2px;
+}
+@keyframes wand-progress-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wand-feedback[data-state="progress"] .wand-progress {
+    animation: none;
+  }
+}

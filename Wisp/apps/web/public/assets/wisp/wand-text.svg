@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" shape-rendering="crispEdges">
+  <!-- The I-beam stem is centered on the (12, 12) text-selection hotspot. -->
+  <path fill="#fff8df" d="M7 2h10v4h-3v12h3v4H7v-4h3V6H7Z"/>
+  <path fill="#34213f" d="M8 3h8v2h-3v14h3v2H8v-2h3V5H8Z"/>
+  <path fill="#d7ae54" stroke="#fff8df" stroke-width="1" d="M19 5h1v2h2v1h-2v2h-1V8h-2V7h2Z"/>
+</svg>

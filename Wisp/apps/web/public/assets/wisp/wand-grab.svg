@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" shape-rendering="crispEdges">
+  <!-- Four small pulls surround the (12, 12) grip hotspot. -->
+  <g fill="none" stroke-linecap="square" stroke-linejoin="miter">
+    <path stroke="#fff8df" stroke-width="3.5" d="M12 4v4m-2-2 2-2 2 2M12 20v-4m-2 2 2 2 2-2M4 12h4m-2-2-2 2 2 2M20 12h-4m2-2 2 2-2 2"/>
+    <path stroke="#34213f" stroke-width="1.5" d="M12 4v4m-2-2 2-2 2 2M12 20v-4m-2 2 2 2 2-2M4 12h4m-2-2-2 2 2 2M20 12h-4m2-2 2 2-2 2"/>
+    <circle cx="12" cy="12" r="3" stroke="#fff8df" stroke-width="3"/>
+    <circle cx="12" cy="12" r="3" stroke="#a9772d" stroke-width="1"/>
+  </g>
+</svg>

@@ -1,0 +1,100 @@
+.floating-panel {
+  position: fixed;
+  z-index: 1000;
+  width: 440px;
+  max-width: calc(100vw - 24px);
+  max-height: min(560px, calc(100dvh - 24px));
+  display: flex;
+  flex-direction: column;
+  background: #fffdf5;
+  border: 1px solid #b6a1c2;
+  border-radius: 12px;
+  box-shadow: 0 10px 32px #33324530;
+  outline: none;
+  font-size: 12px;
+  overflow: hidden;
+}
+.floating-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid #e7dfeb;
+  color: #776184;
+  font-size: 11px;
+}
+.floating-heading button {
+  padding: 0 7px;
+  font-size: 22px;
+  border: 0;
+  background: transparent;
+  line-height: 1.3;
+}
+.floating-content {
+  overflow: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+.floating-content h2 {
+  font-size: 19px;
+  margin-bottom: 12px;
+}
+.floating-content h3 {
+  font-size: 14px;
+}
+.floating-content .eyebrow {
+  font-size: 9px;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.floating-content .scope {
+  margin: 12px 0;
+  padding: 10px;
+}
+.floating-content .scope pre {
+  max-height: 110px;
+}
+.floating-content blockquote {
+  margin: 10px 0;
+  padding-left: 10px;
+  border-left: 2px solid #cbb9d6;
+}
+.floating-content .instruction {
+  height: 52px;
+  min-height: 44px;
+  max-height: 120px;
+}
+.floating-content .notice {
+  font-size: 11px;
+  padding: 8px;
+}
+.floating-content .panel-actions {
+  position: sticky;
+  bottom: -16px;
+  background: #fffdf5;
+  border-top: 1px solid #e7dfeb;
+  padding: 10px 0 2px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+.floating-content .panel-actions button {
+  padding: 6px 9px;
+  font-size: 11px;
+}
+.floating-content .role-grid {
+  gap: 6px;
+}
+.floating-content .role-grid button {
+  padding: 10px 4px;
+}
+.floating-content .role-grid strong {
+  font-size: 11px;
+}
+.floating-content [role="status"]:empty {
+  display: none;
+}

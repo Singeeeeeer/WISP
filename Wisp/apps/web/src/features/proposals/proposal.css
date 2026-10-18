@@ -1,0 +1,35 @@
+.proposal-card {
+  position: fixed;
+  z-index: 170;
+  width: min(320px, calc(100vw - 24px));
+  box-sizing: border-box;
+  max-height: min(300px, calc(100vh - 200px));
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  padding: 18px;
+  border: 1px solid #b9a5c3;
+  border-radius: 18px;
+  color: #382b40;
+  background: #fffcf5;
+  box-shadow: 0 10px 35px #33213e24;
+}
+.proposal-card p {
+  line-height: 1.65;
+  margin: 10px 0;
+}
+.proposal-card small {
+  display: block;
+  line-height: 1.5;
+  color: #706377;
+}
+.field-label select,
+.book-page select {
+  display: block;
+  margin: 8px 0;
+  padding: 9px;
+  max-width: 100%;
+}
+.field-label small {
+  display: block;
+  margin-bottom: 10px;
+}

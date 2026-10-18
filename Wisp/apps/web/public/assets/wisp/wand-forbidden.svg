@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" shape-rendering="crispEdges">
+  <!-- The muted wand retains its (5, 1) hotspot; the slash also signals prohibition. -->
+  <path fill="none" stroke="#fff8df" stroke-width="1.5" stroke-linejoin="round" d="M7 7h3v3h3v3h3v3h3v3h3v3h-4v-3h-3v-3h-3v-3H9v-3H6V7ZM5 1h2v3h1v1h2v1h2v2H9v1H8v1H7v2H5v-2H4V9H3V8H0V6h3V5h1V4h1Z"/>
+  <path fill="#4f405a" d="M7 7h3v3h3v3h3v3h3v3h3v3h-4v-3h-3v-3h-3v-3H9v-3H6V7Z"/>
+  <path fill="#796a81" d="M9 10h2v2h2v2h2v2h2v2h2v2h-2v-2h-2v-2h-2v-2h-2v-2H9Z"/>
+  <path fill="#6d5a43" d="M5 1h2v3h1v1h2v1h2v2H9v1H8v1H7v2H5v-2H4V9H3V8H0V6h3V5h1V4h1Z"/>
+  <path fill="#a99b7b" d="M5 1h2v4h1v1h3v1H8v1H7v3H5V8H4V7H1V6h3V5h1Z"/>
+  <circle cx="16" cy="16" r="5.5" fill="#fff8df" stroke="#fff8df" stroke-width="3"/>
+  <circle cx="16" cy="16" r="5.5" fill="none" stroke="#4f405a" stroke-width="2"/>
+  <path fill="none" stroke="#4f405a" stroke-width="2" d="m12 12 8 8"/>
+</svg>

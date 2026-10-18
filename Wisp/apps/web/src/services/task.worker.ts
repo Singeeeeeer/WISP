@@ -1,0 +1,14 @@
+import { runLocal } from "../domain/local-text";
+import type { Task } from "../domain/task";
+self.onmessage = (event: MessageEvent<Task>) => {
+  try {
+    const t = event.data;
+    self.postMessage({
+      result: runLocal(t.operation, t.snapshot, t.instruction, t.excerptLimit),
+    });
+  } catch (e) {
+    self.postMessage({
+      error: e instanceof Error ? e.message : "本地处理失败",
+    });
+  }
+};

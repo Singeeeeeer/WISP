@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.venv/
+.npm-cache/
+__pycache__/
+.pytest_cache/
+test-results/
+playwright-report/
+.env
+
+# Server configuration and local artifacts
+.env.*
+!.env.example
+*.log
+*.pem
+*.key
+.DS_Store
+Thumbs.db
+coverage/
+
+# Private handoff archives may contain server credentials
+releases/

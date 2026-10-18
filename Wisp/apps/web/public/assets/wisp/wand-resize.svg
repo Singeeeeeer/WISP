@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" shape-rendering="crispEdges">
+  <!-- The diagonal shaft passes through the (12, 12) resize hotspot. -->
+  <g fill="none" stroke-linecap="square" stroke-linejoin="miter">
+    <path stroke="#fff8df" stroke-width="5" d="M4 11V4h7M4 4l16 16m-7 0h7v-7"/>
+    <path stroke="#34213f" stroke-width="3" d="M4 11V4h7M4 4l16 16m-7 0h7v-7"/>
+    <path stroke="#d7ae54" stroke-width="1" d="M4 11V4h7M4 4l16 16m-7 0h7v-7"/>
+  </g>
+</svg>
