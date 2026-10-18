@@ -77,26 +77,28 @@ test("following settles into gentle idle motion and resumes with pointer movemen
     .toBeLessThan(before!.x - 100);
 });
 
-test("focus and text selection yield to the corner without interrupting editing", async ({
+test("focus and text selection point beside the text without interrupting editing", async ({
   page,
 }) => {
   const companion = page.locator(".companion");
   await page
     .getByRole("button", { name: "Open Bookstore event proposal", exact: true })
     .click();
-  const editor = (await editDocument(page, "Bookstore event proposal"));
+  const editor = await editDocument(page, "Bookstore event proposal");
   await editor.fill(
-    "选中这段文字以后，小魔女应当让开。\n仍然可以继续输入文字。",
+    "选中这段文字以后，小魔女应当在文字旁指示。\n仍然可以继续输入文字。",
   );
   await expect(editor).toBeFocused();
-  await expect(companion).toHaveAttribute("data-state", "yielding");
+  await expect(companion).toHaveAttribute("data-state", "text-pointing");
   await page.mouse.move(1100, 650);
-  await expect(companion).toHaveAttribute("data-state", "yielding");
+  await expect(companion).toHaveAttribute("data-state", "text-pointing");
   await expect
     .poll(async () => {
       const box = (await companion.boundingBox())!;
-      const viewport = page.viewportSize()!;
-      return box.x > viewport.width / 2 && box.y > viewport.height / 2;
+      const text = (await editor.boundingBox())!;
+      return (
+        box.x < text.x + text.width + 100 && box.y < text.y + text.height + 100
+      );
     })
     .toBe(true);
   await page.keyboard.press("Control+End");
@@ -107,7 +109,7 @@ test("focus and text selection yield to the corner without interrupting editing"
   await page.mouse.move(box.x + 8, box.y + 14);
   await page.mouse.down();
   await page.mouse.move(box.x + 180, box.y + 14, { steps: 8 });
-  await expect(companion).toHaveAttribute("data-state", "yielding");
+  await expect(companion).toHaveAttribute("data-state", "text-pointing");
   await page.mouse.up();
   expect(
     await editor.evaluate(
@@ -115,7 +117,7 @@ test("focus and text selection yield to the corner without interrupting editing"
         element.selectionEnd > element.selectionStart,
     ),
   ).toBe(true);
-  await expect(companion).toHaveAttribute("data-state", "yielding");
+  await expect(companion).toHaveAttribute("data-state", "text-pointing");
   await page.mouse.click(1200, 650);
   await expect(editor).not.toBeFocused();
   await page.mouse.move(1100, 700);
@@ -189,7 +191,9 @@ test("reduced motion stays fixed and menu and visibility settings remain usable"
     y: 0,
   });
   await page.keyboard.press("q");
-  await expect(page.getByRole("menu", { name: "Core abilities" })).toBeVisible();
+  await expect(
+    page.getByRole("menu", { name: "Core abilities" }),
+  ).toBeVisible();
   await expect(companion).toHaveCount(1);
   await expect(companion).toHaveAttribute("data-state", "casting");
   await expect(page.locator(".ring-center .wisp-sprite")).toHaveCount(0);
@@ -205,7 +209,9 @@ test("reduced motion stays fixed and menu and visibility settings remain usable"
   await expect(companion).toHaveCount(0);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Open core abilities" }).click();
-  await expect(page.getByRole("menu", { name: "Core abilities" })).toBeVisible();
+  await expect(
+    page.getByRole("menu", { name: "Core abilities" }),
+  ).toBeVisible();
   await expect(page.locator(".ring-center .wisp-sprite")).toHaveCount(0);
 });
 

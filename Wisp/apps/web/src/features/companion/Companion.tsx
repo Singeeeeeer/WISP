@@ -3,6 +3,7 @@ import { useInteraction } from "../../state/stores";
 import { Sprite } from "./Sprite";
 import { MagicRing } from "./MagicRing";
 import { getMagicLayout, type Point } from "./magic-layout";
+import { createTextTracker, getTextLayout } from "./text-anchor";
 import { pointer, rememberPointer } from "./pointer";
 import {
   besideSurface,
@@ -29,7 +30,7 @@ export function Companion() {
   const activityRef = useRef(activity);
   activityRef.current = activity;
   const [visual, setVisual] = useState<{
-    pose: CharacterPoseName;
+    pose: CharacterPoseName | "pointing";
     success: boolean;
   }>({ pose: "flying", success: false });
   const visualRef = useRef(visual);
@@ -52,7 +53,6 @@ export function Companion() {
   const heading = useRef<HTMLDivElement>(null);
   const position = useRef<Point | undefined>(undefined);
   const flight = useRef({ facing: 1, pitch: 0 });
-  const gesture = useRef({ pressed: false, selecting: false });
   useEffect(() => {
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
     const change = () => setSystemReduced(preference.matches);
@@ -69,7 +69,6 @@ export function Companion() {
     const el = ref.current;
     const direction = heading.current;
     if (!el || !direction || !settings.characterVisible) {
-      gesture.current = { pressed: false, selecting: false };
       return;
     }
     const height = (width * 260) / 270;
@@ -109,7 +108,6 @@ export function Companion() {
       el.style.transform = `translate(${x}px, ${y}px)`;
     };
     if (menu) {
-      gesture.current = { pressed: false, selecting: false };
       el.dataset.state = "casting";
       el.dataset.phase = "";
       el.dataset.activitySource = "";
@@ -126,7 +124,12 @@ export function Companion() {
     let lastTurnX = pointer.x;
     let inside = document.hasFocus();
     let frame = 0;
-    const showPose = (pose: CharacterPoseName, success = false) => {
+    const textTracker = createTextTracker();
+    let textSuppressed = false;
+    const showPose = (
+      pose: CharacterPoseName | "pointing",
+      success = false,
+    ) => {
       if (
         visualRef.current.pose === pose &&
         visualRef.current.success === success
@@ -159,16 +162,21 @@ export function Companion() {
     const down = (event: PointerEvent) => {
       if (event.button !== 0) return;
       lastMove = performance.now();
-      gesture.current.pressed = true;
+      // A new click ends a reading selection until a real selection changes.
+      textSuppressed = !isEditing(event.target);
+      textTracker.invalidate();
     };
     const end = () => {
-      gesture.current.pressed = false;
-      gesture.current.selecting = false;
       lastMove = performance.now();
+      textTracker.invalidate();
     };
     const selection = () => {
-      gesture.current.selecting =
-        gesture.current.pressed && !!document.getSelection()?.toString();
+      textSuppressed = false;
+      end();
+    };
+    const focus = (event: FocusEvent) => {
+      if (isEditing(event.target)) textSuppressed = false;
+      end();
     };
     const leave = () => {
       inside = false;
@@ -179,19 +187,32 @@ export function Companion() {
       lastMove = performance.now();
       lastPoint = { ...pointer };
       lastTurnX = pointer.x;
+      textTracker.invalidate();
     };
     const tick = (now: number) => {
       const current = activityRef.current;
-      const yielding =
-        !!document.documentElement.dataset.wispGesture ||
-        gesture.current.selecting ||
-        isEditing(document.activeElement);
+      const yielding = !!document.documentElement.dataset.wispGesture;
+      const textAnchor =
+        !yielding && (!textSuppressed || isEditing(document.activeElement))
+          ? textTracker.read()
+          : undefined;
+      const pointing =
+        !yielding &&
+        (!textSuppressed || isEditing(document.activeElement)) &&
+        textTracker.hasTarget();
+      const textTarget = textAnchor
+        ? getTextLayout(textAnchor, width, {
+            width: innerWidth,
+            height: innerHeight,
+          })
+        : undefined;
       const modal = document.querySelector(
         '[role="dialog"][aria-modal="true"]',
       );
       const working =
         current?.surface.isConnected &&
         !yielding &&
+        !pointing &&
         (!modal || modal === current.surface)
           ? current
           : undefined;
@@ -215,13 +236,15 @@ export function Companion() {
         ? reduced
           ? "still"
           : "yielding"
-        : working
-          ? working.kind
-          : reduced
-            ? "still"
-            : now - lastMove >= 500
-              ? "idle"
-              : "following";
+        : pointing
+          ? "text-pointing"
+          : working
+            ? working.kind
+            : reduced
+              ? "still"
+              : now - lastMove >= 500
+                ? "idle"
+                : "following";
       el.dataset.state = state;
       el.dataset.phase = working?.phase ?? "";
       el.dataset.activitySource = working
@@ -231,14 +254,20 @@ export function Companion() {
         : "";
       // On narrow screens no decoration is preferable to covering the material.
       el.style.visibility =
-        (inside || reduced) && (!working || taskTarget) ? "visible" : "hidden";
+        (inside || (reduced && !pointing)) &&
+        (!pointing || textTarget) &&
+        (!working || taskTarget)
+          ? "visible"
+          : "hidden";
       orient(
-        working
-          ? taskTarget && box && taskTarget.x < box.left
-            ? 1
-            : -1
-          : flight.current.facing,
-        reduced || working ? 0 : flight.current.pitch,
+        textTarget
+          ? textTarget.facing
+          : working
+            ? taskTarget && box && taskTarget.x < box.left
+              ? 1
+              : -1
+            : flight.current.facing,
+        reduced || working || pointing ? 0 : flight.current.pitch,
       );
       const idleAge = now - lastMove;
       const idleStart = settings.idleRhythm === "lively" ? 650 : 1200;
@@ -251,19 +280,25 @@ export function Companion() {
           ? (["hat", "sweep", "nap"] as const)[idleIndex]
           : "flying";
       el.dataset.idleAction = idleAction === "flying" ? "" : idleAction;
-      showPose(working?.kind ?? idleAction, working?.phase === "success");
+      showPose(
+        pointing ? "pointing" : (working?.kind ?? idleAction),
+        working?.phase === "success",
+      );
       const target =
+        textTarget ??
         taskTarget ??
-        (state === "yielding" || state === "still"
-          ? {
-              x: limit(innerWidth - width - 32, width, innerWidth),
-              y: limit(innerHeight - height - 100, height, innerHeight),
-            }
-          : nearby());
+        (pointing
+          ? { x, y }
+          : state === "yielding" || state === "still"
+            ? {
+                x: limit(innerWidth - width - 32, width, innerWidth),
+                y: limit(innerHeight - height - 100, height, innerHeight),
+              }
+            : nearby());
       const alpha = 1 - Math.exp(-Math.min(now - previous, 64) / 110);
       previous = now;
       // Yield immediately so the character never travels across the selection.
-      if (state === "yielding" || state === "still" || reduced) {
+      if (pointing || state === "yielding" || state === "still" || reduced) {
         x = target.x;
         y = target.y;
       } else {
@@ -287,7 +322,8 @@ export function Companion() {
       }
       // Constrain the rotated sprite, not just its unrotated positioning box.
       const radians =
-        (Math.abs(reduced || working ? 0 : flight.current.pitch) * Math.PI) /
+        (Math.abs(reduced || working || pointing ? 0 : flight.current.pitch) *
+          Math.PI) /
         180;
       const cosine = Math.cos(radians);
       const sine = Math.sin(radians);
@@ -307,6 +343,12 @@ export function Companion() {
     document.documentElement.addEventListener("pointerleave", leave);
     document.documentElement.addEventListener("pointerenter", enter);
     document.addEventListener("selectionchange", selection);
+    document.addEventListener("input", end);
+    document.addEventListener("select", selection, true);
+    document.addEventListener("focusin", focus);
+    document.addEventListener("focusout", focus);
+    window.addEventListener("scroll", textTracker.invalidate, true);
+    window.addEventListener("resize", textTracker.invalidate);
     tick(performance.now());
     return () => {
       cancelAnimationFrame(frame);
@@ -319,6 +361,13 @@ export function Companion() {
       document.documentElement.removeEventListener("pointerleave", leave);
       document.documentElement.removeEventListener("pointerenter", enter);
       document.removeEventListener("selectionchange", selection);
+      document.removeEventListener("input", end);
+      document.removeEventListener("select", selection, true);
+      document.removeEventListener("focusin", focus);
+      document.removeEventListener("focusout", focus);
+      window.removeEventListener("scroll", textTracker.invalidate, true);
+      window.removeEventListener("resize", textTracker.invalidate);
+      textTracker.dispose();
     };
   }, [
     settings.characterVisible,
@@ -340,7 +389,7 @@ export function Companion() {
           style={{ width }}
         >
           <div ref={heading} className="companion-heading">
-            {menu ? (
+            {menu || visual.pose === "pointing" ? (
               <Sprite name="casting" className="companion-pose" />
             ) : (
               <CharacterPose pose={visual.pose} success={visual.success} />

@@ -57,7 +57,7 @@ async function held(page: Page, operation = "understand") {
   });
   return requests;
 }
-async function run(page: Page, label = "理解") {
+async function run(page: Page, label = "Understand") {
   await page
     .getByRole("button", { name: `Run Gemini ${label}`, exact: true })
     .click();
@@ -184,8 +184,8 @@ test("Check and Create show distinct actions; native editing takes priority", as
   page,
 }) => {
   for (const [entry, op, label, state] of [
-    ["Check", "check", "检查", "checking"],
-    ["Create", "create", "创作", "creating"],
+    ["Check", "check", "Check", "checking"],
+    ["Create", "create", "Create", "creating"],
   ]) {
     const requests = await held(page, op);
     await open(page, entry);
@@ -200,7 +200,7 @@ test("Check and Create show distinct actions; native editing takes priority", as
     await page.keyboard.insertText("编辑仍有效");
     await expect(page.locator(".companion")).toHaveAttribute(
       "data-state",
-      "yielding",
+      "text-pointing",
     );
     await page.getByRole("button", { name: "Stop waiting", exact: true }).click();
     await expect(page.getByRole("alert")).toBeVisible();
@@ -341,7 +341,7 @@ test("background uses the latest running task and foreground work has priority",
     path: "test-results/english/pdf0710-background-brewing.png",
   });
   await open(page, "Check");
-  await run(page, "检查");
+  await run(page, "Check");
   await expect(character).toHaveAttribute("data-state", "checking");
   await expect(character).toHaveAttribute("data-activity-source", "foreground");
   await page.getByRole("button", { name: "Stop waiting", exact: true }).click();

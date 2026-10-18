@@ -1,6 +1,7 @@
 """Wisp text API; no persistent task queue and no Watch model execution."""
 import hashlib
 import logging
+import os
 import time
 import uuid
 from collections import OrderedDict
@@ -80,7 +81,8 @@ def create_app(settings=None, *, transport=None):
 
     @api.get('/api/health')
     async def health():
-        return {'status':'ok','service':'wisp','environment':'local','model_connected':engine.verified,
+        return {'status':'ok','service':'wisp','environment':os.environ.get('WISP_ENVIRONMENT','local'),
+            'model_connected':engine.verified,
             'model_status':'verified' if engine.verified else ('configured' if engine.settings.configured else 'unconfigured'),
             'jobs_enabled':False}
 

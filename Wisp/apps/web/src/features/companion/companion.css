@@ -1,6 +1,9 @@
 .companion[data-state="idle"] .companion-pose {
   animation: wisp-hover 2.8s ease-in-out infinite;
 }
+.companion[data-state="text-pointing"] {
+  z-index: 1100;
+}
 @keyframes wisp-hover {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
