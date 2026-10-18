@@ -128,3 +128,7 @@ PDF-03／04 本分支：独立 cauldron-import 服务管理投放占用，materi
 - [WHATWG 拖放模型](https://html.spec.whatwg.org/multipage/dnd.html)、[$1 单笔手势识别参考](https://depts.washington.edu/acelab/proj/dollar/index.html)。
 
 这些链接是前序调研与实施前核对入口，不表示项目已安装、已调用或已验证对应能力。
+
+### PDF-03／04 真实启动补充（2026-10-18）
+
+启动器 --config 可引用已有本机配置，隔离服务15311已configured。真实TXT→Understand首次提交返回503／MODEL_CONNECTION_CLOSED；来源与版本绑定及失败不存结果通过，无自动重试或代理修改。重复验证入口为 Wisp/scripts/verify_copy_live.mjs --live；真实三能力成功仍待网络可达后验收。

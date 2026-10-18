@@ -58,3 +58,19 @@
 - [选区冻结副本](screenshots/pdf03-04-selection.png)
 - [其他模态内拒绝投放](screenshots/pdf03-04-blocked.png)
 - [可放入高亮](screenshots/pdf03-04-drop.png)
+
+## 2026-10-18 真实 Gemini 接入补充
+
+用户明确授权真实调用，并要求不处理代理。两个启动器新增 `--config` 读取已有服务端配置，默认仍为当前 Wisp/.env。独立 15311 服务已加载配置，页面仍需显式选择 Gemini 并确认运行。未复制密钥、改代理、合并 main 或更新主 15278。
+
+本次真实验证：TXT 拖放 → 可编辑预览 → 确认保存 → Understand → Gemini → 运行。仅一次提交，约 23 秒返回 **HTTP 503 / MODEL_CONNECTION_CLOSED**。请求文本、来源、版本与 UTF-16 范围绑定通过；页面显示连接中断，结果仓库为空，无页面 JS 错误。按公共网络错误停止后续 Check／Create，没有自动重试。三能力真实成功与结果保存尚未验收。
+
+新增 `scripts/verify_copy_live.mjs`，用独立浏览器和虚构材料，可验证 TXT→Understand、全文副本→Check、选区副本→Create。必须显式传 `--live`；每项最多提交一次，无 mock 或请求拦截。运行入口：
+
+```powershell
+node scripts/verify_copy_live.mjs --live --url http://127.0.0.1:15311
+```
+
+Node 语法和未带 --live 的拒绝检查通过。启动器默认／显式配置共 4 项内存检查通过，两个启动源一致，独立接线审阅通过。本轮只改启动配置入口和验证脚本，应用构建沿用此前已验证的 dist。
+
+原始报告 `docs/gemini-live-copies-latest.json` 与截图 `test-results/live-copies/txt_drop-understand.png` 均被忽略，不进入源码提交；材料均为虚构，无密钥或真实用户文档。15311 保留为本分支真实配置预览。

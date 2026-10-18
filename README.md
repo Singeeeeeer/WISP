@@ -1,5 +1,7 @@
 # Witch Pointer｜智能魔女指针
 
+PDF-03／04 真实 Gemini 入口已在独立 15311 启用；本次 TXT→Understand 实际返回 503／MODEL_CONNECTION_CLOSED，来源与失败不落盘通过。按要求未处理代理，真实三能力成功仍待验收；启动方法见 Wisp/README.md，完整状态见验证记录。
+
 PDF-03／04 在 `codex/pdf03-04-import-copies` 独立分支实现验证完成：单文件拖放、文档／选区冻结副本、来源版本和草稿保护。212 项前端、64 项 API、31 项浏览器覆盖与类型／构建通过，集成及用户审阅待完成；见 [验证与集成记录](Wisp/docs/pdf03-04-import-copies-verification.md)。
 
 2026-10-18：用户要求以三个独立线程和分支并行推进 PDF-03／04 材料导入与副本、PDF-05 多材料处理、PDF-07～10 角色表现。当前建立本地源码基线与独立工作副本，进度见 TODO.md，分工见 DESIGN.md 第 4.11 节。
